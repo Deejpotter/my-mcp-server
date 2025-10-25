@@ -1,9 +1,19 @@
 [project]
 name = "my-mcp-server"
 version = "0.1.0"
-description = "My personal MCP server."
+description = "My personal MCP server with example tools and resources."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "httpx>=0.28.1",
+  "mcp>=1.0.0",
+  "httpx>=0.28.1",
+  "click>=8.0.0",
+  "requests>=2.28.0",
 ]
+
+[project.scripts]
+my-mcp-server = "main:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
