@@ -17,16 +17,32 @@ uv sync
 
 # Test the HTTP server
 echo "🧪 Testing HTTP server..."
-timeout 5 uv run python main.py --transport http --port 8001 &
-sleep 2
-if curl -s http://127.0.0.1:8001/health > /dev/null; then
-    echo "✅ HTTP server test passed"
-    pkill -f "python main.py --transport http --port 8001" || true
-else
-    echo "❌ HTTP server test failed"
-    pkill -f "python main.py --transport http --port 8001" || true
-    exit 1
-fi
+echo "Starting server in background..."
+uv run python main.py --transport http --port 8001 > /tmp/mcp-test.log 2>&1 &
+SERVER_PID=$!
+echo "Server PID: $SERVER_PID"
+
+# Wait longer and check multiple times
+for i in {1..10}; do
+    sleep 1
+    echo "Attempt $i/10: Testing connection..."
+    if curl -s http://127.0.0.1:8001/health > /dev/null; then
+        echo "✅ HTTP server test passed"
+        kill $SERVER_PID 2>/dev/null || true
+        wait $SERVER_PID 2>/dev/null || true
+        break
+    elif [ $i -eq 10 ]; then
+        echo "❌ HTTP server test failed after 10 attempts"
+        echo "Server log output:"
+        cat /tmp/mcp-test.log 2>/dev/null || echo "No log file found"
+        kill $SERVER_PID 2>/dev/null || true
+        wait $SERVER_PID 2>/dev/null || true
+        rm -f /tmp/mcp-test.log
+        exit 1
+    fi
+done
+
+rm -f /tmp/mcp-test.log
 
 # Create necessary directories
 echo "📁 Setting up directories..."
