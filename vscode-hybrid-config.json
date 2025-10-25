@@ -1,0 +1,30 @@
+{
+  "mcp": {
+    "mcpServers": {
+      "my-hybrid-mcp-server": {
+        "command": "node",
+        "args": [
+          "-e",
+          "console.log('Using hybrid MCP server with API key authentication')"
+        ],
+        "transport": {
+          "type": "http",
+          "uri": "https://api.mcp.deejpotter.com",
+          "headers": {
+            "X-MCP-Copilot-Key": "${MCP_COPILOT_KEY}",
+            "User-Agent": "VS-Code-MCP-Client/1.0"
+          }
+        },
+        "env": {
+          "MCP_CLIENT_TYPE": "vscode"
+        }
+      }
+    }
+  },
+  "myMcpServer": {
+    "useHybridAuth": true,
+    "apiEndpoint": "https://api.mcp.deejpotter.com",
+    "webEndpoint": "https://mcp.deejpotter.com",
+    "authMethod": "api_key"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "mcp": {
+    "mcpServers": {
+      "my-remote-mcp-server": {
+        "command": "node",
+        "args": [
+          "-e",
+          "console.log('Using HTTP MCP server')"
+        ],
+        "transport": {
+          "type": "http",
+          "uri": "https://mcp.deejpotter.com"
+        }
+      }
+    }
+  }
+}

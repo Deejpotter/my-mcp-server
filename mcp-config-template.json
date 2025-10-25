@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "my-mcp-server-remote": {
+      "transport": {
+        "type": "http",
+        "uri": "https://mcp.deejpotter.com"
+      }
+    },
+    "my-mcp-server-local": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "main.py"
+      ],
+      "cwd": "${workspaceFolder}/my-mcp-server"
+    }
+  }
+}
