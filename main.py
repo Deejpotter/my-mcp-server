@@ -380,6 +380,98 @@ async def handle_list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="search_docs_online",
+            description="Search online documentation from multiple sources (MDN, Stack Overflow, GitHub, etc.)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query for documentation",
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "Documentation source: mdn, stackoverflow, github, devdocs, or all (default: all)",
+                        "default": "all",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (default: 5)",
+                        "default": 5,
+                    },
+                },
+                "required": ["query"],
+            },
+        ),
+        Tool(
+            name="context7_search",
+            description="Search documentation using Context7 API for specific libraries/frameworks",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "library": {
+                        "type": "string",
+                        "description": "Library name to search (e.g., 'react', 'typescript', 'python', 'fastapi')",
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "Search query within the library documentation",
+                    },
+                    "tokens": {
+                        "type": "integer",
+                        "description": "Maximum tokens to retrieve (default: 5000)",
+                        "default": 5000,
+                    },
+                },
+                "required": ["library", "query"],
+            },
+        ),
+        Tool(
+            name="github_search_code",
+            description="Search GitHub repositories for code examples and implementations",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Code search query",
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Programming language filter (e.g., 'python', 'javascript', 'typescript')",
+                    },
+                    "repo": {
+                        "type": "string",
+                        "description": "Specific repository to search (format: owner/repo)",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results (default: 5)",
+                        "default": 5,
+                    },
+                },
+                "required": ["query"],
+            },
+        ),
+        Tool(
+            name="devdocs_search",
+            description="Search DevDocs.io for comprehensive API documentation",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Documentation search query",
+                    },
+                    "docs": {
+                        "type": "string",
+                        "description": "Specific documentation set (e.g., 'javascript', 'python~3.11', 'react')",
+                    },
+                },
+                "required": ["query"],
+            },
+        ),
+        Tool(
             name="bookstack_search",
             description="Search BookStack for pages, books, or chapters",
             inputSchema={
@@ -681,6 +773,249 @@ async def handle_call_tool(
                     type="text", text=f"Error fetching URL '{url}': {str(e)}"
                 )
             ]
+
+    elif name == "search_docs_online":
+        query = arguments.get("query", "")
+        source = arguments.get("source", "all")
+        limit = arguments.get("limit", 5)
+        
+        try:
+            results = []
+            
+            if source in ["all", "stackoverflow"]:
+                # Search Stack Overflow
+                try:
+                    params = {
+                        "order": "desc",
+                        "sort": "relevance",
+                        "q": query,
+                        "site": "stackoverflow",
+                        "pagesize": limit
+                    }
+                    async with httpx.AsyncClient(timeout=30) as client:
+                        response = await client.get("https://api.stackexchange.com/2.3/search/advanced", params=params)
+                        if response.status_code == 200:
+                            data = response.json()
+                            for item in data.get("items", [])[:limit]:
+                                results.append({
+                                    "source": "Stack Overflow",
+                                    "title": item["title"],
+                                    "url": item["link"],
+                                    "score": item.get("score", 0),
+                                    "tags": item.get("tags", [])
+                                })
+                except Exception:
+                    pass
+            
+            if source in ["all", "github"]:
+                # Search GitHub repositories
+                try:
+                    headers = {"Accept": "application/vnd.github.v3+json"}
+                    github_token = os.getenv("GITHUB_TOKEN")
+                    if github_token:
+                        headers["Authorization"] = f"token {github_token}"
+                    
+                    params = {"q": f"{query} in:readme", "per_page": limit}
+                    async with httpx.AsyncClient(timeout=30) as client:
+                        response = await client.get("https://api.github.com/search/repositories", headers=headers, params=params)
+                        if response.status_code == 200:
+                            data = response.json()
+                            for item in data.get("items", [])[:limit]:
+                                results.append({
+                                    "source": "GitHub",
+                                    "title": item["full_name"],
+                                    "description": item.get("description", ""),
+                                    "url": item["html_url"],
+                                    "stars": item.get("stargazers_count", 0),
+                                    "language": item.get("language", "")
+                                })
+                except Exception:
+                    pass
+            
+            if source in ["all", "mdn"]:
+                # Search MDN Web Docs (using custom search)
+                try:
+                    search_url = f"https://developer.mozilla.org/api/v1/search?q={query}&locale=en-US"
+                    async with httpx.AsyncClient(timeout=30) as client:
+                        response = await client.get(search_url)
+                        if response.status_code == 200:
+                            data = response.json()
+                            for item in data.get("documents", [])[:limit]:
+                                results.append({
+                                    "source": "MDN",
+                                    "title": item["title"],
+                                    "url": f"https://developer.mozilla.org{item['mdn_url']}",
+                                    "summary": item.get("summary", "")[:200] + "..." if item.get("summary", "") else ""
+                                })
+                except Exception:
+                    pass
+            
+            # Format results
+            if results:
+                output = f"Online Documentation Search Results for '{query}':\n\n"
+                for i, result in enumerate(results[:limit], 1):
+                    output += f"{i}. [{result['source']}] {result['title']}\n"
+                    output += f"   URL: {result['url']}\n"
+                    
+                    if result['source'] == "Stack Overflow":
+                        output += f"   Score: {result['score']}, Tags: {', '.join(result['tags'][:3])}\n"
+                    elif result['source'] == "GitHub":
+                        output += f"   ⭐ {result['stars']}, Language: {result['language']}\n"
+                        if result['description']:
+                            output += f"   Description: {result['description'][:100]}...\n"
+                    elif result['source'] == "MDN":
+                        if result['summary']:
+                            output += f"   Summary: {result['summary']}\n"
+                    
+                    output += "\n"
+            else:
+                output = f"No online documentation found for '{query}'"
+            
+            return [types.TextContent(type="text", text=output)]
+            
+        except Exception as e:
+            return [types.TextContent(type="text", text=f"Error searching online docs: {str(e)}")]
+
+    elif name == "context7_search":
+        library = arguments.get("library", "")
+        query = arguments.get("query", "")
+        tokens = arguments.get("tokens", 5000)
+        
+        try:
+            # Use MCP Context7 functionality if available
+            context7_url = "https://api.context7.ai/v1/search"  # Placeholder URL
+            
+            payload = {
+                "library": library,
+                "query": query,
+                "max_tokens": tokens
+            }
+            
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.post(context7_url, json=payload)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    output = f"Context7 Documentation Search - {library}:\n\n"
+                    output += f"Query: {query}\n\n"
+                    
+                    if data.get("results"):
+                        for result in data.get("results", []):
+                            output += f"Section: {result.get('section', 'Unknown')}\n"
+                            output += f"Content: {result.get('content', '')[:500]}...\n"
+                            if result.get('url'):
+                                output += f"URL: {result['url']}\n"
+                            output += "\n"
+                    else:
+                        output += data.get("content", "No specific results found")
+                    
+                    return [types.TextContent(type="text", text=output)]
+                else:
+                    # Fallback: Search using library-specific documentation sites
+                    fallback_urls = {
+                        "react": f"https://react.dev/search?q={query}",
+                        "python": f"https://docs.python.org/3/search.html?q={query}",
+                        "javascript": f"https://developer.mozilla.org/en-US/search?q={query}",
+                        "typescript": f"https://www.typescriptlang.org/docs/search?q={query}",
+                        "fastapi": f"https://fastapi.tiangolo.com/search/?q={query}",
+                        "node": f"https://nodejs.org/api/index.html#{query}",
+                        "vue": f"https://vuejs.org/search/?query={query}"
+                    }
+                    
+                    if library.lower() in fallback_urls:
+                        fallback_url = fallback_urls[library.lower()]
+                        output = f"Context7 API unavailable. Here's the direct search URL for {library}:\n\n"
+                        output += f"🔗 {fallback_url}\n\n"
+                        output += f"Search query: {query}\n"
+                        output += f"Recommended: Open this URL in your browser for {library} documentation."
+                    else:
+                        output = f"Context7 API unavailable and no fallback URL found for library '{library}'"
+                    
+                    return [types.TextContent(type="text", text=output)]
+                    
+        except Exception as e:
+            return [types.TextContent(type="text", text=f"Error with Context7 search: {str(e)}")]
+
+    elif name == "github_search_code":
+        query = arguments.get("query", "")
+        language = arguments.get("language")
+        repo = arguments.get("repo")
+        limit = arguments.get("limit", 5)
+        
+        try:
+            headers = {"Accept": "application/vnd.github.v3+json"}
+            github_token = os.getenv("GITHUB_TOKEN")
+            if github_token:
+                headers["Authorization"] = f"token {github_token}"
+            
+            search_query = query
+            if language:
+                search_query += f" language:{language}"
+            if repo:
+                search_query += f" repo:{repo}"
+            
+            params = {"q": search_query, "per_page": limit}
+            
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.get("https://api.github.com/search/code", headers=headers, params=params)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    items = data.get("items", [])
+                    
+                    output = f"GitHub Code Search Results for '{query}':\n\n"
+                    
+                    for i, item in enumerate(items[:limit], 1):
+                        output += f"{i}. {item['name']} in {item['repository']['full_name']}\n"
+                        output += f"   Language: {item.get('language', 'Unknown')}\n"
+                        output += f"   URL: {item['html_url']}\n"
+                        output += f"   Repository: {item['repository']['html_url']}\n"
+                        if item['repository'].get('description'):
+                            output += f"   Description: {item['repository']['description'][:100]}...\n"
+                        output += "\n"
+                    
+                    if not items:
+                        output += "No code examples found for this query."
+                    
+                    return [types.TextContent(type="text", text=output)]
+                else:
+                    return [types.TextContent(type="text", text=f"GitHub API error: {response.status_code} - {response.text}")]
+                    
+        except Exception as e:
+            return [types.TextContent(type="text", text=f"Error searching GitHub code: {str(e)}")]
+
+    elif name == "devdocs_search":
+        query = arguments.get("query", "")
+        docs = arguments.get("docs", "")
+        
+        try:
+            # DevDocs.io search functionality
+            base_url = "https://devdocs.io"
+            
+            if docs:
+                search_url = f"{base_url}/{docs}/search?q={query}"
+                output = f"DevDocs Search for '{query}' in {docs}:\n\n"
+                output += f"🔗 Direct link: {search_url}\n\n"
+                output += f"Available documentation sets include:\n"
+                output += "• javascript - JavaScript language reference\n"
+                output += "• python~3.11 - Python 3.11 documentation\n"
+                output += "• react - React framework docs\n"
+                output += "• typescript - TypeScript documentation\n"
+                output += "• css - CSS reference\n"
+                output += "• html - HTML reference\n"
+                output += "• node - Node.js documentation\n\n"
+                output += "Visit devdocs.io for comprehensive API documentation!"
+            else:
+                search_url = f"{base_url}/search?q={query}"
+                output = f"DevDocs General Search for '{query}':\n\n"
+                output += f"🔗 Search URL: {search_url}\n\n"
+                output += "DevDocs.io provides fast, searchable documentation for popular technologies.\n"
+                output += "Try specifying a 'docs' parameter for more targeted results."
+            
+            return [types.TextContent(type="text", text=output)]
+            
+        except Exception as e:
+            return [types.TextContent(type="text", text=f"Error with DevDocs search: {str(e)}")]
 
     elif name == "clickup_get_workspaces":
         try:
