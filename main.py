@@ -236,17 +236,9 @@ def main(log_level: str, transport: str, host: str, port: int):
             description="MCP Server accessible via HTTP",
         )
 
-        @app.get("/")
-        async def root():
-            return {"message": "My MCP Server", "version": "0.1.0", "transport": "http"}
-
-        @app.get("/health")
-        async def health():
-            return {"status": "healthy", "server": "my-mcp-server"}
-
-        @app.post("/mcp")
-        async def mcp_endpoint(request: dict):
-            """Handle MCP requests over HTTP"""
+        @app.post("/")
+        async def mcp_root(request: dict):
+            """Handle MCP requests on root endpoint"""
             try:
                 # This would need proper MCP-over-HTTP implementation
                 # For now, return a simple response
@@ -257,6 +249,10 @@ def main(log_level: str, transport: str, host: str, port: int):
                 }
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
+
+        @app.get("/health")
+        async def health():
+            return {"status": "healthy", "server": "my-mcp-server"}
 
         print(f"🚀 Starting HTTP MCP server on {host}:{port}")
         print(f"📡 Ready for Cloudflare Tunnel at mcp.deejpotter.com")

@@ -30,6 +30,6 @@ services:
   # MCP stdio service for VS Code
   mcp-stdio:
     build: .
-    command: ["python", "main.py", "--transport", "stdio"]
+    command: ["uv", "run", "python", "main.py", "--transport", "stdio"]
     restart: "no"
     profiles: ["stdio"] # Only run when explicitly requested

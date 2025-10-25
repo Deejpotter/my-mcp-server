@@ -14,8 +14,8 @@ RUN pip install uv
 # Copy requirements for dependency installation
 COPY pyproject.toml uv.lock* ./
 
-# Install dependencies without building the package
-RUN uv pip install --system mcp httpx click requests fastapi uvicorn[standard]
+# Install dependencies using uv sync (faster and uses lock file)
+RUN uv sync --frozen --no-dev
 
 # Copy the main application file
 COPY main.py ./
@@ -27,5 +27,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application directly
-CMD ["python", "main.py", "--transport", "http", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application using uv
+CMD ["uv", "run", "python", "main.py", "--transport", "http", "--host", "0.0.0.0", "--port", "8000"]
