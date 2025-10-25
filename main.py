@@ -1550,12 +1550,13 @@ async def handle_call_tool(
 def main(log_level: str):
     """
     MCP Server Entry Point - Local Development Only
-    
+
     This server uses stdio transport for direct integration with VS Code/GitHub Copilot.
     For production deployment, see the remote server version.
     """
     # Set up logging
     import logging
+
     logging.basicConfig(level=getattr(logging, log_level.upper()))
 
     # STDIO Transport - Direct communication with VS Code/GitHub Copilot

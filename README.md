@@ -8,12 +8,13 @@ A lightweight Model Context Protocol (MCP) server for local VS Code integration.
 
 ### **Prerequisites**
 
-- Python 3.12+ 
+- Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager (will be installed automatically)
 
 ### **Installation**
 
 **Windows:**
+
 ```cmd
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
@@ -21,6 +22,7 @@ setup-windows.bat
 ```
 
 **Linux/macOS:**
+
 ```bash
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
@@ -28,6 +30,7 @@ chmod +x setup-linux.sh && ./setup-linux.sh
 ```
 
 **Manual Installation:**
+
 ```bash
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
@@ -69,6 +72,7 @@ uv sync
 Add to your VS Code MCP configuration file:
 
 **Location:**
+
 - **Windows:** `%APPDATA%\Code\User\mcp.json`
 - **macOS/Linux:** `~/.config/Code/User/mcp.json`
 
@@ -158,22 +162,26 @@ uv run python main.py --log-level DEBUG
 ### **Common Issues**
 
 **VS Code not detecting MCP server:**
+
 - Verify `mcp.json` file location and syntax
 - Check file paths are absolute
 - Restart VS Code after configuration changes
 
 **Missing dependencies:**
+
 ```bash
 uv sync --reinstall
 ```
 
 **Permission errors:**
+
 ```bash
 # Linux/macOS
 chmod +x setup-linux.sh
 ```
 
 **API integrations not working:**
+
 - Verify API keys in `.env` file
 - Check API token permissions/scopes
 - Test API connectivity separately
