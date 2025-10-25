@@ -197,24 +197,25 @@ async def handle_call_tool(
 @click.command()
 @click.option("--log-level", default="INFO", help="Set the logging level")
 @click.option("--transport", default="stdio", help="Transport type: stdio or http")
-@click.option("--host", default="127.0.0.1", help="Host to bind to (for HTTP transport)")
+@click.option(
+    "--host", default="127.0.0.1", help="Host to bind to (for HTTP transport)"
+)
 @click.option("--port", default=8000, help="Port to bind to (for HTTP transport)")
 def main(log_level: str, transport: str, host: str, port: int):
     """Run the MCP server."""
     # Set up logging
     import logging
+
     logging.basicConfig(level=getattr(logging, log_level.upper()))
-    
+
     if transport == "stdio":
         # Run stdio server (for local VS Code)
         async def run_stdio_server():
             async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
                 await server.run(
-                    read_stream,
-                    write_stream,
-                    server.create_initialization_options()
+                    read_stream, write_stream, server.create_initialization_options()
                 )
-        
+
         try:
             asyncio.run(run_stdio_server())
         except KeyboardInterrupt:
@@ -222,41 +223,45 @@ def main(log_level: str, transport: str, host: str, port: int):
         except Exception as e:
             print(f"Server error: {e}", file=sys.stderr)
             sys.exit(1)
-    
+
     elif transport == "http":
         # Run HTTP server (for Cloudflare Tunnel)
         import uvicorn
         from fastapi import FastAPI, HTTPException
         from fastapi.responses import JSONResponse
-        
+
         app = FastAPI(
-            title="My MCP Server", 
+            title="My MCP Server",
             version="0.1.0",
-            description="MCP Server accessible via HTTP"
+            description="MCP Server accessible via HTTP",
         )
-        
+
         @app.get("/")
         async def root():
             return {"message": "My MCP Server", "version": "0.1.0", "transport": "http"}
-        
+
         @app.get("/health")
         async def health():
             return {"status": "healthy", "server": "my-mcp-server"}
-        
+
         @app.post("/mcp")
         async def mcp_endpoint(request: dict):
             """Handle MCP requests over HTTP"""
             try:
                 # This would need proper MCP-over-HTTP implementation
                 # For now, return a simple response
-                return {"jsonrpc": "2.0", "id": request.get("id"), "result": {"status": "HTTP MCP not fully implemented yet"}}
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request.get("id"),
+                    "result": {"status": "HTTP MCP not fully implemented yet"},
+                }
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
-        
+
         print(f"🚀 Starting HTTP MCP server on {host}:{port}")
         print(f"📡 Ready for Cloudflare Tunnel at mcp.deejpotter.com")
         print(f"🔗 Access at: http://{host}:{port}")
-        
+
         try:
             uvicorn.run(app, host=host, port=port, log_level=log_level.lower())
         except KeyboardInterrupt:
@@ -264,7 +269,7 @@ def main(log_level: str, transport: str, host: str, port: int):
         except Exception as e:
             print(f"Server error: {e}", file=sys.stderr)
             sys.exit(1)
-    
+
     else:
         print(f"Unknown transport: {transport}", file=sys.stderr)
         sys.exit(1)
