@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mcp-server:
@@ -32,4 +32,4 @@ services:
     build: .
     command: ["python", "main.py", "--transport", "stdio"]
     restart: "no"
-    profiles: ["stdio"]  # Only run when explicitly requested
+    profiles: ["stdio"] # Only run when explicitly requested
