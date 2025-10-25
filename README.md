@@ -1,103 +1,69 @@
 # My MCP Server
 
-A personal Model Context Protocol (MCP) server that provides example tools and resources for AI assistants and other MCP clients.
+A comprehensive Model Context Protocol (MCP) server that provides development tools, API integrations, and documentation search capabilities for AI assistants.
 
-## Features
+## 🚀 **Quick Start**
 
-This MCP server provides:
+### **Windows Setup**
 
-### 🛠️ Tools
-
-- **echo**: Echo back any message you send
-- **calculate**: Perform basic arithmetic calculations safely
-- **current_time**: Get the current date and time with optional formatting
-
-### 📊 Resources
-
-- **system://info**: Get system information including platform and Python version
-- **datetime://current**: Get current date and time information
-
-## Installation
-
-### Prerequisites
-
-- Python 3.12 or higher
-- pip (Python package installer)
-
-### Setup
-
-1. **Clone or download this repository**
-
-   ```bash
-   git clone <your-repo-url>
-   cd my-mcp-server
-   ```
-
-2. **Create and activate a virtual environment** (recommended)
-
-   ```bash
-   python -m venv .venv
-   # On Windows:
-   .venv\Scripts\activate
-   # On macOS/Linux:
-   source .venv/bin/activate
-   ```
-
-3. **Install dependencies**
-
-   ```bash
-   pip install -e .
-   ```
-
-## Usage
-
-### Running the Server
-
-You can run the server in several ways:
-
-#### Option 1: Using the installed script
-
-```bash
-my-mcp-server
+```cmd
+curl -o setup-windows.bat https://raw.githubusercontent.com/Deejpotter/my-mcp-server/main/setup-windows.bat && setup-windows.bat
 ```
 
-#### Option 2: Running directly with Python
+### **Linux Setup**
 
 ```bash
-python main.py
+curl -fsSL https://raw.githubusercontent.com/Deejpotter/my-mcp-server/main/setup-linux.sh | bash
 ```
 
-#### Option 3: With custom log level
+### **Manual Installation**
 
 ```bash
-my-mcp-server --log-level DEBUG
+git clone https://github.com/Deejpotter/my-mcp-server.git
+cd my-mcp-server
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e .
 ```
 
-### Connecting to the Server
+## 🛠️ **Features**
 
-The server uses stdio (standard input/output) for communication, which is the standard for MCP servers. You'll typically connect to it through:
+### **File & System Operations**
 
-1. **MCP-compatible AI assistants** (like Claude Desktop with MCP support)
-2. **MCP client libraries** for testing and development
-3. **Custom applications** that implement the MCP protocol
+- **read_file** / **write_file** - File management with security checks
+- **list_files** - Directory browsing with pattern matching
+- **run_command** / **git_command** - Safe command execution
+- **search_files** - Content search across files
+- **fetch_url** - Web content retrieval
 
-### Example Usage
+### **Documentation & Code Search**
 
-Once connected, you can:
+- **search_docs_online** - Multi-source documentation search (Stack Overflow, GitHub, MDN)
+- **github_search_code** - Real-world code examples from GitHub
+- **devdocs_search** - Fast API reference lookup
+- **context7_search** - Intelligent library-specific documentation
 
-- **Use the echo tool**: Send a message and get it echoed back
-- **Perform calculations**: Send mathematical expressions like "2 + 2" or "10 * 3.14"
-- **Get current time**: Request current time with optional custom formatting
-- **Access resources**: Read system information or current datetime
+### **Productivity Integrations**
 
-## Configuration for Claude Desktop
+- **ClickUp Tools** - Task management (get workspaces, tasks, create tasks)
+- **BookStack Tools** - Knowledge management (search, get pages, create pages)
 
-If you want to use this server with Claude Desktop, add this to your MCP configuration:
+### **System Resources**
+
+- **system://info** - System and environment details
+- **workspace://info** - Project structure analysis
+- **git://status** - Version control status
+
+## ⚙️ **Configuration**
+
+### **VS Code MCP Setup**
+
+Add to `~/.config/Code/User/mcp.json` (macOS/Linux) or `%APPDATA%\Code\User\mcp.json` (Windows):
 
 ```json
 {
   "mcpServers": {
-    "my-mcp-server": {
+    "my-mcp-server-local": {
       "command": "python",
       "args": ["/path/to/your/my-mcp-server/main.py"],
       "env": {}
@@ -106,54 +72,128 @@ If you want to use this server with Claude Desktop, add this to your MCP configu
 }
 ```
 
-Replace `/path/to/your/my-mcp-server/main.py` with the actual path to your main.py file.
+### **Environment Variables**
 
-## Development
+Create `.env` file for API integrations:
 
-### Project Structure
+```env
+# Server Authentication (for remote deployment)
+MY_SERVER_API_KEY=your_secure_api_key_here
+
+# Optional API Integrations
+GITHUB_TOKEN=ghp_your_github_token_here
+CLICKUP_API_TOKEN=pk_your_clickup_token_here
+BOOKSTACK_URL=https://your-bookstack.com
+BOOKSTACK_TOKEN_ID=your_token_id
+BOOKSTACK_TOKEN_SECRET=your_token_secret
+```
+
+## 🌐 **Remote Deployment**
+
+Deploy with Docker for remote access:
+
+```bash
+# Local deployment
+docker-compose up -d
+
+# ARM devices (Raspberry Pi, Orange Pi)
+docker-compose -f docker-compose.orangepi.yml up -d
+
+# Health check
+curl http://localhost:8000/health
+```
+
+For public access, see `ADVANCED.md` for Cloudflare Tunnel setup and authentication.
+
+## 💡 **Usage Examples**
+
+### **Development Workflow**
+
+- "Read the main.py file and analyze its structure"
+- "Search GitHub for MCP server implementations"
+- "Run git status to check current changes"
+- "Create a new Python file with boilerplate code"
+
+### **Documentation Research**
+
+- "Search online docs for React hooks best practices"
+- "Find TypeScript interface examples on GitHub"
+- "Get Python asyncio documentation from DevDocs"
+
+### **Project Management**
+
+- "Show my ClickUp workspaces and current tasks"
+- "Create a new task for implementing authentication"
+- "Search BookStack for API documentation"
+
+### **System Administration**
+
+- "List all Python files in the current directory"
+- "Check system information and disk usage"
+- "Fetch the latest version info from GitHub API"
+
+## 🔧 **Commands**
+
+```bash
+# Run server locally
+python main.py --transport stdio
+
+# Run HTTP server (for remote access)
+python main.py --transport http --host 0.0.0.0 --port 8000
+
+# Docker deployment
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Update deployment
+git pull && docker-compose up -d --build
+```
+
+## 📝 **Development**
+
+### **Adding New Tools**
+
+1. Add tool definition in `handle_list_tools()`
+2. Implement handler in `handle_call_tool()`
+3. Test with simple parameters
+
+### **Project Structure**
 
 ```
 my-mcp-server/
-├── main.py           # Main server implementation
-├── pyproject.toml    # Project configuration and dependencies
-├── README.md         # This file
-├── LICENSE          # License file
-└── .venv/           # Virtual environment (after setup)
+├── main.py              # Main server implementation
+├── setup-windows.bat    # Windows setup script
+├── setup-linux.sh       # Linux setup script
+├── pyproject.toml        # Dependencies and metadata
+├── docker-compose.yml   # Docker deployment
+├── Dockerfile           # Container configuration
+├── .env.example         # Environment template
+├── README.md            # This file
+└── ADVANCED.md          # Advanced topics
 ```
 
-### Adding New Tools
+## 📚 **Documentation**
 
-To add a new tool:
+- **README.md** - Main documentation (this file)
+- **ADVANCED.md** - Deployment, security, integrations, and advanced topics
 
-1. Add the tool definition to the `handle_list_tools()` function
-2. Add the tool implementation to the `handle_call_tool()` function
-3. Test your new tool
+## 🛡️ **Security**
 
-### Adding New Resources
+The server includes multiple security features:
 
-To add a new resource:
+- File size limits and path validation
+- Command timeouts and safe execution
+- API key authentication for remote access
+- Environment variable management
 
-1. Add the resource definition to the `handle_list_resources()` function
-2. Add the resource implementation to the `handle_read_resource()` function
+For production deployment and advanced security configuration, see `ADVANCED.md`.
 
-## Troubleshooting
-
-### Common Issues
-
-1. **"Module not found" errors**: Make sure you've installed the dependencies with `pip install -e .`
-2. **Permission errors**: Ensure your virtual environment is activated
-3. **Connection issues**: Verify the server is running and check the logs
-
-### Getting Help
-
-- Check the [MCP documentation](https://modelcontextprotocol.io/)
-- Review the server logs for error messages
-- Ensure all dependencies are properly installed
-
-## License
+## 📄 **License**
 
 This project is licensed under the terms specified in the LICENSE file.
 
-## Contributing
+---
 
-Feel free to fork this project and submit pull requests for improvements or additional tools/resources!
+**Need help?** Check `ADVANCED.md` for detailed deployment instructions, API integrations, and troubleshooting guides.

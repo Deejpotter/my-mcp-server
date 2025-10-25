@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile.orangepi
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - MCP_LOG_LEVEL=info
       - MCP_HOST=0.0.0.0
