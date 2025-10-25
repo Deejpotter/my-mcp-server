@@ -3,6 +3,7 @@
 ## Prerequisites for Orange Pi
 
 ### 1. Install Docker on Orange Pi
+
 ```fish
 # Update system
 sudo apt update && sudo apt upgrade -y
@@ -23,6 +24,7 @@ docker run hello-world
 ```
 
 ### 2. Install Docker Compose (if not included)
+
 ```fish
 # Install docker-compose
 sudo apt install docker-compose -y
@@ -33,6 +35,7 @@ sudo chmod +x /usr/local/bin/docker-compose
 ```
 
 ### 3. Install Cloudflared for Orange Pi
+
 ```fish
 # Download ARM64 version (most Orange Pi 5 series)
 wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
@@ -51,6 +54,7 @@ cloudflared --version
 ## Deployment Steps
 
 ### 1. Clone and Build on Orange Pi
+
 ```fish
 # Clone your repo to Orange Pi
 git clone https://github.com/Deejpotter/my-mcp-server.git
@@ -68,6 +72,7 @@ docker-compose -f docker-compose.orangepi.yml logs -f
 ```
 
 ### 2. Test Local Service
+
 ```fish
 # Test health endpoint
 curl -s http://localhost:8000/health
@@ -82,6 +87,7 @@ curl -s -X POST http://localhost:8000/mcp \
 ```
 
 ### 3. Setup Cloudflare Tunnel
+
 ```fish
 # Login to Cloudflare
 cloudflared tunnel login
@@ -94,6 +100,7 @@ cloudflared tunnel create mcp-orangepi
 ```
 
 Example config file (`~/.cloudflared/config.yml`):
+
 ```yaml
 tunnel: YOUR_TUNNEL_ID_HERE
 credentials-file: /home/your-user/.cloudflared/YOUR_TUNNEL_ID.json
@@ -119,6 +126,7 @@ sudo systemctl status cloudflared
 ```
 
 ### 4. Verify Everything Works
+
 ```fish
 # Test from anywhere
 curl -s https://mcp.deejpotter.com/health
@@ -133,11 +141,13 @@ sudo journalctl -u cloudflared -f
 ## Orange Pi Specific Optimizations
 
 ### Memory Management
+
 - Limited memory to 512MB in compose file
 - Reduced health check intervals
 - Log rotation enabled
 
 ### Performance Tips
+
 ```fish
 # Monitor resource usage
 docker stats
@@ -151,6 +161,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ### Auto-start on Boot
+
 ```fish
 # Enable Docker to start on boot
 sudo systemctl enable docker
@@ -163,6 +174,7 @@ crontab -e
 ```
 
 ### Troubleshooting
+
 ```fish
 # Check Orange Pi architecture
 uname -m

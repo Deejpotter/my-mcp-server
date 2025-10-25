@@ -6,9 +6,9 @@ WORKDIR /app
 
 # Install system dependencies (minimal for ARM)
 RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+  curl \
+  && rm -rf /var/lib/apt/lists/* \
+  && apt-get clean
 
 # Install uv first
 RUN pip install --no-cache-dir uv
@@ -27,7 +27,7 @@ EXPOSE 8000
 
 # Health check (longer intervals for ARM)
 HEALTHCHECK --interval=60s --timeout=15s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+  CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application directly
 CMD ["python", "main.py", "--transport", "http", "--host", "0.0.0.0", "--port", "8000"]
