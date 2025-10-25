@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
 """
-My Personal MCP Server
+MCP (Model Context Protocol) Server
+Updated: 26/10/25
+By: Daniel Potter
 
 This server provides practical development tools and resources for MCP clients.
 It includes file system operations, git commands, process management, and more.
+
+MCP ARCHITECTURE OVERVIEW:
+- MCP enables AI assistants (like GitHub Copilot) to call server functions securely
+- This server exposes "tools" (functions) and "resources" (data sources) to AI clients
+- Communication happens via JSON-RPC over stdio (local) or HTTP (remote)
+- Each tool has a schema that describes its inputs - this helps the AI understand how to call it
+
+KEY DESIGN DECISIONS:
+- Dual transport support: stdio for local VS Code, HTTP for remote Cloudflare access
+- Security-first approach: input validation, file size limits, command timeouts
+- Extensible tool system: easy to add new tools by following the existing patterns
+- Error handling: graceful failures with informative messages for debugging
+
+FUTURE MODIFICATION POINTS:
+- Add new tools: Follow the pattern in handle_list_tools() and handle_call_tool()
+- Enhance security: Modify safe_read_file() and run_command() functions
+- Add authentication: Extend the HTTP server section with auth middleware
+- Integrate new APIs: Add API clients in handle_call_tool() following existing patterns
 """
 
 import asyncio
@@ -17,39 +37,48 @@ from typing import Any, Sequence
 
 import click
 import httpx
+
+# MCP Protocol imports - these define the core types for tools, resources, and content
 from mcp.server import Server
 from mcp.types import (
-    Resource,
-    Tool,
-    TextContent,
-    ImageContent,
-    EmbeddedResource,
-    LoggingLevel,
+    Resource,  # Data sources that AI can read (like files, databases)
+    Tool,  # Functions that AI can call (like commands, API calls)
+    TextContent,  # Text response format for tool results
+    ImageContent,  # Image response format (not used in this server)
+    EmbeddedResource,  # Inline resources (not used in this server)
+    LoggingLevel,  # For debugging and monitoring
 )
-import mcp.server.stdio
+import mcp.server.stdio  # For local VS Code communication
 import mcp.types as types
 
-# Load environment variables from .env file if it exists
-def load_env_file():
-    env_file = Path(__file__).parent / ".env"
-    if env_file.exists():
-        with open(env_file) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    os.environ[key] = value
+# Environment configuration - loads API keys and settings from .env file
+from dotenv import load_dotenv
 
-load_env_file()
+# Load environment variables from .env file
+load_dotenv()
 
-
-# Create the MCP server instance
+# MCP Server Instance
+# This is the core server that handles all MCP protocol communication
 server = Server("my-mcp-server")
 
 
-# Helper functions for file operations
+# Security and File Operations
+# These functions provide safe file access with size limits and validation
+# MODIFICATION POINT: Adjust max_size for larger files, add path restrictions for security
 def safe_read_file(file_path: str, max_size: int = 1024 * 1024) -> str:
-    """Safely read a file with size limits."""
+    """
+    Safely read a file with size limits and security checks.
+
+    Security considerations:
+    - Prevents reading massive files that could crash the server
+    - Uses resolve() to prevent path traversal attacks
+    - Handles encoding issues gracefully with 'replace' error handling
+
+    MODIFICATION POINT:
+    - Increase max_size for larger file support
+    - Add allowed_paths list to restrict file access to specific directories
+    - Add file type validation (e.g., only .txt, .py, .md files)
+    """
     path = Path(file_path).resolve()
 
     # Basic security check - don't read outside reasonable boundaries
@@ -65,14 +94,33 @@ def safe_read_file(file_path: str, max_size: int = 1024 * 1024) -> str:
 
 
 def safe_write_file(file_path: str, content: str) -> None:
-    """Safely write content to a file."""
+    """
+    Safely write content to a file with directory creation.
+
+    MODIFICATION POINT:
+    - Add file size limits for content
+    - Add backup functionality (save .bak files)
+    - Add file type restrictions for security
+    """
     path = Path(file_path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
 
 
 def run_command(command: str, cwd: str = None, timeout: int = 30) -> dict:
-    """Run a shell command safely."""
+    """
+    Execute shell commands safely with timeout protection.
+
+    Security features:
+    - 30-second timeout prevents infinite processes
+    - Captures both stdout and stderr for debugging
+    - Returns structured data for consistent error handling
+
+    MODIFICATION POINT:
+    - Add command whitelist for production environments
+    - Implement command logging for audit trails
+    - Add environment variable restrictions
+    """
     try:
         result = subprocess.run(
             command,
@@ -99,9 +147,26 @@ def run_command(command: str, cwd: str = None, timeout: int = 30) -> dict:
         return {"success": False, "error": str(e), "command": command}
 
 
+# MCP Protocol Handlers
+# These functions implement the core MCP specification
+# Resources = data sources (files, APIs), Tools = callable functions
+
+
 @server.list_resources()
 async def handle_list_resources() -> list[Resource]:
-    """List available resources."""
+    """
+    Define available data sources that AI can read.
+
+    MCP Resources provide read-only access to data:
+    - system://info - Current system and Python environment details
+    - workspace://info - File counts and project structure
+    - git://status - Version control status
+
+    MODIFICATION POINT: Add new resources here for:
+    - Database connections (db://tables, db://query/...)
+    - API endpoints (api://github/repos, api://slack/channels)
+    - Configuration files (config://settings, config://secrets)
+    """
     return [
         Resource(
             uri="system://info",
@@ -126,7 +191,17 @@ async def handle_list_resources() -> list[Resource]:
 
 @server.read_resource()
 async def handle_read_resource(uri: str) -> str:
-    """Read a specific resource."""
+    """
+    Fetch content from a specific resource URI.
+
+    URI routing system - each resource has a unique identifier:
+    - system:// = system information and diagnostics
+    - workspace:// = project files and structure analysis
+    - git:// = version control operations and status
+
+    MODIFICATION POINT: Add new URI schemes here following the same pattern
+    Return JSON for structured data, plain text for logs/status
+    """
     if uri == "system://info":
         import platform
 
@@ -165,7 +240,25 @@ async def handle_read_resource(uri: str) -> str:
 
 @server.list_tools()
 async def handle_list_tools() -> list[Tool]:
-    """List available tools."""
+    """
+    Define all available tools (functions) that AI can call.
+
+    MCP Tool Structure:
+    - name: unique identifier for the tool
+    - description: helps AI understand when to use this tool
+    - inputSchema: JSON Schema defining required/optional parameters
+
+    Tool Categories in this server:
+    - File Operations: read_file, write_file, list_files
+    - System Commands: run_command, git_command
+    - Search: search_files, search_docs_online
+    - External APIs: clickup_*, bookstack_*, github_search_code
+
+    MODIFICATION POINT: Add new tools here following this pattern:
+    1. Add Tool definition with clear description and schema
+    2. Implement handler logic in handle_call_tool()
+    3. Test with simple parameters first
+    """
     return [
         Tool(
             name="read_file",
@@ -183,9 +276,12 @@ async def handle_list_tools() -> list[Tool]:
                         "default": 1024 * 1024,
                     },
                 },
-                "required": ["file_path"],
+                "required": [
+                    "file_path"
+                ],  # AI must provide file_path, max_size is optional
             },
         ),
+        # File system operations - core functionality for code analysis
         Tool(
             name="write_file",
             description="Write content to a file",
@@ -251,6 +347,7 @@ async def handle_list_tools() -> list[Tool]:
                 "required": ["command"],
             },
         ),
+        # Development workflow tools - git, search, documentation
         Tool(
             name="git_command",
             description="Execute git commands",
@@ -403,6 +500,7 @@ async def handle_list_tools() -> list[Tool]:
                 "required": ["query"],
             },
         ),
+        # External API integrations - add your own APIs following these patterns
         Tool(
             name="context7_search",
             description="Search documentation using Context7 API for specific libraries/frameworks",
@@ -542,8 +640,35 @@ async def handle_list_tools() -> list[Tool]:
 async def handle_call_tool(
     name: str, arguments: dict[str, Any]
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """Handle tool calls."""
+    """
+    Execute tool calls from AI clients.
 
+    MCP Tool Execution Flow:
+    1. AI client calls a tool by name with arguments
+    2. This function routes to the appropriate handler
+    3. Handler processes arguments and returns TextContent
+    4. Content is sent back to AI client for analysis
+
+    Error Handling Strategy:
+    - Always return TextContent (never throw exceptions to AI)
+    - Include original error messages for debugging
+    - Provide helpful context about what went wrong
+
+    MODIFICATION POINT: Add new tool handlers here following this pattern:
+    elif name == "your_new_tool":
+        # Extract arguments with defaults
+        param1 = arguments.get("param1", "default")
+        param2 = arguments.get("param2")
+
+        try:
+            # Your tool logic here
+            result = your_function(param1, param2)
+            return [types.TextContent(type="text", text=f"Success: {result}")]
+        except Exception as e:
+            return [types.TextContent(type="text", text=f"Error in your_new_tool: {str(e)}")]
+    """
+
+    # File Operations - Core file system tools
     if name == "read_file":
         file_path = arguments.get("file_path", "")
         max_size = arguments.get("max_size", 1024 * 1024)
@@ -616,6 +741,7 @@ async def handle_call_tool(
                 )
             ]
 
+    # System Commands - Execute shell commands and git operations
     elif name == "run_command":
         command = arguments.get("command", "")
         cwd = arguments.get("cwd")
@@ -711,13 +837,15 @@ async def handle_call_tool(
                 types.TextContent(type="text", text=f"Error searching files: {str(e)}")
             ]
 
+    # External API calls - Web requests and documentation search
     elif name == "fetch_url":
         url = arguments.get("url", "")
         timeout = arguments.get("timeout", 10)
 
         try:
+            # Async HTTP client with timeout protection
             import asyncio
-            import aiohttp
+            import aiohttp  # Optional dependency - fallback to httpx if not available
 
             async def fetch():
                 async with aiohttp.ClientSession(
@@ -744,7 +872,8 @@ async def handle_call_tool(
             return [types.TextContent(type="text", text=output)]
 
         except ImportError:
-            # Fallback to httpx if aiohttp is not available
+            # Fallback HTTP client - httpx is more reliable for MCP servers
+            # MODIFICATION POINT: Consider using only httpx to reduce dependencies
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.get(url)
@@ -774,66 +903,86 @@ async def handle_call_tool(
                 )
             ]
 
+    # Documentation Search - Multiple API integrations for development help
     elif name == "search_docs_online":
         query = arguments.get("query", "")
         source = arguments.get("source", "all")
         limit = arguments.get("limit", 5)
-        
+
         try:
             results = []
-            
+
+            # Multi-source search strategy - each source provides different value:
+            # Stack Overflow: practical solutions and debugging help
+            # GitHub: real-world code examples and implementations
+            # MDN: authoritative web API documentation
+            # MODIFICATION POINT: Add more sources like Reddit, Dev.to, official docs
+
             if source in ["all", "stackoverflow"]:
-                # Search Stack Overflow
+                # Search Stack Overflow API - most helpful for troubleshooting
                 try:
                     params = {
                         "order": "desc",
                         "sort": "relevance",
                         "q": query,
                         "site": "stackoverflow",
-                        "pagesize": limit
+                        "pagesize": limit,
                     }
                     async with httpx.AsyncClient(timeout=30) as client:
-                        response = await client.get("https://api.stackexchange.com/2.3/search/advanced", params=params)
+                        response = await client.get(
+                            "https://api.stackexchange.com/2.3/search/advanced",
+                            params=params,
+                        )
                         if response.status_code == 200:
                             data = response.json()
                             for item in data.get("items", [])[:limit]:
-                                results.append({
-                                    "source": "Stack Overflow",
-                                    "title": item["title"],
-                                    "url": item["link"],
-                                    "score": item.get("score", 0),
-                                    "tags": item.get("tags", [])
-                                })
+                                results.append(
+                                    {
+                                        "source": "Stack Overflow",
+                                        "title": item["title"],
+                                        "url": item["link"],
+                                        "score": item.get("score", 0),
+                                        "tags": item.get("tags", []),
+                                    }
+                                )
                 except Exception:
                     pass
-            
+
             if source in ["all", "github"]:
-                # Search GitHub repositories
+                # Search GitHub repositories for code examples and libraries
                 try:
+                    # GitHub API requires auth for higher rate limits
+                    # MODIFICATION POINT: Set GITHUB_TOKEN env var for better access
                     headers = {"Accept": "application/vnd.github.v3+json"}
                     github_token = os.getenv("GITHUB_TOKEN")
                     if github_token:
                         headers["Authorization"] = f"token {github_token}"
-                    
+
                     params = {"q": f"{query} in:readme", "per_page": limit}
                     async with httpx.AsyncClient(timeout=30) as client:
-                        response = await client.get("https://api.github.com/search/repositories", headers=headers, params=params)
+                        response = await client.get(
+                            "https://api.github.com/search/repositories",
+                            headers=headers,
+                            params=params,
+                        )
                         if response.status_code == 200:
                             data = response.json()
                             for item in data.get("items", [])[:limit]:
-                                results.append({
-                                    "source": "GitHub",
-                                    "title": item["full_name"],
-                                    "description": item.get("description", ""),
-                                    "url": item["html_url"],
-                                    "stars": item.get("stargazers_count", 0),
-                                    "language": item.get("language", "")
-                                })
+                                results.append(
+                                    {
+                                        "source": "GitHub",
+                                        "title": item["full_name"],
+                                        "description": item.get("description", ""),
+                                        "url": item["html_url"],
+                                        "stars": item.get("stargazers_count", 0),
+                                        "language": item.get("language", ""),
+                                    }
+                                )
                 except Exception:
                     pass
-            
+
             if source in ["all", "mdn"]:
-                # Search MDN Web Docs (using custom search)
+                # Search MDN Web Docs - authoritative web platform documentation
                 try:
                     search_url = f"https://developer.mozilla.org/api/v1/search?q={query}&locale=en-US"
                     async with httpx.AsyncClient(timeout=30) as client:
@@ -841,74 +990,84 @@ async def handle_call_tool(
                         if response.status_code == 200:
                             data = response.json()
                             for item in data.get("documents", [])[:limit]:
-                                results.append({
-                                    "source": "MDN",
-                                    "title": item["title"],
-                                    "url": f"https://developer.mozilla.org{item['mdn_url']}",
-                                    "summary": item.get("summary", "")[:200] + "..." if item.get("summary", "") else ""
-                                })
+                                results.append(
+                                    {
+                                        "source": "MDN",
+                                        "title": item["title"],
+                                        "url": f"https://developer.mozilla.org{item['mdn_url']}",
+                                        "summary": (
+                                            item.get("summary", "")[:200] + "..."
+                                            if item.get("summary", "")
+                                            else ""
+                                        ),
+                                    }
+                                )
                 except Exception:
                     pass
-            
+
             # Format results
             if results:
                 output = f"Online Documentation Search Results for '{query}':\n\n"
                 for i, result in enumerate(results[:limit], 1):
                     output += f"{i}. [{result['source']}] {result['title']}\n"
                     output += f"   URL: {result['url']}\n"
-                    
-                    if result['source'] == "Stack Overflow":
+
+                    if result["source"] == "Stack Overflow":
                         output += f"   Score: {result['score']}, Tags: {', '.join(result['tags'][:3])}\n"
-                    elif result['source'] == "GitHub":
-                        output += f"   ⭐ {result['stars']}, Language: {result['language']}\n"
-                        if result['description']:
-                            output += f"   Description: {result['description'][:100]}...\n"
-                    elif result['source'] == "MDN":
-                        if result['summary']:
+                    elif result["source"] == "GitHub":
+                        output += (
+                            f"   ⭐ {result['stars']}, Language: {result['language']}\n"
+                        )
+                        if result["description"]:
+                            output += (
+                                f"   Description: {result['description'][:100]}...\n"
+                            )
+                    elif result["source"] == "MDN":
+                        if result["summary"]:
                             output += f"   Summary: {result['summary']}\n"
-                    
+
                     output += "\n"
             else:
                 output = f"No online documentation found for '{query}'"
-            
+
             return [types.TextContent(type="text", text=output)]
-            
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error searching online docs: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error searching online docs: {str(e)}"
+                )
+            ]
 
     elif name == "context7_search":
         library = arguments.get("library", "")
         query = arguments.get("query", "")
         tokens = arguments.get("tokens", 5000)
-        
+
         try:
             # Use MCP Context7 functionality if available
             context7_url = "https://api.context7.ai/v1/search"  # Placeholder URL
-            
-            payload = {
-                "library": library,
-                "query": query,
-                "max_tokens": tokens
-            }
-            
+
+            payload = {"library": library, "query": query, "max_tokens": tokens}
+
             async with httpx.AsyncClient(timeout=30) as client:
                 response = await client.post(context7_url, json=payload)
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     output = f"Context7 Documentation Search - {library}:\n\n"
                     output += f"Query: {query}\n\n"
-                    
+
                     if data.get("results"):
                         for result in data.get("results", []):
                             output += f"Section: {result.get('section', 'Unknown')}\n"
                             output += f"Content: {result.get('content', '')[:500]}...\n"
-                            if result.get('url'):
+                            if result.get("url"):
                                 output += f"URL: {result['url']}\n"
                             output += "\n"
                     else:
                         output += data.get("content", "No specific results found")
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
                     # Fallback: Search using library-specific documentation sites
@@ -919,9 +1078,9 @@ async def handle_call_tool(
                         "typescript": f"https://www.typescriptlang.org/docs/search?q={query}",
                         "fastapi": f"https://fastapi.tiangolo.com/search/?q={query}",
                         "node": f"https://nodejs.org/api/index.html#{query}",
-                        "vue": f"https://vuejs.org/search/?query={query}"
+                        "vue": f"https://vuejs.org/search/?query={query}",
                     }
-                    
+
                     if library.lower() in fallback_urls:
                         fallback_url = fallback_urls[library.lower()]
                         output = f"Context7 API unavailable. Here's the direct search URL for {library}:\n\n"
@@ -930,68 +1089,83 @@ async def handle_call_tool(
                         output += f"Recommended: Open this URL in your browser for {library} documentation."
                     else:
                         output = f"Context7 API unavailable and no fallback URL found for library '{library}'"
-                    
+
                     return [types.TextContent(type="text", text=output)]
-                    
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error with Context7 search: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error with Context7 search: {str(e)}"
+                )
+            ]
 
     elif name == "github_search_code":
         query = arguments.get("query", "")
         language = arguments.get("language")
         repo = arguments.get("repo")
         limit = arguments.get("limit", 5)
-        
+
         try:
             headers = {"Accept": "application/vnd.github.v3+json"}
             github_token = os.getenv("GITHUB_TOKEN")
             if github_token:
                 headers["Authorization"] = f"token {github_token}"
-            
+
             search_query = query
             if language:
                 search_query += f" language:{language}"
             if repo:
                 search_query += f" repo:{repo}"
-            
+
             params = {"q": search_query, "per_page": limit}
-            
+
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get("https://api.github.com/search/code", headers=headers, params=params)
-                
+                response = await client.get(
+                    "https://api.github.com/search/code", headers=headers, params=params
+                )
+
                 if response.status_code == 200:
                     data = response.json()
                     items = data.get("items", [])
-                    
+
                     output = f"GitHub Code Search Results for '{query}':\n\n"
-                    
+
                     for i, item in enumerate(items[:limit], 1):
                         output += f"{i}. {item['name']} in {item['repository']['full_name']}\n"
                         output += f"   Language: {item.get('language', 'Unknown')}\n"
                         output += f"   URL: {item['html_url']}\n"
                         output += f"   Repository: {item['repository']['html_url']}\n"
-                        if item['repository'].get('description'):
+                        if item["repository"].get("description"):
                             output += f"   Description: {item['repository']['description'][:100]}...\n"
                         output += "\n"
-                    
+
                     if not items:
                         output += "No code examples found for this query."
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
-                    return [types.TextContent(type="text", text=f"GitHub API error: {response.status_code} - {response.text}")]
-                    
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"GitHub API error: {response.status_code} - {response.text}",
+                        )
+                    ]
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error searching GitHub code: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error searching GitHub code: {str(e)}"
+                )
+            ]
 
     elif name == "devdocs_search":
         query = arguments.get("query", "")
         docs = arguments.get("docs", "")
-        
+
         try:
             # DevDocs.io search functionality
             base_url = "https://devdocs.io"
-            
+
             if docs:
                 search_url = f"{base_url}/{docs}/search?q={query}"
                 output = f"DevDocs Search for '{query}' in {docs}:\n\n"
@@ -1011,251 +1185,366 @@ async def handle_call_tool(
                 output += f"🔗 Search URL: {search_url}\n\n"
                 output += "DevDocs.io provides fast, searchable documentation for popular technologies.\n"
                 output += "Try specifying a 'docs' parameter for more targeted results."
-            
-            return [types.TextContent(type="text", text=output)]
-            
-        except Exception as e:
-            return [types.TextContent(type="text", text=f"Error with DevDocs search: {str(e)}")]
 
+            return [types.TextContent(type="text", text=output)]
+
+        except Exception as e:
+            return [
+                types.TextContent(
+                    type="text", text=f"Error with DevDocs search: {str(e)}"
+                )
+            ]
+
+    # External Integrations - Task management and documentation systems
+    # MODIFICATION POINT: Add your own APIs here (Notion, Slack, Jira, etc.)
     elif name == "clickup_get_workspaces":
         try:
+            # API Authentication - store tokens in .env file for security
+            # MODIFICATION POINT: Add other API tokens (NOTION_TOKEN, SLACK_TOKEN, etc.)
             clickup_token = os.getenv("CLICKUP_API_TOKEN")
             if not clickup_token:
-                return [types.TextContent(type="text", text="ClickUp API token not found. Please set CLICKUP_API_TOKEN environment variable.")]
-            
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="ClickUp API token not found. Please set CLICKUP_API_TOKEN environment variable.",
+                    )
+                ]
+
             headers = {"Authorization": clickup_token}
-            
+
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get("https://api.clickup.com/api/v2/team", headers=headers)
-                
+                response = await client.get(
+                    "https://api.clickup.com/api/v2/team", headers=headers
+                )
+
                 if response.status_code == 200:
                     data = response.json()
                     workspaces = data.get("teams", [])
-                    
+
                     output = "ClickUp Workspaces:\n\n"
                     for workspace in workspaces:
                         output += f"• {workspace['name']} (ID: {workspace['id']})\n"
                         output += f"  Members: {len(workspace.get('members', []))}\n\n"
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
-                    return [types.TextContent(type="text", text=f"ClickUp API error: {response.status_code} - {response.text}")]
-                    
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"ClickUp API error: {response.status_code} - {response.text}",
+                        )
+                    ]
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error getting ClickUp workspaces: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error getting ClickUp workspaces: {str(e)}"
+                )
+            ]
 
     elif name == "clickup_get_tasks":
         try:
             clickup_token = os.getenv("CLICKUP_API_TOKEN")
             if not clickup_token:
-                return [types.TextContent(type="text", text="ClickUp API token not found. Please set CLICKUP_API_TOKEN environment variable.")]
-            
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="ClickUp API token not found. Please set CLICKUP_API_TOKEN environment variable.",
+                    )
+                ]
+
             list_id = arguments.get("list_id", "")
             status = arguments.get("status")
             assignee = arguments.get("assignee")
-            
+
             headers = {"Authorization": clickup_token}
             params = {}
             if status:
                 params["statuses[]"] = status
             if assignee:
                 params["assignees[]"] = assignee
-            
+
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get(f"https://api.clickup.com/api/v2/list/{list_id}/task", headers=headers, params=params)
-                
+                response = await client.get(
+                    f"https://api.clickup.com/api/v2/list/{list_id}/task",
+                    headers=headers,
+                    params=params,
+                )
+
                 if response.status_code == 200:
                     data = response.json()
                     tasks = data.get("tasks", [])
-                    
+
                     output = f"Tasks in List {list_id}:\n\n"
                     for task in tasks:
                         output += f"• {task['name']} (ID: {task['id']})\n"
                         output += f"  Status: {task['status']['status']}\n"
                         output += f"  Priority: {task.get('priority', {}).get('priority', 'None')}\n"
-                        if task.get('assignees'):
-                            assignees = [a['username'] for a in task['assignees']]
+                        if task.get("assignees"):
+                            assignees = [a["username"] for a in task["assignees"]]
                             output += f"  Assignees: {', '.join(assignees)}\n"
                         output += f"  URL: {task['url']}\n\n"
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
-                    return [types.TextContent(type="text", text=f"ClickUp API error: {response.status_code} - {response.text}")]
-                    
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"ClickUp API error: {response.status_code} - {response.text}",
+                        )
+                    ]
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error getting ClickUp tasks: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error getting ClickUp tasks: {str(e)}"
+                )
+            ]
 
     elif name == "clickup_create_task":
         try:
             clickup_token = os.getenv("CLICKUP_API_TOKEN")
             if not clickup_token:
-                return [types.TextContent(type="text", text="ClickUp API token not found. Please set CLICKUP_API_TOKEN environment variable.")]
-            
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="ClickUp API token not found. Please set CLICKUP_API_TOKEN environment variable.",
+                    )
+                ]
+
             list_id = arguments.get("list_id", "")
             task_name = arguments.get("name", "")
             description = arguments.get("description", "")
             priority = arguments.get("priority")
             assignees = arguments.get("assignees", [])
-            
-            headers = {"Authorization": clickup_token, "Content-Type": "application/json"}
+
+            headers = {
+                "Authorization": clickup_token,
+                "Content-Type": "application/json",
+            }
             task_data = {
                 "name": task_name,
                 "description": description,
-                "assignees": assignees
+                "assignees": assignees,
             }
             if priority:
                 priority_map = {"urgent": 1, "high": 2, "normal": 3, "low": 4}
                 task_data["priority"] = priority_map.get(priority.lower(), 3)
-            
+
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.post(f"https://api.clickup.com/api/v2/list/{list_id}/task", headers=headers, json=task_data)
-                
+                response = await client.post(
+                    f"https://api.clickup.com/api/v2/list/{list_id}/task",
+                    headers=headers,
+                    json=task_data,
+                )
+
                 if response.status_code == 200:
                     data = response.json()
                     output = f"✅ Task created successfully!\n\n"
                     output += f"Task: {data['name']}\n"
                     output += f"ID: {data['id']}\n"
                     output += f"URL: {data['url']}\n"
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
-                    return [types.TextContent(type="text", text=f"ClickUp API error: {response.status_code} - {response.text}")]
-                    
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"ClickUp API error: {response.status_code} - {response.text}",
+                        )
+                    ]
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error creating ClickUp task: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error creating ClickUp task: {str(e)}"
+                )
+            ]
 
     elif name == "bookstack_search":
         try:
             bookstack_url = os.getenv("BOOKSTACK_URL")
             bookstack_token = os.getenv("BOOKSTACK_TOKEN_ID")
             bookstack_secret = os.getenv("BOOKSTACK_TOKEN_SECRET")
-            
+
             if not all([bookstack_url, bookstack_token, bookstack_secret]):
-                return [types.TextContent(type="text", text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.")]
-            
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.",
+                    )
+                ]
+
             query = arguments.get("query", "")
             search_type = arguments.get("type", "all")
             count = arguments.get("count", 10)
-            
+
             headers = {
                 "Authorization": f"Token {bookstack_token}:{bookstack_secret}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
             params = {"query": query, "count": count}
             if search_type != "all":
                 params["type"] = search_type
-            
+
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get(f"{bookstack_url}/api/search", headers=headers, params=params)
-                
+                response = await client.get(
+                    f"{bookstack_url}/api/search", headers=headers, params=params
+                )
+
                 if response.status_code == 200:
                     data = response.json()
                     results = data.get("data", [])
-                    
+
                     output = f"BookStack Search Results for '{query}':\n\n"
                     for result in results:
                         output += f"• {result['name']} ({result['type']})\n"
                         output += f"  ID: {result['id']}\n"
-                        if result.get('preview'):
-                            preview = result['preview'][:100] + "..." if len(result['preview']) > 100 else result['preview']
+                        if result.get("preview"):
+                            preview = (
+                                result["preview"][:100] + "..."
+                                if len(result["preview"]) > 100
+                                else result["preview"]
+                            )
                             output += f"  Preview: {preview}\n"
                         output += f"  URL: {bookstack_url}/{result['type']}/{result['slug']}\n\n"
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
-                    return [types.TextContent(type="text", text=f"BookStack API error: {response.status_code} - {response.text}")]
-                    
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"BookStack API error: {response.status_code} - {response.text}",
+                        )
+                    ]
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error searching BookStack: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error searching BookStack: {str(e)}"
+                )
+            ]
 
     elif name == "bookstack_get_page":
         try:
             bookstack_url = os.getenv("BOOKSTACK_URL")
             bookstack_token = os.getenv("BOOKSTACK_TOKEN_ID")
             bookstack_secret = os.getenv("BOOKSTACK_TOKEN_SECRET")
-            
+
             if not all([bookstack_url, bookstack_token, bookstack_secret]):
-                return [types.TextContent(type="text", text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.")]
-            
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.",
+                    )
+                ]
+
             page_id = arguments.get("page_id", "")
-            
+
             headers = {
                 "Authorization": f"Token {bookstack_token}:{bookstack_secret}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
-            
+
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get(f"{bookstack_url}/api/pages/{page_id}", headers=headers)
-                
+                response = await client.get(
+                    f"{bookstack_url}/api/pages/{page_id}", headers=headers
+                )
+
                 if response.status_code == 200:
                     data = response.json()
                     page = data.get("data", {})
-                    
+
                     output = f"BookStack Page: {page['name']}\n\n"
                     output += f"ID: {page['id']}\n"
                     output += f"Book: {page.get('book', {}).get('name', 'Unknown')}\n"
                     output += f"URL: {bookstack_url}/books/{page.get('book', {}).get('slug', '')}/page/{page['slug']}\n\n"
                     output += f"Content:\n{page.get('html', page.get('markdown', 'No content available'))}"
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
-                    return [types.TextContent(type="text", text=f"BookStack API error: {response.status_code} - {response.text}")]
-                    
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"BookStack API error: {response.status_code} - {response.text}",
+                        )
+                    ]
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error getting BookStack page: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error getting BookStack page: {str(e)}"
+                )
+            ]
 
     elif name == "bookstack_create_page":
         try:
             bookstack_url = os.getenv("BOOKSTACK_URL")
             bookstack_token = os.getenv("BOOKSTACK_TOKEN_ID")
             bookstack_secret = os.getenv("BOOKSTACK_TOKEN_SECRET")
-            
+
             if not all([bookstack_url, bookstack_token, bookstack_secret]):
-                return [types.TextContent(type="text", text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.")]
-            
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.",
+                    )
+                ]
+
             book_id = arguments.get("book_id", "")
             page_name = arguments.get("name", "")
             html_content = arguments.get("html", "")
             markdown_content = arguments.get("markdown", "")
-            
+
             headers = {
                 "Authorization": f"Token {bookstack_token}:{bookstack_secret}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
-            
-            page_data = {
-                "book_id": book_id,
-                "name": page_name
-            }
-            
+
+            page_data = {"book_id": book_id, "name": page_name}
+
             if html_content:
                 page_data["html"] = html_content
             elif markdown_content:
                 page_data["markdown"] = markdown_content
-            
+
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.post(f"{bookstack_url}/api/pages", headers=headers, json=page_data)
-                
+                response = await client.post(
+                    f"{bookstack_url}/api/pages", headers=headers, json=page_data
+                )
+
                 if response.status_code == 200:
                     data = response.json()
                     page = data.get("data", {})
-                    
+
                     output = f"✅ BookStack page created successfully!\n\n"
                     output += f"Page: {page['name']}\n"
                     output += f"ID: {page['id']}\n"
                     output += f"URL: {bookstack_url}/books/{page.get('book', {}).get('slug', '')}/page/{page['slug']}\n"
-                    
+
                     return [types.TextContent(type="text", text=output)]
                 else:
-                    return [types.TextContent(type="text", text=f"BookStack API error: {response.status_code} - {response.text}")]
-                    
-        except Exception as e:
-            return [types.TextContent(type="text", text=f"Error creating BookStack page: {str(e)}")]
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"BookStack API error: {response.status_code} - {response.text}",
+                        )
+                    ]
 
+        except Exception as e:
+            return [
+                types.TextContent(
+                    type="text", text=f"Error creating BookStack page: {str(e)}"
+                )
+            ]
+
+    # End of tool routing - all unrecognized tools are handled here
     else:
         raise ValueError(f"Unknown tool: {name}")
 
 
+# Server Entry Point and Transport Layer
+# MCP supports multiple transport methods for different use cases
 @click.command()
 @click.option("--log-level", default="INFO", help="Set the logging level")
 @click.option("--transport", default="stdio", help="Transport type: stdio or http")
@@ -1264,14 +1553,23 @@ async def handle_call_tool(
 )
 @click.option("--port", default=8000, help="Port to bind to (for HTTP transport)")
 def main(log_level: str, transport: str, host: str, port: int):
-    """Run the MCP server."""
+    """
+    MCP Server Entry Point
+
+    Transport Options:
+    - stdio: JSON-RPC over standard input/output (for local VS Code)
+    - http: JSON-RPC over HTTP (for remote access via Cloudflare)
+
+    MODIFICATION POINT: Add other transports like WebSocket, TCP, or Unix sockets
+    """
     # Set up logging
     import logging
 
     logging.basicConfig(level=getattr(logging, log_level.upper()))
 
     if transport == "stdio":
-        # Run stdio server (for local VS Code)
+        # STDIO Transport - Direct communication with VS Code/GitHub Copilot
+        # Uses JSON-RPC over stdin/stdout for low-latency local communication
         async def run_stdio_server():
             async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
                 await server.run(
@@ -1287,10 +1585,13 @@ def main(log_level: str, transport: str, host: str, port: int):
             sys.exit(1)
 
     elif transport == "http":
-        # Implement HTTP MCP server using FastAPI and MCP protocol
+        # HTTP Transport - RESTful API for remote access via Cloudflare Tunnel
+        # Converts MCP JSON-RPC calls to HTTP endpoints for web accessibility
+        # MODIFICATION POINT: Add authentication middleware here for production
         import uvicorn
-        from fastapi import FastAPI, HTTPException, Request
+        from fastapi import FastAPI, HTTPException, Request, Depends
         from fastapi.responses import JSONResponse
+        from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
         app = FastAPI(
             title="My MCP Server",
@@ -1298,8 +1599,56 @@ def main(log_level: str, transport: str, host: str, port: int):
             description="MCP Server with practical development tools",
         )
 
+        # API Key Authentication
+        security = HTTPBearer()
+
+        def verify_api_key(
+            credentials: HTTPAuthorizationCredentials = Depends(security),
+        ):
+            """
+            Verify API key from Authorization header or X-API-Key header
+            """
+            expected_key = os.getenv("MY_SERVER_API_KEY")
+            if not expected_key:
+                raise HTTPException(
+                    status_code=500, detail="Server API key not configured"
+                )
+
+            if credentials.credentials != expected_key:
+                raise HTTPException(status_code=401, detail="Invalid API key")
+
+            return credentials.credentials
+
+        def verify_api_key_header(request: Request):
+            """
+            Alternative API key verification from X-API-Key header
+            """
+            expected_key = os.getenv("MY_SERVER_API_KEY")
+            if not expected_key:
+                raise HTTPException(
+                    status_code=500, detail="Server API key not configured"
+                )
+
+            api_key = request.headers.get("X-API-Key")
+            if not api_key or api_key != expected_key:
+                raise HTTPException(
+                    status_code=401, detail="Invalid or missing API key"
+                )
+
+            return api_key
+
         async def handle_mcp_request(request_data: dict) -> dict:
-            """Handle MCP JSON-RPC requests"""
+            """
+            Convert HTTP requests to MCP JSON-RPC format
+
+            MCP Protocol Flow:
+            1. Client sends JSON-RPC request over HTTP
+            2. Server routes to appropriate handler (tools, resources)
+            3. Handler processes request and returns structured response
+            4. Response converted back to JSON-RPC format
+
+            MODIFICATION POINT: Add request logging, rate limiting, and validation here
+            """
             try:
                 method = request_data.get("method")
                 params = request_data.get("params", {})
@@ -1408,8 +1757,10 @@ def main(log_level: str, transport: str, host: str, port: int):
                 }
 
         @app.post("/")
-        async def mcp_root(request: Request):
-            """Handle MCP requests on root endpoint"""
+        async def mcp_root(
+            request: Request, api_key: str = Depends(verify_api_key_header)
+        ):
+            """Handle MCP requests on root endpoint - requires API key authentication"""
             try:
                 request_data = await request.json()
                 response = await handle_mcp_request(request_data)
@@ -1419,10 +1770,13 @@ def main(log_level: str, transport: str, host: str, port: int):
 
         @app.get("/health")
         async def health():
+            """Health check endpoint - no authentication required"""
             return {
                 "status": "healthy",
                 "server": "my-mcp-server",
                 "tools_count": len(await handle_list_tools()),
+                "authentication": "enabled",
+                "api_key_required": True,
             }
 
         print(f"🚀 Starting MCP HTTP server on {host}:{port}")
