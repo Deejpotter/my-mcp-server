@@ -1,29 +1,37 @@
-# My MCP Server
+# My MCP Server (Local Development)
 
-A comprehensive Model Context Protocol (MCP) server that provides development tools, API integrations, and documentation search capabilities for AI assistants.
+A lightweight Model Context Protocol (MCP) server for local VS Code integration. Provides development tools, API integrations, and documentation search capabilities for AI assistants like GitHub Copilot.
+
+> **Note:** This is the local development version. For remote deployment, see [my-mcp-server-remote](https://github.com/Deejpotter/my-mcp-server-remote).
 
 ## 🚀 **Quick Start**
 
-### **Windows Setup**
+### **Prerequisites**
 
+- Python 3.12+ 
+- [uv](https://docs.astral.sh/uv/) package manager (will be installed automatically)
+
+### **Installation**
+
+**Windows:**
 ```cmd
-curl -o setup-windows.bat https://raw.githubusercontent.com/Deejpotter/my-mcp-server/main/setup-windows.bat && setup-windows.bat
+git clone https://github.com/Deejpotter/my-mcp-server.git
+cd my-mcp-server
+setup-windows.bat
 ```
 
-### **Linux Setup**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Deejpotter/my-mcp-server/main/setup-linux.sh | bash
-```
-
-### **Manual Installation**
-
+**Linux/macOS:**
 ```bash
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -e .
+chmod +x setup-linux.sh && ./setup-linux.sh
+```
+
+**Manual Installation:**
+```bash
+git clone https://github.com/Deejpotter/my-mcp-server.git
+cd my-mcp-server
+uv sync
 ```
 
 ## 🛠️ **Features**
@@ -56,31 +64,52 @@ pip install -e .
 
 ## ⚙️ **Configuration**
 
-### **VS Code MCP Setup**
+### **VS Code Integration**
 
-Add to `~/.config/Code/User/mcp.json` (macOS/Linux) or `%APPDATA%\Code\User\mcp.json` (Windows):
+Add to your VS Code MCP configuration file:
+
+**Location:**
+- **Windows:** `%APPDATA%\Code\User\mcp.json`
+- **macOS/Linux:** `~/.config/Code/User/mcp.json`
+
+**Configuration:**
 
 ```json
 {
   "mcpServers": {
-    "my-mcp-server-local": {
-      "command": "python",
-      "args": ["/path/to/your/my-mcp-server/main.py"],
-      "env": {}
+    "my-mcp-server": {
+      "command": "uv",
+      "args": ["run", "python", "/absolute/path/to/my-mcp-server/main.py"],
+      "cwd": "/absolute/path/to/my-mcp-server"
     }
   }
 }
 ```
 
+### **Running the Server**
+
+**Development Mode:**
+
+```bash
+uv run python main.py
+```
+
+**Test the Connection:**
+
+```bash
+# Check server startup
+uv run python main.py --help
+
+# Verify tools are loaded
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run python main.py
+```
+
 ### **Environment Variables**
 
-Create `.env` file for API integrations:
+Create `.env` file for API integrations (optional):
 
 ```env
-# Server Authentication (for remote deployment)
-MY_SERVER_API_KEY=your_secure_api_key_here
-
-# Optional API Integrations
+# Optional API Integrations for enhanced functionality
 GITHUB_TOKEN=ghp_your_github_token_here
 CLICKUP_API_TOKEN=pk_your_clickup_token_here
 BOOKSTACK_URL=https://your-bookstack.com
@@ -88,24 +117,76 @@ BOOKSTACK_TOKEN_ID=your_token_id
 BOOKSTACK_TOKEN_SECRET=your_token_secret
 ```
 
-## 🌐 **Remote Deployment**
+**API Key Setup:**
 
-Deploy with Docker for remote access:
+1. **GitHub:** [Generate Personal Access Token](https://github.com/settings/tokens)
+2. **ClickUp:** [Get API Token](https://app.clickup.com/settings/apps)
+3. **BookStack:** Create API tokens in Settings > API Tokens
 
-```bash
-# Local deployment
-docker-compose up -d
+## 📁 **Project Structure**
 
-# ARM devices (Raspberry Pi, Orange Pi)
-docker-compose -f docker-compose.orangepi.yml up -d
-
-# Health check
-curl http://localhost:8000/health
+```text
+my-mcp-server/
+├── main.py              # MCP server implementation
+├── pyproject.toml        # Project dependencies
+├── .env.example          # Environment template
+├── setup-windows.bat     # Windows setup script
+├── setup-linux.sh       # Linux/macOS setup script
+└── README.md            # This file
 ```
 
-For public access, see `ADVANCED.md` for Cloudflare Tunnel setup and authentication.
+## 🔧 **Development**
 
-## 💡 **Usage Examples**
+### **Adding New Tools**
+
+1. Add tool definition to `handle_list_tools()` function
+2. Implement tool logic in `handle_call_tool()` function  
+3. Follow existing patterns for input validation and error handling
+
+### **Testing Changes**
+
+```bash
+# Install in development mode
+uv sync
+
+# Run with debug logging
+uv run python main.py --log-level DEBUG
+```
+
+## 🆘 **Troubleshooting**
+
+### **Common Issues**
+
+**VS Code not detecting MCP server:**
+- Verify `mcp.json` file location and syntax
+- Check file paths are absolute
+- Restart VS Code after configuration changes
+
+**Missing dependencies:**
+```bash
+uv sync --reinstall
+```
+
+**Permission errors:**
+```bash
+# Linux/macOS
+chmod +x setup-linux.sh
+```
+
+**API integrations not working:**
+- Verify API keys in `.env` file
+- Check API token permissions/scopes
+- Test API connectivity separately
+
+## 📝 **License**
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 **Related Projects**
+
+- **Remote Server Version:** [my-mcp-server-remote](https://github.com/Deejpotter/my-mcp-server-remote)
+- **MCP Protocol:** [Model Context Protocol](https://modelcontextprotocol.io/)
+- **VS Code MCP:** [GitHub Copilot with MCP](https://code.visualstudio.com/docs/copilot/copilot-extensibility)
 
 ### **Development Workflow**
 

@@ -1546,256 +1546,32 @@ async def handle_call_tool(
 # Server Entry Point and Transport Layer
 # MCP supports multiple transport methods for different use cases
 @click.command()
-@click.option("--log-level", default="INFO", help="Set the logging level")
-@click.option("--transport", default="stdio", help="Transport type: stdio or http")
-@click.option(
-    "--host", default="127.0.0.1", help="Host to bind to (for HTTP transport)"
-)
-@click.option("--port", default=8000, help="Port to bind to (for HTTP transport)")
-def main(log_level: str, transport: str, host: str, port: int):
+@click.option("--log-level", default="INFO", help="Logging level")
+def main(log_level: str):
     """
-    MCP Server Entry Point
-
-    Transport Options:
-    - stdio: JSON-RPC over standard input/output (for local VS Code)
-    - http: JSON-RPC over HTTP (for remote access via Cloudflare)
-
-    MODIFICATION POINT: Add other transports like WebSocket, TCP, or Unix sockets
+    MCP Server Entry Point - Local Development Only
+    
+    This server uses stdio transport for direct integration with VS Code/GitHub Copilot.
+    For production deployment, see the remote server version.
     """
     # Set up logging
     import logging
-
     logging.basicConfig(level=getattr(logging, log_level.upper()))
 
-    if transport == "stdio":
-        # STDIO Transport - Direct communication with VS Code/GitHub Copilot
-        # Uses JSON-RPC over stdin/stdout for low-latency local communication
-        async def run_stdio_server():
-            async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-                await server.run(
-                    read_stream, write_stream, server.create_initialization_options()
-                )
+    # STDIO Transport - Direct communication with VS Code/GitHub Copilot
+    # Uses JSON-RPC over stdin/stdout for low-latency local communication
+    async def run_stdio_server():
+        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream, write_stream, server.create_initialization_options()
+            )
 
-        try:
-            asyncio.run(run_stdio_server())
-        except KeyboardInterrupt:
-            print("\nServer stopped by user")
-        except Exception as e:
-            print(f"Server error: {e}", file=sys.stderr)
-            sys.exit(1)
-
-    elif transport == "http":
-        # HTTP Transport - RESTful API for remote access via Cloudflare Tunnel
-        # Converts MCP JSON-RPC calls to HTTP endpoints for web accessibility
-        # MODIFICATION POINT: Add authentication middleware here for production
-        import uvicorn
-        from fastapi import FastAPI, HTTPException, Request, Depends
-        from fastapi.responses import JSONResponse
-        from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
-        app = FastAPI(
-            title="My MCP Server",
-            version="0.1.0",
-            description="MCP Server with practical development tools",
-        )
-
-        # API Key Authentication
-        security = HTTPBearer()
-
-        def verify_api_key(
-            credentials: HTTPAuthorizationCredentials = Depends(security),
-        ):
-            """
-            Verify API key from Authorization header or X-API-Key header
-            """
-            expected_key = os.getenv("MY_SERVER_API_KEY")
-            if not expected_key:
-                raise HTTPException(
-                    status_code=500, detail="Server API key not configured"
-                )
-
-            if credentials.credentials != expected_key:
-                raise HTTPException(status_code=401, detail="Invalid API key")
-
-            return credentials.credentials
-
-        def verify_api_key_header(request: Request):
-            """
-            Alternative API key verification from X-API-Key header
-            """
-            expected_key = os.getenv("MY_SERVER_API_KEY")
-            if not expected_key:
-                raise HTTPException(
-                    status_code=500, detail="Server API key not configured"
-                )
-
-            api_key = request.headers.get("X-API-Key")
-            if not api_key or api_key != expected_key:
-                raise HTTPException(
-                    status_code=401, detail="Invalid or missing API key"
-                )
-
-            return api_key
-
-        async def handle_mcp_request(request_data: dict) -> dict:
-            """
-            Convert HTTP requests to MCP JSON-RPC format
-
-            MCP Protocol Flow:
-            1. Client sends JSON-RPC request over HTTP
-            2. Server routes to appropriate handler (tools, resources)
-            3. Handler processes request and returns structured response
-            4. Response converted back to JSON-RPC format
-
-            MODIFICATION POINT: Add request logging, rate limiting, and validation here
-            """
-            try:
-                method = request_data.get("method")
-                params = request_data.get("params", {})
-                request_id = request_data.get("id")
-
-                if method == "initialize":
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "protocolVersion": "2024-11-05",
-                            "capabilities": {
-                                "tools": {},
-                                "resources": {},
-                            },
-                            "serverInfo": {"name": "my-mcp-server", "version": "0.1.0"},
-                        },
-                    }
-
-                elif method == "tools/list":
-                    tools = await handle_list_tools()
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "tools": [
-                                {
-                                    "name": tool.name,
-                                    "description": tool.description,
-                                    "inputSchema": tool.inputSchema,
-                                }
-                                for tool in tools
-                            ]
-                        },
-                    }
-
-                elif method == "tools/call":
-                    tool_name = params.get("name")
-                    arguments = params.get("arguments", {})
-
-                    result = await handle_call_tool(tool_name, arguments)
-
-                    # Convert TextContent results to simple strings for HTTP response
-                    content_text = ""
-                    for item in result:
-                        if hasattr(item, "text"):
-                            content_text += item.text
-                        else:
-                            content_text += str(item)
-
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "content": [{"type": "text", "text": content_text}],
-                            "isError": False,
-                        },
-                    }
-
-                elif method == "resources/list":
-                    resources = await handle_list_resources()
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "resources": [
-                                {
-                                    "uri": resource.uri,
-                                    "name": resource.name,
-                                    "description": resource.description,
-                                    "mimeType": resource.mimeType,
-                                }
-                                for resource in resources
-                            ]
-                        },
-                    }
-
-                elif method == "resources/read":
-                    uri = params.get("uri")
-                    content = await handle_read_resource(uri)
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "result": {
-                            "contents": [
-                                {"uri": uri, "mimeType": "text/plain", "text": content}
-                            ]
-                        },
-                    }
-
-                else:
-                    return {
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "error": {
-                            "code": -32601,
-                            "message": f"Method not found: {method}",
-                        },
-                    }
-
-            except Exception as e:
-                return {
-                    "jsonrpc": "2.0",
-                    "id": request_data.get("id"),
-                    "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
-                }
-
-        @app.post("/")
-        async def mcp_root(
-            request: Request, api_key: str = Depends(verify_api_key_header)
-        ):
-            """Handle MCP requests on root endpoint - requires API key authentication"""
-            try:
-                request_data = await request.json()
-                response = await handle_mcp_request(request_data)
-                return response
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
-
-        @app.get("/health")
-        async def health():
-            """Health check endpoint - no authentication required"""
-            return {
-                "status": "healthy",
-                "server": "my-mcp-server",
-                "tools_count": len(await handle_list_tools()),
-                "authentication": "enabled",
-                "api_key_required": True,
-            }
-
-        print(f"🚀 Starting MCP HTTP server on {host}:{port}")
-        print(f"📡 Ready for Cloudflare Tunnel at mcp.deejpotter.com")
-        print(f"🔗 Access at: http://{host}:{port}")
-        print(
-            f"🛠️  Available tools: read_file, write_file, list_files, run_command, git_command, search_files, fetch_url"
-        )
-
-        try:
-            uvicorn.run(app, host=host, port=port, log_level=log_level.lower())
-        except KeyboardInterrupt:
-            print("\nServer stopped by user")
-        except Exception as e:
-            print(f"Server error: {e}", file=sys.stderr)
-            sys.exit(1)
-
-    else:
-        print(f"Unknown transport: {transport}", file=sys.stderr)
+    try:
+        asyncio.run(run_stdio_server())
+    except KeyboardInterrupt:
+        print("\nServer stopped by user")
+    except Exception as e:
+        print(f"Server error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
