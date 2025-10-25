@@ -1,0 +1,19 @@
+[Unit]
+Description=My MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=deejpotter
+Group=deejpotter
+WorkingDirectory=/home/deejpotter/my-mcp-server
+Environment=PATH=/home/deejpotter/my-mcp-server/.venv/bin
+ExecStart=/home/deejpotter/my-mcp-server/.venv/bin/python main.py --transport http --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mcp-server
+
+[Install]
+WantedBy=multi-user.target

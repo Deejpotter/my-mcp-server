@@ -1,0 +1,7 @@
+tunnel: YOUR_TUNNEL_ID_HERE
+credentials-file: /home/deejpotter/.cloudflared/YOUR_TUNNEL_ID.json
+
+ingress:
+  - hostname: mcp.deejpotter.com
+    service: http://127.0.0.1:8000
+  - service: http_status:404
