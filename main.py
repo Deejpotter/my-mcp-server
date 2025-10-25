@@ -38,22 +38,24 @@ server = Server("my-mcp-server")
 def safe_read_file(file_path: str, max_size: int = 1024 * 1024) -> str:
     """Safely read a file with size limits."""
     path = Path(file_path).resolve()
-    
+
     # Basic security check - don't read outside reasonable boundaries
     if not path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
-    
+
     if path.stat().st_size > max_size:
-        raise ValueError(f"File too large: {path.stat().st_size} bytes (max: {max_size})")
-    
-    return path.read_text(encoding='utf-8', errors='replace')
+        raise ValueError(
+            f"File too large: {path.stat().st_size} bytes (max: {max_size})"
+        )
+
+    return path.read_text(encoding="utf-8", errors="replace")
 
 
 def safe_write_file(file_path: str, content: str) -> None:
     """Safely write content to a file."""
     path = Path(file_path).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding='utf-8')
+    path.write_text(content, encoding="utf-8")
 
 
 def run_command(command: str, cwd: str = None, timeout: int = 30) -> dict:
@@ -65,27 +67,23 @@ def run_command(command: str, cwd: str = None, timeout: int = 30) -> dict:
             cwd=cwd,
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
         )
         return {
             "success": True,
             "stdout": result.stdout,
             "stderr": result.stderr,
             "returncode": result.returncode,
-            "command": command
+            "command": command,
         }
     except subprocess.TimeoutExpired:
         return {
             "success": False,
             "error": f"Command timed out after {timeout} seconds",
-            "command": command
+            "command": command,
         }
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "command": command
-        }
+        return {"success": False, "error": str(e), "command": command}
 
 
 @server.list_resources()
@@ -100,7 +98,7 @@ async def handle_list_resources() -> list[Resource]:
         ),
         Resource(
             uri="workspace://info",
-            name="Workspace Information", 
+            name="Workspace Information",
             description="Information about the current workspace",
             mimeType="application/json",
         ),
@@ -170,7 +168,7 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Maximum file size in bytes (default: 1MB)",
                         "default": 1024 * 1024,
-                    }
+                    },
                 },
                 "required": ["file_path"],
             },
@@ -188,7 +186,7 @@ async def handle_list_tools() -> list[Tool]:
                     "content": {
                         "type": "string",
                         "description": "Content to write to the file",
-                    }
+                    },
                 },
                 "required": ["file_path", "content"],
             },
@@ -200,7 +198,7 @@ async def handle_list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {
                     "directory": {
-                        "type": "string", 
+                        "type": "string",
                         "description": "Directory path to list (default: current directory)",
                         "default": ".",
                     },
@@ -212,7 +210,7 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "boolean",
                         "description": "Whether to search recursively",
                         "default": False,
-                    }
+                    },
                 },
                 "required": [],
             },
@@ -235,7 +233,7 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Timeout in seconds (default: 30)",
                         "default": 30,
-                    }
+                    },
                 },
                 "required": ["command"],
             },
@@ -253,7 +251,7 @@ async def handle_list_tools() -> list[Tool]:
                     "cwd": {
                         "type": "string",
                         "description": "Repository directory (default: current directory)",
-                    }
+                    },
                 },
                 "required": ["git_args"],
             },
@@ -282,7 +280,7 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "boolean",
                         "description": "Whether search should be case sensitive",
                         "default": False,
-                    }
+                    },
                 },
                 "required": ["query"],
             },
@@ -298,10 +296,10 @@ async def handle_list_tools() -> list[Tool]:
                         "description": "URL to fetch",
                     },
                     "timeout": {
-                        "type": "integer", 
+                        "type": "integer",
                         "description": "Request timeout in seconds",
                         "default": 10,
-                    }
+                    },
                 },
                 "required": ["url"],
             },
@@ -314,94 +312,115 @@ async def handle_call_tool(
     name: str, arguments: dict[str, Any]
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
     """Handle tool calls."""
-    
+
     if name == "read_file":
         file_path = arguments.get("file_path", "")
         max_size = arguments.get("max_size", 1024 * 1024)
-        
+
         try:
             content = safe_read_file(file_path, max_size)
-            return [types.TextContent(type="text", text=f"File: {file_path}\n\n{content}")]
+            return [
+                types.TextContent(type="text", text=f"File: {file_path}\n\n{content}")
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error reading file '{file_path}': {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error reading file '{file_path}': {str(e)}"
+                )
+            ]
 
     elif name == "write_file":
         file_path = arguments.get("file_path", "")
         content = arguments.get("content", "")
-        
+
         try:
             safe_write_file(file_path, content)
-            return [types.TextContent(type="text", text=f"Successfully wrote {len(content)} characters to {file_path}")]
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"Successfully wrote {len(content)} characters to {file_path}",
+                )
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error writing file '{file_path}': {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error writing file '{file_path}': {str(e)}"
+                )
+            ]
 
     elif name == "list_files":
         directory = arguments.get("directory", ".")
         pattern = arguments.get("pattern", "*")
         recursive = arguments.get("recursive", False)
-        
+
         try:
             path = Path(directory).resolve()
             if recursive:
                 files = list(path.rglob(pattern))
             else:
                 files = list(path.glob(pattern))
-            
+
             files_list = []
             for file in sorted(files):
                 rel_path = file.relative_to(path) if file.is_relative_to(path) else file
                 stat = file.stat()
-                files_list.append({
-                    "name": file.name,
-                    "path": str(rel_path),
-                    "type": "directory" if file.is_dir() else "file",
-                    "size": stat.st_size if file.is_file() else None,
-                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                })
-            
+                files_list.append(
+                    {
+                        "name": file.name,
+                        "path": str(rel_path),
+                        "type": "directory" if file.is_dir() else "file",
+                        "size": stat.st_size if file.is_file() else None,
+                        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    }
+                )
+
             result = f"Files in {directory} (pattern: {pattern}, recursive: {recursive}):\n\n"
             result += json.dumps(files_list, indent=2)
             return [types.TextContent(type="text", text=result)]
-            
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error listing files in '{directory}': {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error listing files in '{directory}': {str(e)}"
+                )
+            ]
 
     elif name == "run_command":
         command = arguments.get("command", "")
         cwd = arguments.get("cwd")
         timeout = arguments.get("timeout", 30)
-        
+
         result = run_command(command, cwd, timeout)
-        
+
         if result["success"]:
             output = f"Command: {command}\n"
             output += f"Exit Code: {result['returncode']}\n\n"
-            if result['stdout']:
+            if result["stdout"]:
                 output += f"STDOUT:\n{result['stdout']}\n"
-            if result['stderr']:
+            if result["stderr"]:
                 output += f"STDERR:\n{result['stderr']}\n"
         else:
             output = f"Command Failed: {command}\nError: {result['error']}"
-        
+
         return [types.TextContent(type="text", text=output)]
 
     elif name == "git_command":
         git_args = arguments.get("git_args", "")
         cwd = arguments.get("cwd")
-        
+
         command = f"git {git_args}"
         result = run_command(command, cwd)
-        
+
         if result["success"]:
             output = f"Git Command: {command}\n"
             output += f"Exit Code: {result['returncode']}\n\n"
-            if result['stdout']:
+            if result["stdout"]:
                 output += f"Output:\n{result['stdout']}\n"
-            if result['stderr']:
+            if result["stderr"]:
                 output += f"Errors/Warnings:\n{result['stderr']}\n"
         else:
             output = f"Git Command Failed: {command}\nError: {result['error']}"
-        
+
         return [types.TextContent(type="text", text=output)]
 
     elif name == "search_files":
@@ -409,98 +428,120 @@ async def handle_call_tool(
         directory = arguments.get("directory", ".")
         file_pattern = arguments.get("file_pattern", "*")
         case_sensitive = arguments.get("case_sensitive", False)
-        
+
         try:
             path = Path(directory).resolve()
             matches = []
             search_query = query if case_sensitive else query.lower()
-            
+
             for file in path.rglob(file_pattern):
                 if file.is_file():
                     try:
-                        content = file.read_text(encoding='utf-8', errors='replace')
+                        content = file.read_text(encoding="utf-8", errors="replace")
                         search_content = content if case_sensitive else content.lower()
-                        
+
                         if search_query in search_content:
-                            lines = content.split('\n')
+                            lines = content.split("\n")
                             matching_lines = []
                             for i, line in enumerate(lines, 1):
                                 check_line = line if case_sensitive else line.lower()
                                 if search_query in check_line:
                                     matching_lines.append(f"{i}: {line.strip()}")
-                            
-                            matches.append({
-                                "file": str(file.relative_to(path) if file.is_relative_to(path) else file),
-                                "lines": matching_lines[:10]  # Limit to first 10 matches per file
-                            })
+
+                            matches.append(
+                                {
+                                    "file": str(
+                                        file.relative_to(path)
+                                        if file.is_relative_to(path)
+                                        else file
+                                    ),
+                                    "lines": matching_lines[
+                                        :10
+                                    ],  # Limit to first 10 matches per file
+                                }
+                            )
                     except Exception:
                         continue  # Skip files that can't be read
-            
+
             if matches:
                 result = f"Search results for '{query}' in {directory}:\n\n"
                 for match in matches:
                     result += f"File: {match['file']}\n"
-                    for line in match['lines']:
+                    for line in match["lines"]:
                         result += f"  {line}\n"
                     result += "\n"
             else:
                 result = f"No matches found for '{query}' in {directory}"
-            
+
             return [types.TextContent(type="text", text=result)]
-            
+
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error searching files: {str(e)}")]
+            return [
+                types.TextContent(type="text", text=f"Error searching files: {str(e)}")
+            ]
 
     elif name == "fetch_url":
         url = arguments.get("url", "")
         timeout = arguments.get("timeout", 10)
-        
+
         try:
             import asyncio
             import aiohttp
-            
+
             async def fetch():
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+                async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=timeout)
+                ) as session:
                     async with session.get(url) as response:
                         content = await response.text()
                         return {
                             "status": response.status,
                             "headers": dict(response.headers),
                             "content": content[:10000],  # Limit content size
-                            "content_length": len(content)
+                            "content_length": len(content),
                         }
-            
+
             result = await fetch()
             output = f"URL: {url}\n"
             output += f"Status: {result['status']}\n"
             output += f"Content Length: {result['content_length']} characters\n\n"
-            if result['content_length'] > 10000:
+            if result["content_length"] > 10000:
                 output += f"Content (first 10,000 characters):\n{result['content']}"
             else:
                 output += f"Content:\n{result['content']}"
-            
+
             return [types.TextContent(type="text", text=output)]
-            
+
         except ImportError:
             # Fallback to httpx if aiohttp is not available
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.get(url)
                     content = response.text
-                    
+
                     output = f"URL: {url}\n"
                     output += f"Status: {response.status_code}\n"
                     output += f"Content Length: {len(content)} characters\n\n"
                     if len(content) > 10000:
-                        output += f"Content (first 10,000 characters):\n{content[:10000]}"
+                        output += (
+                            f"Content (first 10,000 characters):\n{content[:10000]}"
+                        )
                     else:
                         output += f"Content:\n{content}"
-                    
+
                     return [types.TextContent(type="text", text=output)]
             except Exception as e:
-                return [types.TextContent(type="text", text=f"Error fetching URL '{url}': {str(e)}")]
+                return [
+                    types.TextContent(
+                        type="text", text=f"Error fetching URL '{url}': {str(e)}"
+                    )
+                ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"Error fetching URL '{url}': {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"Error fetching URL '{url}': {str(e)}"
+                )
+            ]
 
     else:
         raise ValueError(f"Unknown tool: {name}")
@@ -537,202 +578,149 @@ def main(log_level: str, transport: str, host: str, port: int):
             sys.exit(1)
 
     elif transport == "http":
-        # Use FastMCP for proper HTTP MCP implementation
-        from mcp.server.fastmcp import FastMCP
-        
-        # Create FastMCP instance 
-        mcp = FastMCP("my-mcp-server", stateless_http=True, json_response=True)
-        
-        # Register all our tools
-        @mcp.tool()
-        async def read_file(file_path: str, max_size: int = 1024 * 1024) -> str:
-            """Read the contents of a file"""
+        # Implement HTTP MCP server using FastAPI and MCP protocol
+        import uvicorn
+        from fastapi import FastAPI, HTTPException, Request
+        from fastapi.responses import JSONResponse
+
+        app = FastAPI(
+            title="My MCP Server",
+            version="0.1.0",
+            description="MCP Server with practical development tools",
+        )
+
+        async def handle_mcp_request(request_data: dict) -> dict:
+            """Handle MCP JSON-RPC requests"""
             try:
-                content = safe_read_file(file_path, max_size)
-                return f"File: {file_path}\n\n{content}"
-            except Exception as e:
-                return f"Error reading file '{file_path}': {str(e)}"
+                method = request_data.get("method")
+                params = request_data.get("params", {})
+                request_id = request_data.get("id")
 
-        @mcp.tool()
-        async def write_file(file_path: str, content: str) -> str:
-            """Write content to a file"""
-            try:
-                safe_write_file(file_path, content)
-                return f"Successfully wrote {len(content)} characters to {file_path}"
-            except Exception as e:
-                return f"Error writing file '{file_path}': {str(e)}"
-
-        @mcp.tool() 
-        async def list_files(directory: str = ".", pattern: str = "*", recursive: bool = False) -> str:
-            """List files in a directory"""
-            try:
-                path = Path(directory).resolve()
-                if recursive:
-                    files = list(path.rglob(pattern))
-                else:
-                    files = list(path.glob(pattern))
+                if method == "initialize":
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "result": {
+                            "protocolVersion": "2024-11-05",
+                            "capabilities": {
+                                "tools": {},
+                                "resources": {},
+                            },
+                            "serverInfo": {
+                                "name": "my-mcp-server",
+                                "version": "0.1.0"
+                            }
+                        }
+                    }
                 
-                files_list = []
-                for file in sorted(files):
-                    rel_path = file.relative_to(path) if file.is_relative_to(path) else file
-                    stat = file.stat()
-                    files_list.append({
-                        "name": file.name,
-                        "path": str(rel_path),
-                        "type": "directory" if file.is_dir() else "file",
-                        "size": stat.st_size if file.is_file() else None,
-                        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                    })
+                elif method == "tools/list":
+                    tools = await handle_list_tools()
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "result": {
+                            "tools": [
+                                {
+                                    "name": tool.name,
+                                    "description": tool.description,
+                                    "inputSchema": tool.inputSchema
+                                } for tool in tools
+                            ]
+                        }
+                    }
                 
-                result = f"Files in {directory} (pattern: {pattern}, recursive: {recursive}):\n\n"
-                result += json.dumps(files_list, indent=2)
-                return result
-            except Exception as e:
-                return f"Error listing files in '{directory}': {str(e)}"
-
-        @mcp.tool()
-        async def run_command(command: str, cwd: str = None, timeout: int = 30) -> str:
-            """Execute a shell command"""
-            result = run_command(command, cwd, timeout)
-            
-            if result["success"]:
-                output = f"Command: {command}\n"
-                output += f"Exit Code: {result['returncode']}\n\n"
-                if result['stdout']:
-                    output += f"STDOUT:\n{result['stdout']}\n"
-                if result['stderr']:
-                    output += f"STDERR:\n{result['stderr']}\n"
-            else:
-                output = f"Command Failed: {command}\nError: {result['error']}"
-            
-            return output
-
-        @mcp.tool()
-        async def git_command(git_args: str, cwd: str = None) -> str:
-            """Execute git commands"""
-            command = f"git {git_args}"
-            result = run_command(command, cwd)
-            
-            if result["success"]:
-                output = f"Git Command: {command}\n"
-                output += f"Exit Code: {result['returncode']}\n\n"
-                if result['stdout']:
-                    output += f"Output:\n{result['stdout']}\n"
-                if result['stderr']:
-                    output += f"Errors/Warnings:\n{result['stderr']}\n"
-            else:
-                output = f"Git Command Failed: {command}\nError: {result['error']}"
-            
-            return output
-
-        @mcp.tool()
-        async def search_files(query: str, directory: str = ".", file_pattern: str = "*", case_sensitive: bool = False) -> str:
-            """Search for text content in files"""
-            try:
-                path = Path(directory).resolve()
-                matches = []
-                search_query = query if case_sensitive else query.lower()
-                
-                for file in path.rglob(file_pattern):
-                    if file.is_file():
-                        try:
-                            content = file.read_text(encoding='utf-8', errors='replace')
-                            search_content = content if case_sensitive else content.lower()
-                            
-                            if search_query in search_content:
-                                lines = content.split('\n')
-                                matching_lines = []
-                                for i, line in enumerate(lines, 1):
-                                    check_line = line if case_sensitive else line.lower()
-                                    if search_query in check_line:
-                                        matching_lines.append(f"{i}: {line.strip()}")
-                                
-                                matches.append({
-                                    "file": str(file.relative_to(path) if file.is_relative_to(path) else file),
-                                    "lines": matching_lines[:10]  # Limit to first 10 matches per file
-                                })
-                        except Exception:
-                            continue  # Skip files that can't be read
-                
-                if matches:
-                    result = f"Search results for '{query}' in {directory}:\n\n"
-                    for match in matches:
-                        result += f"File: {match['file']}\n"
-                        for line in match['lines']:
-                            result += f"  {line}\n"
-                        result += "\n"
-                else:
-                    result = f"No matches found for '{query}' in {directory}"
-                
-                return result
-            except Exception as e:
-                return f"Error searching files: {str(e)}"
-
-        @mcp.tool()
-        async def fetch_url(url: str, timeout: int = 10) -> str:
-            """Fetch content from a URL"""
-            try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.get(url)
-                    content = response.text
+                elif method == "tools/call":
+                    tool_name = params.get("name")
+                    arguments = params.get("arguments", {})
                     
-                    output = f"URL: {url}\n"
-                    output += f"Status: {response.status_code}\n"
-                    output += f"Content Length: {len(content)} characters\n\n"
-                    if len(content) > 10000:
-                        output += f"Content (first 10,000 characters):\n{content[:10000]}"
-                    else:
-                        output += f"Content:\n{content}"
+                    result = await handle_call_tool(tool_name, arguments)
                     
-                    return output
+                    # Convert TextContent results to simple strings for HTTP response
+                    content_text = ""
+                    for item in result:
+                        if hasattr(item, 'text'):
+                            content_text += item.text
+                        else:
+                            content_text += str(item)
+                    
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "result": {
+                            "content": [{"type": "text", "text": content_text}],
+                            "isError": False
+                        }
+                    }
+                
+                elif method == "resources/list":
+                    resources = await handle_list_resources()
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "result": {
+                            "resources": [
+                                {
+                                    "uri": resource.uri,
+                                    "name": resource.name,
+                                    "description": resource.description,
+                                    "mimeType": resource.mimeType
+                                } for resource in resources
+                            ]
+                        }
+                    }
+                
+                elif method == "resources/read":
+                    uri = params.get("uri")
+                    content = await handle_read_resource(uri)
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "result": {
+                            "contents": [{"uri": uri, "mimeType": "text/plain", "text": content}]
+                        }
+                    }
+                
+                else:
+                    return {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": {
+                            "code": -32601,
+                            "message": f"Method not found: {method}"
+                        }
+                    }
+                    
             except Exception as e:
-                return f"Error fetching URL '{url}': {str(e)}"
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_data.get("id"),
+                    "error": {
+                        "code": -32603,
+                        "message": f"Internal error: {str(e)}"
+                    }
+                }
 
-        # Add resources
-        @mcp.resource("system://info")
-        async def system_info() -> str:
-            """System information resource"""
-            import platform
-            info = {
-                "platform": platform.platform(),
-                "python_version": platform.python_version(),
-                "server_name": "my-mcp-server",
-                "server_version": "0.1.0",
-                "timestamp": datetime.now().isoformat(),
-                "cwd": os.getcwd(),
-            }
-            return json.dumps(info, indent=2)
+        @app.post("/")
+        async def mcp_root(request: Request):
+            """Handle MCP requests on root endpoint"""
+            try:
+                request_data = await request.json()
+                response = await handle_mcp_request(request_data)
+                return response
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
 
-        @mcp.resource("workspace://info")
-        async def workspace_info() -> str:
-            """Workspace information resource"""
-            cwd = Path.cwd()
-            info = {
-                "workspace_path": str(cwd),
-                "workspace_name": cwd.name,
-                "files_count": len(list(cwd.rglob("*"))),
-                "python_files": len(list(cwd.rglob("*.py"))),
-                "git_repo": (cwd / ".git").exists(),
-                "timestamp": datetime.now().isoformat(),
-            }
-            return json.dumps(info, indent=2)
+        @app.get("/health")
+        async def health():
+            return {"status": "healthy", "server": "my-mcp-server", "tools_count": len(await handle_list_tools())}
 
-        @mcp.resource("git://status")
-        async def git_status() -> str:
-            """Git status resource"""
-            result = run_command("git status --porcelain")
-            if result["success"]:
-                return f"Git Status:\n{result['stdout']}\n\nErrors:\n{result['stderr']}"
-            else:
-                return f"Git Status Error: {result.get('error', 'Unknown error')}"
-
-        print(f"🚀 Starting FastMCP HTTP server on {host}:{port}")
+        print(f"🚀 Starting MCP HTTP server on {host}:{port}")
         print(f"📡 Ready for Cloudflare Tunnel at mcp.deejpotter.com")
         print(f"🔗 Access at: http://{host}:{port}")
         print(f"🛠️  Available tools: read_file, write_file, list_files, run_command, git_command, search_files, fetch_url")
 
         try:
-            mcp.run(transport="streamable-http")
+            uvicorn.run(app, host=host, port=port, log_level=log_level.lower())
         except KeyboardInterrupt:
             print("\nServer stopped by user")
         except Exception as e:
