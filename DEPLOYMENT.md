@@ -5,11 +5,13 @@ Simple Docker Compose deployment for any platform.
 ## Quick Install
 
 **Linux/Orange Pi:**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Deejpotter/my-mcp-server/main/install-linux.sh | bash
 ```
 
 **Windows:**
+
 ```cmd
 curl -o install.bat https://raw.githubusercontent.com/Deejpotter/my-mcp-server/main/install-windows.bat && install.bat
 ```
@@ -17,10 +19,12 @@ curl -o install.bat https://raw.githubusercontent.com/Deejpotter/my-mcp-server/m
 ## Manual Steps
 
 ### 1. Install Docker
+
 - **Linux:** `curl -fsSL https://get.docker.com | bash`
 - **Windows:** Download Docker Desktop
 
 ### 2. Deploy Server
+
 ```bash
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
@@ -33,6 +37,7 @@ docker-compose up -d
 ```
 
 ### 3. Setup Cloudflare Tunnel
+
 ```bash
 # Install cloudflared, then:
 cloudflared tunnel login
@@ -53,7 +58,9 @@ sudo systemctl start cloudflared
 ```
 
 ### 4. Configure VS Code
+
 Update `~/.config/Code/User/mcp.json`:
+
 ```json
 {
   "servers": {
