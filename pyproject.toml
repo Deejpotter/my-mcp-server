@@ -1,7 +1,7 @@
 [project]
 name = "my-mcp-server"
 version = "0.1.0"
-description = "My personal MCP server with example tools and resources."
+description = "My personal MCP server with modular architecture and example tools."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -19,4 +19,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+packages = ["src.mcp_server"]
 py-modules = ["main"]
+
+[tool.setuptools.package-dir]
+"" = "."
+"src.mcp_server" = "src/mcp_server"

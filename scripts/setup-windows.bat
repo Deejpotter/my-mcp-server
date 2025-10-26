@@ -58,14 +58,19 @@ echo   uv run python main.py
 echo.
 echo For VS Code integration, update your mcp.json with:
 echo {
-echo   "mcpServers": {
-echo     "my-mcp-server": {
-echo       "command": "uv",
-echo       "args": ["run", "python", "%CD%\\main.py"],
-echo       "cwd": "%CD%"
-echo     }
-echo   }
-echo }
+	"servers": {
+		"my-mcp-server": {
+			"type": "stdio",
+			"command": "uv",
+			"args": [
+				"run",
+				"my-mcp-server"
+			],
+			"cwd": "%CD%"
+		}
+	},
+	"inputs": []
+}
 echo.
 echo 🎉 Setup complete! Check README.md for usage instructions.
 echo.
