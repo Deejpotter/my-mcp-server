@@ -48,10 +48,11 @@ uv sync
 
 ## 🛠️ **Features**
 
-- **File & System Operations** - File management, directory browsing, command execution with security hardening
-- **Documentation Search** - Multi-source documentation lookup (Stack Overflow, GitHub, MDN, DevDocs)
-- **API Integrations** - ClickUp tasks, BookStack knowledge management, GitHub code search
-- **Development Tools** - Git operations, project analysis, real-time web content
+- **File & System Operations** - File management, directory browsing, command execution with security hardening, system resource monitoring
+- **Documentation Search** - Multi-source documentation lookup (MDN, Stack Overflow, GitHub, DevDocs) with intelligent caching
+- **API Integrations** - ClickUp tasks, BookStack knowledge management (create/read/search), GitHub code search
+- **Development Tools** - Git operations, project analysis, real-time web content, system statistics monitoring
+- **Performance Optimizations** - API response caching (5-min TTL), rate limiting protection, reduced API quota consumption
 - **🔒 Enterprise Security** - Comprehensive protection against injection attacks, path traversal, and credential exposure
 
 ### **Security Features**
@@ -121,21 +122,44 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run my-mc
 python scripts/security_check.py
 ```
 
-## � **Project Structure**
+## 📁 **Project Structure**
 
 ```text
 my-mcp-server/
-├── main.py                    # MCP server implementation
-├── pyproject.toml             # Project dependencies
-├── .env.example               # Environment template
+├── main.py                      # MCP server entry point
+├── pyproject.toml               # Project dependencies & config
+├── .env.example                 # Environment template
 ├── scripts/
-│   ├── setup-windows.bat      # Windows setup
-│   └── setup-linux.sh         # Linux/macOS setup
-└── docs/
-    ├── API-INTEGRATIONS.md    # API setup guides
-    ├── DEVELOPMENT.md         # Architecture & workflow
-    ├── TROUBLESHOOTING.md     # Common issues & solutions
-    └── EXTENDING.md           # Adding new tools
+│   ├── setup-windows.bat        # Windows setup script
+│   ├── setup-linux.sh           # Linux/macOS setup script
+│   └── security_check.py        # Security validation
+├── src/
+│   ├── tool_registry.py         # Tool routing & performance tracking
+│   ├── resources.py             # MCP resources
+│   ├── tools/                   # Tool implementations
+│   │   ├── file_operations.py   # File & batch validation tools
+│   │   ├── search_tools.py      # Search & documentation tools
+│   │   └── system_commands.py   # System monitoring & commands
+│   ├── integrations/            # External API integrations
+│   │   └── external_apis.py     # ClickUp, GitHub, BookStack, Context7
+│   └── utils/                   # Shared utilities
+│       ├── security.py          # Security & path validation
+│       ├── cache_rate_limit.py  # Caching & rate limiting
+│       └── performance.py       # Performance tracking
+├── tests/
+│   ├── test_integration.py      # Integration tests
+│   ├── test_security_hardening.py # Security tests
+│   └── test_new_features.py     # Feature tests
+├── docs/
+│   ├── INDEX.md                 # Documentation index
+│   ├── COMPREHENSIVE_GUIDE.md   # Complete setup guide
+│   ├── ADVANCED.md              # Advanced configuration
+│   ├── TROUBLESHOOTING.md       # Common issues & solutions
+│   ├── CONTEXT7-INTEGRATION.md  # Context7 setup
+│   └── TEST_REPORT.md           # Test results & validation
+└── vscode-extension/            # VS Code extension files
+    ├── package.json             # Extension manifest
+    └── src/extension.ts         # Extension implementation
 ```
 
 ## 📄 **License**

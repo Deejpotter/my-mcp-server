@@ -1,12 +1,43 @@
 # AI Prompt for MCP Server Development
 
+## **Overview**
+
+This document provides comprehensive guidance for AI assistants working on **my-mcp-server**, a Model Context Protocol (MCP) server. This is a **personal project** focused on practical development tools and API integrations for AI assistants in VS Code.
+
+**Quick Reference**: Before making ANY changes, you MUST:
+
+1. Read this AI-PROMPT.md file completely
+2. Check TODO.md for current priorities
+3. Review relevant documentation in docs/ folder
+4. Create a detailed plan before implementing
+5. Use my-mcp-server tools to search official documentation
+6. Update core files (README.md, TODO.md, docs/) after changes
+
+## **Table of Contents**
+
+1. [Project Context](#project-context) - Project overview, structure, and architecture philosophy
+2. [Development Workflow & File Management](#development-workflow--file-management) - Pre-work analysis, file management, planning, and TODO tracking
+3. [Code Standards & Documentation](#code-standards--documentation) - File headers, documentation philosophy, research requirements, and comment examples
+4. [Technical Implementation](#technical-implementation) - Tool development patterns, implementation standards, error handling, and API integration
+5. [Communication & Documentation Style](#communication--documentation-style) - Tone, voice, and documentation standards
+6. [Expected AI Assistance Style](#expected-ai-assistance-style) - Before starting work, when helping with code, discussing architecture, and after making changes
+7. [Current Project Priorities](#current-project-priorities) - Immediate focus, quality standards, and avoiding over-engineering
+
+**Key Principle**: This is a **single-file architecture** (main.py) personal project. Preserve existing code, add detailed comments from the author's perspective, and always reference official documentation.
+
+---
+
+```text
+Project Structure
+```
+
 ## **Project Context**
 
 You are working on **my-mcp-server**, a Model Context Protocol (MCP) server that provides development tools and API integrations for AI assistants. This is a **personal project** with 1-2 contributors, focused on practical utility over enterprise features.
 
 ### **Project Structure**
 
-```
+```text
 my-mcp-server/
 ├── main.py                    # Core MCP server
 ├── TODO.md                    # Track planned features and improvements

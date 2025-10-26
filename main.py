@@ -43,7 +43,7 @@ import mcp.types as types
 # Load environment variables
 load_dotenv()
 
-# Import our modular components
+# Import the modular components
 from src.tool_registry import get_all_tools, handle_tool_call
 from src.resources import get_all_resources, handle_resource_read
 
@@ -57,6 +57,19 @@ logger = logging.getLogger(__name__)
 
 # MCP Server Instance
 server = Server("my-mcp-server")
+
+"""
+MCP servers use decorator-based syntax similar to Flask/FastAPI. 
+The @server.list_tools() decorator registers available functions, while @server.call_tool() handles execution.
+All handlers must be async functions and return appropriate content types (TextContent, etc.).
+
+DEVELOPMENT TIPS:
+- Tool names are simple strings (e.g., "read_file"), not URL paths like REST APIs
+- Always return TextContent/ImageContent - never raise exceptions to the AI client
+- Use descriptive tool descriptions - AI reads these to decide which tool to call
+- Check VS Code Developer Tools console to debug MCP communication issues
+- CRITICAL: Never use print() - it corrupts JSON-RPC. Use logger (goes to stderr)
+"""
 
 
 @server.list_tools()

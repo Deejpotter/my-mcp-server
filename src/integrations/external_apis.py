@@ -1,13 +1,33 @@
 """
-External API integration tools
+Updated: 26/10/25
+By: Daniel Potter
+
+External API integration tools for ClickUp, GitHub, Context7, and BookStack.
+Provides unified interface for third-party API access with proper error handling
+and authentication using environment variables.
+
+References:
+ClickUp API: https://clickup.com/api
+GitHub REST API: https://docs.github.com/en/rest
+Context7 MCP: https://github.com/upstash/context7
+BookStack API: https://www.bookstackapp.com/docs/admin/hacking-bookstack/
 """
 
 import os
 from typing import Any, Dict, List
+import hashlib
 
 import httpx
 from mcp.types import Tool, TextContent
 import mcp.types as types
+
+# Import caching and rate limiting utilities
+from ..utils.cache_rate_limit import (
+    api_cache,
+    context7_limiter,
+    github_limiter,
+    generic_limiter,
+)
 
 
 def get_integration_tools() -> List[Tool]:
@@ -74,6 +94,86 @@ def get_integration_tools() -> List[Tool]:
                 "type": "object",
                 "properties": {},
                 "required": [],
+            },
+        ),
+        # BookStack Tools
+        Tool(
+            name="bookstack_create_page",
+            description="Create a new page in BookStack. Requires BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "book_id": {
+                        "type": "integer",
+                        "description": "BookStack book ID to create page in (use if not using chapter_id)",
+                    },
+                    "chapter_id": {
+                        "type": "integer",
+                        "description": "BookStack chapter ID to create page in (use if not using book_id)",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Page title/name",
+                    },
+                    "html": {
+                        "type": "string",
+                        "description": "Page content in HTML format",
+                    },
+                    "markdown": {
+                        "type": "string",
+                        "description": "Page content in Markdown format (alternative to html)",
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "value": {"type": "string"},
+                            },
+                        },
+                        "description": "Array of tag objects with name and value",
+                    },
+                },
+                "required": ["name"],
+            },
+        ),
+        Tool(
+            name="bookstack_get_page",
+            description="Get content of a specific BookStack page by ID",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "page_id": {
+                        "type": "integer",
+                        "description": "BookStack page ID",
+                    }
+                },
+                "required": ["page_id"],
+            },
+        ),
+        Tool(
+            name="bookstack_search",
+            description="Search BookStack for pages, books, chapters, or shelves. Takes same query format as BookStack search bar.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query text (supports filters like 'name:', 'type:', etc.)",
+                    },
+                    "count": {
+                        "type": "integer",
+                        "description": "Number of results to return (default: 20, suggestion only)",
+                        "default": 20,
+                    },
+                    "page": {
+                        "type": "integer",
+                        "description": "Page number for pagination (default: 1)",
+                        "default": 1,
+                    },
+                },
+                "required": ["query"],
             },
         ),
         # GitHub Search Tool
@@ -143,6 +243,14 @@ async def handle_integration_tools(
         return await _handle_clickup_create_task(arguments)
     elif name == "clickup_get_workspaces":
         return await _handle_clickup_get_workspaces(arguments)
+
+    # BookStack handlers
+    elif name == "bookstack_create_page":
+        return await _handle_bookstack_create_page(arguments)
+    elif name == "bookstack_get_page":
+        return await _handle_bookstack_get_page(arguments)
+    elif name == "bookstack_search":
+        return await _handle_bookstack_search(arguments)
 
     # GitHub handler
     elif name == "github_search_code":
@@ -340,10 +448,288 @@ async def _handle_clickup_get_workspaces(
         ]
 
 
+async def _handle_bookstack_create_page(
+    arguments: Dict[str, Any],
+) -> List[types.TextContent]:
+    """
+    Handle BookStack page creation using REST API.
+
+    Reference: https://demo.bookstackapp.com/api/docs#pages-create
+    Authentication: Token-based using BOOKSTACK_TOKEN_ID and BOOKSTACK_TOKEN_SECRET
+    """
+    try:
+        # Get environment variables for BookStack authentication
+        bookstack_url = os.getenv("BOOKSTACK_URL")
+        token_id = os.getenv("BOOKSTACK_TOKEN_ID")
+        token_secret = os.getenv("BOOKSTACK_TOKEN_SECRET")
+
+        if not all([bookstack_url, token_id, token_secret]):
+            return [
+                types.TextContent(
+                    type="text",
+                    text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.",
+                )
+            ]
+
+        # Type narrowing - after check, we know these are not None
+        assert bookstack_url is not None
+        assert token_id is not None
+        assert token_secret is not None
+
+        # Extract parameters from arguments
+        book_id = arguments.get("book_id")
+        chapter_id = arguments.get("chapter_id")
+        name = arguments.get("name", "")
+        html = arguments.get("html", "")
+        markdown = arguments.get("markdown", "")
+        tags = arguments.get("tags", [])
+
+        # Validation - need either book_id or chapter_id
+        if not (book_id or chapter_id):
+            return [
+                types.TextContent(
+                    type="text",
+                    text="Error: Either book_id or chapter_id is required to create a page",
+                )
+            ]
+
+        if not name:
+            return [types.TextContent(type="text", text="Error: name is required")]
+
+        # Build page data payload
+        page_data = {"name": name}
+
+        if book_id:
+            page_data["book_id"] = book_id
+        if chapter_id:
+            page_data["chapter_id"] = chapter_id
+        if html:
+            page_data["html"] = html
+        if markdown:
+            page_data["markdown"] = markdown
+        if tags:
+            page_data["tags"] = tags
+
+        # BookStack API endpoint and authentication
+        url = f"{bookstack_url.rstrip('/')}/api/pages"
+        headers = {
+            "Authorization": f"Token {token_id}:{token_secret}",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, headers=headers, json=page_data)
+
+            if response.status_code in [200, 201]:
+                page = response.json()
+                output = f"✅ Page created successfully in BookStack!\n\n"
+                output += f"📄 {page['name']}\n"
+                output += f"ID: {page['id']}\n"
+                output += f"Slug: {page['slug']}\n"
+                if "book_id" in page:
+                    output += f"Book ID: {page['book_id']}\n"
+                if "chapter_id" in page:
+                    output += f"Chapter ID: {page['chapter_id']}\n"
+                return [types.TextContent(type="text", text=output)]
+            else:
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"BookStack API error: {response.status_code} - {response.text}",
+                    )
+                ]
+
+    except Exception as e:
+        return [
+            types.TextContent(
+                type="text", text=f"Error creating BookStack page: {str(e)}"
+            )
+        ]
+
+
+async def _handle_bookstack_get_page(
+    arguments: Dict[str, Any],
+) -> List[types.TextContent]:
+    """
+    Handle retrieving a BookStack page by ID.
+
+    Reference: https://demo.bookstackapp.com/api/docs#pages-read
+    Returns both HTML and Markdown content if available
+    """
+    try:
+        bookstack_url = os.getenv("BOOKSTACK_URL")
+        token_id = os.getenv("BOOKSTACK_TOKEN_ID")
+        token_secret = os.getenv("BOOKSTACK_TOKEN_SECRET")
+
+        if not all([bookstack_url, token_id, token_secret]):
+            return [
+                types.TextContent(
+                    type="text",
+                    text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.",
+                )
+            ]
+
+        # Type narrowing
+        assert bookstack_url is not None
+        assert token_id is not None
+        assert token_secret is not None
+
+        page_id = arguments.get("page_id")
+        if not page_id:
+            return [types.TextContent(type="text", text="Error: page_id is required")]
+
+        url = f"{bookstack_url.rstrip('/')}/api/pages/{page_id}"
+        headers = {"Authorization": f"Token {token_id}:{token_secret}"}
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=headers)
+
+            if response.status_code == 200:
+                page = response.json()
+                output = f"📄 **{page['name']}**\n\n"
+                output += f"ID: {page['id']}\n"
+                output += f"Slug: {page['slug']}\n"
+                output += f"Book ID: {page.get('book_id', 'N/A')}\n"
+                if page.get("chapter_id"):
+                    output += f"Chapter ID: {page['chapter_id']}\n"
+                output += f"Created: {page.get('created_at', 'N/A')}\n"
+                output += f"Updated: {page.get('updated_at', 'N/A')}\n\n"
+
+                # Add content - prioritize markdown if available, otherwise HTML
+                if page.get("markdown"):
+                    output += "**Content (Markdown):**\n\n"
+                    output += page["markdown"]
+                elif page.get("raw_html"):
+                    output += "**Content (HTML):**\n\n"
+                    output += page["raw_html"]
+                else:
+                    output += "*(No content available)*"
+
+                return [types.TextContent(type="text", text=output)]
+            elif response.status_code == 404:
+                return [
+                    types.TextContent(
+                        type="text", text=f"Page with ID {page_id} not found"
+                    )
+                ]
+            else:
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"BookStack API error: {response.status_code} - {response.text}",
+                    )
+                ]
+
+    except Exception as e:
+        return [
+            types.TextContent(
+                type="text", text=f"Error retrieving BookStack page: {str(e)}"
+            )
+        ]
+
+
+async def _handle_bookstack_search(
+    arguments: Dict[str, Any],
+) -> List[types.TextContent]:
+    """
+    Handle BookStack search across all content types.
+
+    Reference: https://demo.bookstackapp.com/api/docs#search-all
+    Searches books, chapters, pages, and bookshelves
+    """
+    try:
+        bookstack_url = os.getenv("BOOKSTACK_URL")
+        token_id = os.getenv("BOOKSTACK_TOKEN_ID")
+        token_secret = os.getenv("BOOKSTACK_TOKEN_SECRET")
+
+        if not all([bookstack_url, token_id, token_secret]):
+            return [
+                types.TextContent(
+                    type="text",
+                    text="BookStack credentials not found. Please set BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, and BOOKSTACK_TOKEN_SECRET environment variables.",
+                )
+            ]
+
+        # Type narrowing
+        assert bookstack_url is not None
+        assert token_id is not None
+        assert token_secret is not None
+
+        query = arguments.get("query", "")
+        count = arguments.get("count", 20)
+        page = arguments.get("page", 1)
+
+        if not query:
+            return [types.TextContent(type="text", text="Error: query is required")]
+
+        url = f"{bookstack_url.rstrip('/')}/api/search"
+        headers = {"Authorization": f"Token {token_id}:{token_secret}"}
+        params = {"query": query, "count": count, "page": page}
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=headers, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("data", [])
+                total = data.get("total", 0)
+
+                if results:
+                    output = f"🔍 Found {total} results for '{query}' (showing {len(results)}):\n\n"
+                    for item in results:
+                        # Icon based on type
+                        icons = {
+                            "page": "📄",
+                            "chapter": "📁",
+                            "book": "📚",
+                            "bookshelf": "📚",
+                        }
+                        icon = icons.get(item.get("type"), "📌")
+
+                        output += f"{icon} **{item['name']}** ({item['type']})\n"
+                        output += f"   ID: {item['id']}\n"
+
+                        # Add snippet if available (preview text)
+                        if item.get("preview_content"):
+                            preview = item["preview_content"]["content"][:150]
+                            output += f"   Preview: {preview}...\n"
+
+                        output += "\n"
+
+                    return [types.TextContent(type="text", text=output)]
+                else:
+                    return [
+                        types.TextContent(
+                            type="text", text=f"No results found for query '{query}'"
+                        )
+                    ]
+            else:
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"BookStack API error: {response.status_code} - {response.text}",
+                    )
+                ]
+
+    except Exception as e:
+        return [
+            types.TextContent(type="text", text=f"Error searching BookStack: {str(e)}")
+        ]
+
+
 async def _handle_github_search_code(
     arguments: Dict[str, Any],
 ) -> List[types.TextContent]:
-    """Handle GitHub code search"""
+    """
+    Handle GitHub code search with caching and rate limiting.
+
+    Implements:
+    - In-memory caching with 5-minute TTL
+    - Rate limiting (30 requests/minute) to stay under GitHub limits
+    - Cache key based on query + language + repo + limit
+
+    Reference: https://docs.github.com/en/rest
+    """
     try:
         query = arguments.get("query", "")
         language = arguments.get("language")
@@ -359,6 +745,30 @@ async def _handle_github_search_code(
             search_query += f" language:{language}"
         if repo:
             search_query += f" repo:{repo}"
+
+        # Generate cache key from request parameters
+        cache_key = f"github:{search_query}:{limit}"
+        cache_key_hash = hashlib.md5(cache_key.encode()).hexdigest()
+
+        # Check cache first
+        cached_result = api_cache.get(cache_key_hash)
+        if cached_result is not None:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"📦 (Cached)\n\n{cached_result}",
+                )
+            ]
+
+        # Check rate limit before making API call
+        if not github_limiter.allow("github_api"):
+            wait_time = github_limiter.time_until_allowed("github_api")
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"⏱️ Rate limit exceeded for GitHub API. Please wait {wait_time:.1f} seconds.",
+                )
+            ]
 
         url = "https://api.github.com/search/code"
         headers = {"Accept": "application/vnd.github.v3+json"}
@@ -384,6 +794,9 @@ async def _handle_github_search_code(
                         output += f"   Repository: {item['repository']['full_name']}\n"
                         output += f"   Path: {item['path']}\n"
                         output += f"   URL: {item['html_url']}\n\n"
+
+                    # Cache successful result
+                    api_cache.set(cache_key_hash, output)
                     return [types.TextContent(type="text", text=output)]
                 else:
                     return [
@@ -406,7 +819,16 @@ async def _handle_github_search_code(
 
 
 async def _handle_context7_search(arguments: Dict[str, Any]) -> List[types.TextContent]:
-    """Handle Context7 documentation search"""
+    """
+    Handle Context7 documentation search with caching and rate limiting.
+
+    Implements:
+    - In-memory caching with 5-minute TTL to reduce API calls
+    - Rate limiting (100 requests/minute) to prevent quota exhaustion
+    - Cache key based on library + query + tokens for precise matching
+
+    Reference: https://github.com/upstash/context7
+    """
     try:
         library = arguments.get("library", "")
         query = arguments.get("query", "")
@@ -416,6 +838,30 @@ async def _handle_context7_search(arguments: Dict[str, Any]) -> List[types.TextC
             return [
                 types.TextContent(
                     type="text", text="Error: library and query are required"
+                )
+            ]
+
+        # Generate cache key from request parameters
+        cache_key = f"context7:{library}:{query}:{tokens}"
+        cache_key_hash = hashlib.md5(cache_key.encode()).hexdigest()
+
+        # Check cache first - avoid unnecessary API calls
+        cached_result = api_cache.get(cache_key_hash)
+        if cached_result is not None:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"📦 (Cached) {cached_result}",
+                )
+            ]
+
+        # Check rate limit before making API call
+        if not context7_limiter.allow("context7_api"):
+            wait_time = context7_limiter.time_until_allowed("context7_api")
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"⏱️ Rate limit exceeded for Context7 API. Please wait {wait_time:.1f} seconds.",
                 )
             ]
 
@@ -449,6 +895,8 @@ async def _handle_context7_search(arguments: Dict[str, Any]) -> List[types.TextC
                     content = data["result"]["content"]
                     if content and len(content) > 0:
                         text_content = content[0].get("text", "No content found")
+                        # Cache successful result for 5 minutes
+                        api_cache.set(cache_key_hash, text_content)
                         return [types.TextContent(type="text", text=text_content)]
                     else:
                         return [types.TextContent(type="text", text="No results found")]

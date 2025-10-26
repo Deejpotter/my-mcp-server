@@ -1,5 +1,13 @@
 """
-MCP Resources - Data sources that AI can read
+Updated: 26/10/25
+By: Daniel Potter
+
+MCP Resources - Data sources that AI can read.
+Provides system information, workspace details, and git status as read-only resources
+accessible to AI assistants through the MCP protocol.
+
+References:
+MCP Resources: https://modelcontextprotocol.io/docs/concepts/resources
 """
 
 import json
@@ -9,6 +17,7 @@ import sys
 from typing import List
 
 from mcp.types import Resource
+from pydantic import AnyUrl
 
 from .utils.security import run_command
 
@@ -17,19 +26,19 @@ def get_all_resources() -> List[Resource]:
     """Get all available resources"""
     return [
         Resource(
-            uri="system://info",
+            uri=AnyUrl("system://info"),
             name="System Information",
             description="Current system information and status",
             mimeType="application/json",
         ),
         Resource(
-            uri="workspace://info",
+            uri=AnyUrl("workspace://info"),
             name="Workspace Information",
             description="Information about the current workspace",
             mimeType="application/json",
         ),
         Resource(
-            uri="git://status",
+            uri=AnyUrl("git://status"),
             name="Git Status",
             description="Current git repository status",
             mimeType="text/plain",
@@ -96,7 +105,7 @@ async def _get_workspace_info() -> str:
                 directories.append(os.path.relpath(os.path.join(root, dirname), cwd))
 
         # Get file type counts
-        file_types = {}
+        file_types: dict[str, int] = {}
         for file in files:
             ext = os.path.splitext(file)[1].lower()
             file_types[ext] = file_types.get(ext, 0) + 1

@@ -103,50 +103,12 @@ def get_system_command_tools() -> List[Tool]:
             },
         ),
         Tool(
-            name="system_stats",
-            description="Monitor system resource usage including CPU, memory, disk, and network statistics. "
-            "Provides real-time system performance metrics using psutil library. "
-            "Requires psutil package to be installed.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "interval": {
-                        "type": "number",
-                        "description": "CPU measurement interval in seconds (default: 1.0)",
-                        "default": 1.0,
-                    },
-                    "per_cpu": {
-                        "type": "boolean",
-                        "description": "Show per-CPU statistics (default: false)",
-                        "default": False,
-                    },
-                },
-                "required": [],
-            },
-        ),
-        Tool(
             name="security_status",
             description="Display current security configuration and validation status. "
             "Shows allowlisted commands, security settings, and validation policies.",
             inputSchema={
                 "type": "object",
                 "properties": {},
-                "required": [],
-            },
-        ),
-        Tool(
-            name="performance_metrics",
-            description="Get performance metrics and execution time statistics for MCP tools. "
-            "Tracks total calls, success/failure rates, and execution times (min/max/avg). "
-            "Useful for identifying slow operations and monitoring tool usage patterns.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "tool_name": {
-                        "type": "string",
-                        "description": "Specific tool name to get metrics for (optional, omit for summary of all tools)",
-                    },
-                },
                 "required": [],
             },
         ),
@@ -289,7 +251,7 @@ async def handle_system_commands(
 
             # Construct and validate the full git command
             git_command = f"git {git_args}"
-            result = run_command(git_command, cwd or os.getcwd(), timeout)
+            result = run_command(git_command, cwd, timeout)
 
             # Format response with security context
             if result["success"]:
@@ -339,99 +301,6 @@ async def handle_system_commands(
                 )
             ]
 
-    elif name == "system_stats":
-        """
-        Handle system statistics monitoring using psutil library.
-
-        Provides comprehensive system resource monitoring:
-        - CPU usage and per-core statistics
-        - Memory (RAM) usage and availability
-        - Disk usage for all partitions
-        - Network I/O statistics (bytes sent/received)
-
-        Reference: https://github.com/giampaolo/psutil
-        """
-        try:
-            # Check if psutil is installed
-            try:
-                import psutil
-            except ImportError:
-                return [
-                    types.TextContent(
-                        type="text",
-                        text="❌ Error: psutil library is not installed.\n\n"
-                        "Install it with: pip install psutil\n"
-                        "or: uv add psutil",
-                    )
-                ]
-
-            interval = arguments.get("interval", 1.0)
-            per_cpu = arguments.get("per_cpu", False)
-
-            output = "📊 **System Statistics**\n\n"
-
-            # CPU Statistics
-            output += "### 🖥️  CPU Usage\n"
-            cpu_percent = psutil.cpu_percent(interval=interval, percpu=per_cpu)
-            if per_cpu:
-                output += f"Overall: {psutil.cpu_percent(interval=0)}%\n"
-                for i, percent in enumerate(cpu_percent):
-                    output += f"  CPU {i}: {percent}%\n"
-            else:
-                output += f"  {cpu_percent}%\n"
-
-            cpu_count_logical = psutil.cpu_count(logical=True)
-            cpu_count_physical = psutil.cpu_count(logical=False)
-            output += f"  Logical CPUs: {cpu_count_logical}\n"
-            output += f"  Physical CPUs: {cpu_count_physical}\n\n"
-
-            # Memory Statistics
-            output += "### 💾 Memory Usage\n"
-            mem = psutil.virtual_memory()
-            output += f"  Total: {mem.total / (1024**3):.2f} GB\n"
-            output += f"  Available: {mem.available / (1024**3):.2f} GB\n"
-            output += f"  Used: {mem.used / (1024**3):.2f} GB ({mem.percent}%)\n"
-            output += f"  Free: {mem.free / (1024**3):.2f} GB\n\n"
-
-            # Swap Memory
-            swap = psutil.swap_memory()
-            output += "### 🔄 Swap Memory\n"
-            output += f"  Total: {swap.total / (1024**3):.2f} GB\n"
-            output += f"  Used: {swap.used / (1024**3):.2f} GB ({swap.percent}%)\n"
-            output += f"  Free: {swap.free / (1024**3):.2f} GB\n\n"
-
-            # Disk Statistics
-            output += "### 💿 Disk Usage\n"
-            partitions = psutil.disk_partitions()
-            for partition in partitions:
-                try:
-                    usage = psutil.disk_usage(partition.mountpoint)
-                    output += f"  {partition.device} ({partition.mountpoint}):\n"
-                    output += f"    Total: {usage.total / (1024**3):.2f} GB\n"
-                    output += f"    Used: {usage.used / (1024**3):.2f} GB ({usage.percent}%)\n"
-                    output += f"    Free: {usage.free / (1024**3):.2f} GB\n"
-                except PermissionError:
-                    output += f"  {partition.device}: Permission Denied\n"
-
-            output += "\n"
-
-            # Network Statistics
-            output += "### 🌐 Network I/O\n"
-            net_io = psutil.net_io_counters()
-            output += f"  Bytes Sent: {net_io.bytes_sent / (1024**2):.2f} MB\n"
-            output += f"  Bytes Received: {net_io.bytes_recv / (1024**2):.2f} MB\n"
-            output += f"  Packets Sent: {net_io.packets_sent:,}\n"
-            output += f"  Packets Received: {net_io.packets_recv:,}\n"
-
-            return [types.TextContent(type="text", text=output)]
-
-        except Exception as e:
-            return [
-                types.TextContent(
-                    type="text", text=f"❌ Error getting system stats: {str(e)}"
-                )
-            ]
-
     elif name == "security_status":
         try:
             # Get current security configuration
@@ -466,48 +335,6 @@ async def handle_system_commands(
             return [
                 types.TextContent(
                     type="text", text=f"❌ Error retrieving security status: {str(e)}"
-                )
-            ]
-
-    elif name == "performance_metrics":
-        """Get performance metrics for tool executions"""
-        try:
-            from ..utils.performance import get_tracker
-
-            tracker = get_tracker()
-            tool_name = arguments.get("tool_name")
-
-            if tool_name:
-                # Get metrics for specific tool
-                metrics = tracker.get_metrics(tool_name)
-                if not metrics:
-                    return [
-                        types.TextContent(
-                            type="text",
-                            text=f"No performance data available for tool: {tool_name}",
-                        )
-                    ]
-
-                output = f"Performance Metrics for {tool_name}:\n"
-                output += f"  Total Calls: {metrics['total_calls']}\n"
-                output += f"  Successful: {metrics['successful_calls']}\n"
-                output += f"  Failed: {metrics['failed_calls']}\n"
-                output += f"  Avg Time: {metrics.get('avg_time_ms', 0):.2f}ms\n"
-                output += f"  Min Time: {metrics['min_time_ms']:.2f}ms\n"
-                output += f"  Max Time: {metrics['max_time_ms']:.2f}ms\n"
-                output += f"  Last Called: {metrics['last_called']}\n"
-
-                return [types.TextContent(type="text", text=output)]
-            else:
-                # Get summary of all tools
-                summary = tracker.get_summary()
-                return [types.TextContent(type="text", text=summary)]
-
-        except Exception as e:
-            return [
-                types.TextContent(
-                    type="text",
-                    text=f"❌ Error retrieving performance metrics: {str(e)}",
                 )
             ]
 
