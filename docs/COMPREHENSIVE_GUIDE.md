@@ -199,7 +199,42 @@ All must pass before committing changes.
 - **Security-First**: Always use hardened security functions (`safe_read_file`, `run_command`, etc.)
 - **Error Handling**: Return `TextContent` for all tool calls, never throw exceptions
 - **Input Validation**: Validate all user inputs before processing
+- **Logging**: **CRITICAL** - Never use `print()` or write to stdout in MCP servers (breaks JSON-RPC)
 - **Documentation**: Update docs when adding new functionality
+
+#### Logging Guidelines
+
+**⚠️ CRITICAL: MCP Logging Requirements**
+
+For STDIO-based MCP servers, **never write to standard output (stdout)**:
+
+```python
+# ❌ NEVER DO THIS - Breaks MCP communication
+print("Debug message")
+console.log("Debug message")  # JavaScript
+fmt.Println("Debug message")  # Go
+
+# ✅ CORRECT - Use logging to stderr
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stderr  # IMPORTANT: Always stderr for MCP servers
+)
+logger = logging.getLogger(__name__)
+
+logger.info("Server started")
+logger.error("Error occurred")
+```
+
+**Why this matters:**
+
+- MCP servers communicate via JSON-RPC over stdout
+- Any stdout output corrupts the message stream
+- This breaks the connection between AI client and server
+- Always use stderr for logging or write to files
 
 ---
 
@@ -329,7 +364,7 @@ requests.get(user_url, timeout=None)  # RESOURCE EXHAUSTION
 python scripts/security_check.py
 
 # Expected output:
-# ✅ ALL SECURITY CHECKS PASSED
+# ✅ ALL SECURITY CHECKS PASSED (includes MCP stdout violation check)
 
 # Quick validation only (skips credential scan)  
 python scripts/security_check.py --quick

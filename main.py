@@ -27,6 +27,7 @@ HTTPx Async: https://www.python-httpx.org/async/
 """
 
 import asyncio
+import logging
 import sys
 from typing import Any, Sequence
 
@@ -43,8 +44,16 @@ import mcp.types as types
 load_dotenv()
 
 # Import our modular components
-from src.mcp_server.tool_registry import get_all_tools, handle_tool_call
-from src.mcp_server.resources import get_all_resources, handle_resource_read
+from src.tool_registry import get_all_tools, handle_tool_call
+from src.resources import get_all_resources, handle_resource_read
+
+# Configure logging to stderr (CRITICAL: Never log to stdout in MCP servers)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stderr,  # IMPORTANT: MCP servers must never write to stdout
+)
+logger = logging.getLogger(__name__)
 
 # MCP Server Instance
 server = Server("my-mcp-server")
@@ -142,9 +151,9 @@ def main(log_level: str):
     try:
         asyncio.run(run_stdio_server())
     except KeyboardInterrupt:
-        print("\nServer stopped by user")
+        logger.info("Server stopped by user")
     except Exception as e:
-        print(f"Server error: {e}", file=sys.stderr)
+        logger.error(f"Server error: {e}")
         sys.exit(1)
 
 

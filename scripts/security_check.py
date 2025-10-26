@@ -49,6 +49,17 @@ CREDENTIAL_PATTERNS = [
     ),
 ]
 
+# MCP stdout violation patterns (these break MCP servers)
+STDOUT_VIOLATION_PATTERNS = [
+    (
+        r"print\s*\([^)]*\)(?!\s*,\s*file\s*=\s*sys\.stderr)",
+        "print() to stdout (breaks MCP)",
+    ),
+    (r"console\.log\s*\(", "console.log() (breaks MCP in JS)"),
+    (r"fmt\.Print\w*\s*\(", "fmt.Print() (breaks MCP in Go)"),
+    (r"System\.out\.print\w*\s*\(", "System.out.print() (breaks MCP in Java)"),
+]
+
 # Files to exclude from credential scanning
 EXCLUDE_PATTERNS = [
     r"\.git/",
@@ -493,6 +504,95 @@ def scan_credentials(root_path="."):
     return False
 
 
+def scan_mcp_stdout_violations(root_path="."):
+    """Scan MCP server code for stdout violations that break JSON-RPC"""
+    print("\n🔍 Scanning for MCP stdout violations...")
+
+    violations = []
+    files_scanned = 0
+
+    # Only scan core MCP server files (not scripts)
+    mcp_server_files = ["main.py", "src/**/*.py"]
+
+    for pattern in mcp_server_files:
+        if pattern == "main.py":
+            file_path = Path(root_path) / "main.py"
+            if file_path.exists():
+                violations.extend(scan_file_for_stdout_violations(file_path))
+                files_scanned += 1
+        else:
+            # Scan src directory
+            src_path = Path(root_path) / "src"
+            if src_path.exists():
+                for py_file in src_path.rglob("*.py"):
+                    violations.extend(scan_file_for_stdout_violations(py_file))
+                    files_scanned += 1
+
+    print(f"📊 Scanned {files_scanned} MCP server files")
+
+    if not violations:
+        print("✅ No MCP stdout violations detected!")
+        print("🔒 MCP JSON-RPC communication is safe")
+        return True
+
+    print(f"❌ Found {len(violations)} MCP stdout violations:")
+    print()
+
+    for violation in violations:
+        print(f"🚨 {violation['type']}")
+        print(f"   📁 File: {violation['file']}")
+        print(f"   📍 Line: {violation['line']}")
+        print(f"   🔍 Code: {violation['match']}")
+        print(f"   📄 Context: {violation['context']}")
+        print()
+
+    print("🔧 Critical Fix Required:")
+    print("1. Replace print() with logging to stderr")
+    print("2. Use: logging.basicConfig(stream=sys.stderr)")
+    print("3. Never write to stdout in MCP servers")
+    print("4. This breaks JSON-RPC communication with AI clients")
+
+    return False
+
+
+def scan_file_for_stdout_violations(file_path):
+    """Scan a single file for MCP stdout violations"""
+    violations = []
+
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+
+        for line_num, line in enumerate(content.split("\n"), 1):
+            for pattern, description in STDOUT_VIOLATION_PATTERNS:
+                matches = re.finditer(pattern, line, re.IGNORECASE)
+                for match in matches:
+                    matched_text = match.group(0)
+
+                    violations.append(
+                        {
+                            "file": file_path,
+                            "line": line_num,
+                            "type": description,
+                            "match": (
+                                matched_text[:80] + "..."
+                                if len(matched_text) > 80
+                                else matched_text
+                            ),
+                            "context": (
+                                line.strip()[:120] + "..."
+                                if len(line.strip()) > 120
+                                else line.strip()
+                            ),
+                        }
+                    )
+
+    except Exception as e:
+        print(f"⚠️ Error scanning {file_path}: {e}")
+
+    return violations
+
+
 def run_security_validation():
     """Run comprehensive security validation"""
     print("🔒 MCP Server Security Validation")
@@ -517,6 +617,7 @@ def run_security_validation():
             "Path Validation Functions",
             lambda: test_path_validation_functions(security_funcs),
         ),
+        ("MCP Stdout Violations", lambda: scan_mcp_stdout_violations()),
     ]
 
     passed = 0

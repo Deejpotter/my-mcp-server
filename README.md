@@ -117,8 +117,8 @@ uv run my-mcp-server --help
 # Test connection
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run my-mcp-server
 
-# Validate security hardening
-python validate_core_security.py
+# Validate security hardening (includes MCP logging compliance)
+python scripts/security_check.py
 ```
 
 ## � **Project Structure**

@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Model Context Protocol (MCP) server providing development tools, API integrations, and documentation search capabilities for AI assistants. The project was refactored from a monolithic 1,794-line main.py to a clean modular design (150 lines) with 91.6% reduction in main file complexity.
+This is a Model Context Protocol (MCP) server providing development tools, API integrations, and documentation search capabilities for AI assistants. The project was refactored from a monolithic 1,794-line main.py to a clean modular design (150 lines).
 
 **Project Scale:** Personal project with 1-2 contributors. Focus on practical utility over enterprise features. Avoid over-engineering.
 
 ## Development Commands
 
 ### Setup and Installation
+
 ```bash
 # Install dependencies
 uv sync
@@ -23,6 +24,7 @@ uv run python main.py --log-level DEBUG
 ```
 
 ### Testing
+
 ```bash
 # Test server startup
 uv run my-mcp-server --help
@@ -44,11 +46,13 @@ echo '{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}' | uv run m
 ### Core Components
 
 **Entry Point: main.py** (150 lines)
+
 - MCP server initialization and protocol handlers
 - Delegates all tool/resource operations to modular components
 - Uses stdio transport for local MCP clients (VS Code, Claude Desktop, etc.)
 
 **Modular Structure:**
+
 ```
 src/mcp_server/
 ├── tool_registry.py          # Central tool collection and routing
@@ -73,6 +77,7 @@ src/mcp_server/
 ### MCP Protocol Implementation
 
 Three core MCP handlers in main.py:
+
 - `@server.list_tools()` → Returns all tool definitions via tool_registry
 - `@server.call_tool()` → Routes tool execution via tool_registry
 - `@server.list_resources()` → Returns available data sources
@@ -121,6 +126,7 @@ Another reference: https://docs.example.com/path
 ```
 
 **Requirements:**
+
 - Date format: dd/mm/yy (e.g., 26/10/25)
 - Author: Daniel Potter
 - Description: Concise purpose and critical knowledge
@@ -187,6 +193,7 @@ Tool definitions use JSON Schema for input validation. Always return `List[types
 ### Context7 Usage
 
 **Always use Context7 automatically** when you need:
+
 - Code generation examples
 - Setup or configuration steps
 - Library or API documentation
@@ -197,33 +204,38 @@ Use the Context7 MCP tools to resolve library IDs and get documentation without 
 ## Security Considerations
 
 ### File Operations
+
 - Use `safe_read_file()` with 1MB default size limit
 - Use `safe_write_file()` for controlled file creation
 - All paths resolved with `Path.resolve()` to prevent traversal attacks
 
 ### Command Execution
+
 - Use `run_command()` with 30-second default timeout
 - All commands run via subprocess with capture_output=True
 - Returns structured Dict with success/error information
 
 ### API Keys
+
 - Never log or return API keys in responses
-- Filter environment variables ending in _KEY, _TOKEN, _SECRET, _PASSWORD
+- Filter environment variables ending in _KEY,_TOKEN, _SECRET,_PASSWORD
 - Check for API key presence before making external calls
 
 ## Error Handling
 
 **Critical: Never raise exceptions from tool handlers**
+
 - Always return `[types.TextContent(type="text", text=f"Error: {str(e)}")]`
 - Provide helpful error messages with context
 - Include operation details for debugging
 - MCP protocol requirement - tools must return TextContent, never throw
 
-Reference: https://modelcontextprotocol.io/docs/concepts/tools
+Reference: <https://modelcontextprotocol.io/docs/concepts/tools>
 
 ## Environment Variables
 
 Optional API integrations configured via `.env`:
+
 - `GITHUB_TOKEN` - GitHub API access
 - `CLICKUP_API_TOKEN` - ClickUp integration
 - `BOOKSTACK_URL`, `BOOKSTACK_TOKEN_ID`, `BOOKSTACK_TOKEN_SECRET` - BookStack integration
@@ -232,11 +244,13 @@ Optional API integrations configured via `.env`:
 ## Current Priorities (from TODO.md)
 
 ### Near Term
+
 - System monitoring tools (`system_stats`)
 - Performance improvements (caching, rate limiting for external APIs)
 - Developer experience enhancements (hot reloading, testing framework)
 
 ### Known Issues
+
 - Large file operations can timeout (>1MB)
 - Windows path handling inconsistent in some tools
 - Error messages could be more user-friendly
@@ -244,6 +258,7 @@ Optional API integrations configured via `.env`:
 ## Documentation
 
 Comprehensive documentation in `docs/`:
+
 - **AI-PROMPT.md** - Development style guide and philosophy
 - **DEVELOPMENT.md** - Architecture and development workflow
 - **EXTENDING.md** - How to add tools, resources, and integrations
@@ -269,6 +284,6 @@ Comprehensive documentation in `docs/`:
 
 ## Related Projects
 
-- **Remote version**: https://github.com/Deejpotter/my-mcp-server-remote (for cloud deployment)
-- **MCP Protocol**: https://modelcontextprotocol.io/
-- **Context7**: https://github.com/upstash/context7 (documentation search integration)
+- **Remote version**: <https://github.com/Deejpotter/my-mcp-server-remote> (for cloud deployment)
+- **MCP Protocol**: <https://modelcontextprotocol.io/>
+- **Context7**: <https://github.com/upstash/context7> (documentation search integration)
