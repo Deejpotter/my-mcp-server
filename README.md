@@ -2,23 +2,14 @@
 
 A comprehensive Model Context Protocol (MCP) server with **modular architecture** providing development tools, API integrations, and documentation search capabilities for AI assistants.
 
-## 🏗️ **Architecture**
-
-This project follows MCP best practices with a **clean modular design**:
-
-- **91.6% reduction** in main file complexity (1,794 → 150 lines)
-- **Separation of concerns** - tools, integrations, utilities in separate modules
-- **Easy to extend** - add new functionality without touching core code
-- **Maintainable** - clear structure for debugging and enhancement
-
 ## 📚 **Documentation**
 
-**📂 All documentation is organized in [`docs/`](docs/)** - see [`docs/README.md`](docs/README.md) for the complete overview.
+**📂 All documentation is consolidated in [`docs/COMPREHENSIVE_GUIDE.md`](docs/COMPREHENSIVE_GUIDE.md)** - complete guide covering development, security, API integrations, and troubleshooting.
 
 **Quick Links:**
 
-- **[Development Guide](docs/DEVELOPMENT.md)** - Setup and development workflow  
-- **[Security Guidelines](docs/SECURITY_GUIDELINES.md)** - Security implementation and best practices
+- **[Complete Guide](docs/COMPREHENSIVE_GUIDE.md)** - Everything you need in one document
+- **[Context7 Integration](docs/CONTEXT7-INTEGRATION.md)** - Context7 API setup and usage
 
 > **Note:** This is the local development version. For remote deployment, see [my-mcp-server-remote](https://github.com/Deejpotter/my-mcp-server-remote).
 

@@ -1,39 +1,62 @@
 # Documentation Overview
 
-This directory contains all project documentation organized into logical sections.
+This directory contains all project documentation organized for minimal complexity.
 
-## Development Documentation
+## Primary Documentation
 
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Core development workflow, contribution guidelines, and security integration
-- **[CONTEXT7-INTEGRATION.md](CONTEXT7-INTEGRATION.md)** - Context7 API integration documentation and usage
+### **[📖 Comprehensive Guide](COMPREHENSIVE_GUIDE.md)**
+
+**Complete documentation covering everything you need:**
+
+- **Quick Start** - Installation and setup
+- **Architecture & Development** - Server structure and development workflow
+- **Security Guidelines** - Security implementation and best practices
+- **API Integrations** - GitHub, ClickUp, BookStack, Context7 setup and usage
+- **Troubleshooting** - Common issues, debugging, and solutions
+- **Contributing** - Development standards and contribution process
+
+### **[🔧 Context7 Integration](CONTEXT7-INTEGRATION.md)**
+
+Specific documentation for Context7 API integration and configuration.
 
 ## Security Documentation
 
-- **[SECURITY_GUIDELINES.md](SECURITY_GUIDELINES.md)** - Security best practices and guidelines for the project
-- **[SECURITY_INCIDENT_API_KEY_EXPOSURE.md](SECURITY_INCIDENT_API_KEY_EXPOSURE.md)** - Security incident documentation and response record
+### **[🔒 Security Incident Record](SECURITY_INCIDENT_API_KEY_EXPOSURE.md)**
+
+Historical record of security incident response and remediation.
 
 ## Archived Documentation
 
-- **[archive/](archive/)** - Contains obsolete or completed implementation documentation
+### **[archive/](archive/)**
 
-### Security Implementation Archive
+Contains historical documentation that has been consolidated:
 
-The `archive/security-implementation/` directory contains historical security implementation documents that were used during the security enhancement process but are no longer needed for ongoing development:
+- **`detailed-guides/`** - Original separate documentation files (DEVELOPMENT.md, API-INTEGRATIONS.md, etc.)
+- **`security-implementation/`** - Completed security implementation documents
 
-- Security implementation guides
-- Security fix plans  
-- Security audit reports
+These are preserved for reference but superseded by the Comprehensive Guide.
 
-These documents are preserved for historical reference but are not part of the active documentation.
+## Quick Reference
 
-## Quick Start
+**For new contributors:**
 
-For new contributors:
+1. **Start here:** [Comprehensive Guide](COMPREHENSIVE_GUIDE.md)
+2. **API setup:** See "API Integrations" section in the Comprehensive Guide
+3. **Issues:** See "Troubleshooting" section in the Comprehensive Guide
 
-1. Start with [DEVELOPMENT.md](DEVELOPMENT.md) for the development workflow
-2. Review [SECURITY_GUIDELINES.md](SECURITY_GUIDELINES.md) for security requirements
-3. Check [CONTEXT7-INTEGRATION.md](CONTEXT7-INTEGRATION.md) for API integration details
+**For development:**
+
+1. **Architecture:** See "Architecture & Development" section
+2. **Security:** See "Security Guidelines" section  
+3. **New tools:** See "Adding New Tools" in development section
 
 ## Documentation Maintenance
 
-All documentation should be kept up-to-date with code changes. Security-related changes require special attention to the security guidelines and incident documentation.
+The Comprehensive Guide contains all essential information. Update it for:
+
+- New features or tools
+- Security changes
+- API integrations
+- Common troubleshooting issues
+
+Archive individual files only if they become too large or specialized.
