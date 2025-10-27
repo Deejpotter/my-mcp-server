@@ -20,6 +20,7 @@ import mcp.types as types
 from .tools.file_operations import get_file_operation_tools, handle_file_operations
 from .tools.system_commands import get_system_command_tools, handle_system_commands
 from .tools.search_tools import get_search_tools, handle_search_tools
+from .tools.web_search import get_web_search_tools, handle_web_search
 from .integrations.external_apis import get_integration_tools, handle_integration_tools
 from .utils.performance import get_tracker
 
@@ -33,6 +34,7 @@ def get_all_tools() -> List[Tool]:
     tools.extend(get_file_operation_tools())
     tools.extend(get_system_command_tools())
     tools.extend(get_search_tools())
+    tools.extend(get_web_search_tools())
     tools.extend(get_integration_tools())
     return tools
 
@@ -73,6 +75,10 @@ async def handle_tool_call(
         # Search tools
         elif name in ["search_files", "fetch_url", "search_docs_online"]:
             return await handle_search_tools(name, arguments)
+
+        # Web search tools
+        elif name in ["web_search", "web_search_news"]:
+            return await handle_web_search(name, arguments)
 
         # External API integrations
         elif name in [

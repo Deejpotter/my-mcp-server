@@ -49,6 +49,7 @@ uv sync
 ## 🛠️ **Features**
 
 - **File & System Operations** - File management, directory browsing, command execution with security hardening, system resource monitoring
+- **Web Search** - Real-time web and news search via DuckDuckGo for blog posts, articles, recent discussions, and breaking news
 - **Documentation Search** - Multi-source documentation lookup (MDN, Stack Overflow, GitHub, DevDocs) with intelligent caching
 - **API Integrations** - ClickUp tasks, BookStack knowledge management (create/read/search), GitHub code search
 - **Development Tools** - Git operations, project analysis, real-time web content, system statistics monitoring
