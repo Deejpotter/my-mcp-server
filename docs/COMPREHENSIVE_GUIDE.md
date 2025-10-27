@@ -662,25 +662,38 @@ uv run my-mcp-server --help
 
 - Server Name: `My MCP Server`
 - Transport Type: `STDIO`
-- Command: `uv`
-- Arguments: `--directory`, `/path/to/server`, `run`, `my-mcp-server`
+- Command: `/home/deejpotter/Repos/my-mcp-server/.venv/bin/python`
+- Arguments: `/home/deejpotter/Repos/my-mcp-server/main.py`
 
-**Alternative JSON:**
+**Alternative JSON (Linux/macOS):**
 
 ```json
 {
-  "command": "uv",
+  "command": "/home/deejpotter/Repos/my-mcp-server/.venv/bin/python",
   "args": [
-    "--directory",
-    "/absolute/path/to/my-mcp-server", 
-    "run",
-    "my-mcp-server"
+    "/home/deejpotter/Repos/my-mcp-server/main.py"
   ],
   "env": {},
   "type": "stdio",
   "active": true
 }
 ```
+
+**Alternative JSON (Windows):**
+
+```json
+{
+  "command": "C:/Users/YourUsername/Repos/my-mcp-server/.venv/Scripts/python.exe",
+  "args": [
+    "C:/Users/YourUsername/Repos/my-mcp-server/main.py"
+  ],
+  "env": {},
+  "type": "stdio",
+  "active": true
+}
+```
+
+**Note:** Your MCP server runs directly with Python (no need for `uv` command), since it's already configured to use stdio transport by default. On Windows, use forward slashes `/` in paths and point to `python.exe` in the `.venv/Scripts/` directory.
 
 ### Claude Desktop Integration
 
