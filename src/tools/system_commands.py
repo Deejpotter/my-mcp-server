@@ -361,7 +361,7 @@ async def handle_system_commands(
                         type="text",
                         text="❌ Error: psutil library is not installed.\n\n"
                         "Install it with: pip install psutil\n"
-                        "or: uv add psutil",
+                        "or: pip install psutil",
                     )
                 ]
 

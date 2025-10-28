@@ -9,7 +9,6 @@ A comprehensive Model Context Protocol (MCP) server with **modular architecture*
 **Quick Links:**
 
 - **[Complete Guide](docs/COMPREHENSIVE_GUIDE.md)** - Everything you need in one document
-- **[Context7 Integration](docs/CONTEXT7-INTEGRATION.md)** - Context7 API setup and usage
 
 > **Note:** This is the local development version. For remote deployment, see [my-mcp-server-remote](https://github.com/Deejpotter/my-mcp-server-remote).
 
@@ -18,32 +17,32 @@ A comprehensive Model Context Protocol (MCP) server with **modular architecture*
 ### **Prerequisites**
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) package manager (will be installed automatically)
 
-### **Installation**
+### **Installation (Recommended: Use a Virtual Environment)**
 
-**Windows:**
-
-```cmd
-git clone https://github.com/Deejpotter/my-mcp-server.git
-cd my-mcp-server
-scripts/setup-windows.bat
-```
-
-**Linux/macOS:**
+**Step 1: Clone the repository**
 
 ```bash
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
-chmod +x scripts/setup-linux.sh && ./scripts/setup-linux.sh
 ```
 
-**Manual Installation:**
+**Step 2: Create and activate a virtual environment**
 
 ```bash
-git clone https://github.com/Deejpotter/my-mcp-server.git
-cd my-mcp-server
-uv sync
+# On Linux/macOS
+python3 -m venv .venv
+source .venv/bin/activate
+
+# On Windows
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+**Step 3: Install dependencies**
+
+```bash
+pip install -r requirements-test.txt
 ```
 
 ## 🛠️ **Features**
@@ -79,8 +78,8 @@ Add to `%APPDATA%\Code\User\mcp.json` (Windows) or `~/.config/Code/User/mcp.json
   "servers": {
     "my-mcp-server": {
       "type": "stdio",
-      "command": "uv",
-      "args": ["run", "my-mcp-server"],
+      "command": "python",
+      "args": ["main.py"],
       "cwd": "/absolute/path/to/my-mcp-server"
     }
   },
@@ -90,7 +89,7 @@ Add to `%APPDATA%\Code\User\mcp.json` (Windows) or `~/.config/Code/User/mcp.json
 
 ### **Other MCP Clients**
 
-For Claude Desktop, Jan app, Continue.dev, and other clients, see [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
+For Claude Desktop, Jan app, Continue.dev, and other clients, see the [Complete Guide](docs/COMPREHENSIVE_GUIDE.md).
 
 ### **Environment Variables (Optional)**
 
@@ -105,21 +104,19 @@ BOOKSTACK_TOKEN_SECRET=your_secret
 CONTEXT7_API_KEY=your_context7_key_here
 ```
 
-See [API Integrations Guide](docs/API-INTEGRATIONS.md) for setup details.
-
-## 🔧 **Testing the Server**
-
 ```bash
 # Navigate to project directory
 cd /path/to/my-mcp-server
 
 # Test server startup
-uv run my-mcp-server --help
+python main.py --help
 
 # Test connection
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | python main.py
 
 # Validate security hardening (includes MCP logging compliance)
+source .venv/bin/activate  # (Linux/macOS)
+.venv\Scripts\activate     # (Windows)
 python scripts/security_check.py
 ```
 
@@ -131,15 +128,12 @@ my-mcp-server/
 ├── pyproject.toml               # Project dependencies & config
 ├── .env.example                 # Environment template
 ├── scripts/
-│   ├── setup-windows.bat        # Windows setup script
-│   ├── setup-linux.sh           # Linux/macOS setup script
 │   └── security_check.py        # Security validation
 ├── src/
 │   ├── tool_registry.py         # Tool routing & performance tracking
 │   ├── resources.py             # MCP resources
 │   ├── tools/                   # Tool implementations
 │   │   ├── file_operations.py   # File & batch validation tools
-│   │   ├── search_tools.py      # Search & documentation tools
 │   │   └── system_commands.py   # System monitoring & commands
 │   ├── integrations/            # External API integrations
 │   │   └── external_apis.py     # ClickUp, GitHub, BookStack, Context7
@@ -152,12 +146,7 @@ my-mcp-server/
 │   ├── test_security_hardening.py # Security tests
 │   └── test_new_features.py     # Feature tests
 ├── docs/
-│   ├── INDEX.md                 # Documentation index
-│   ├── COMPREHENSIVE_GUIDE.md   # Complete setup guide
-│   ├── ADVANCED.md              # Advanced configuration
-│   ├── TROUBLESHOOTING.md       # Common issues & solutions
-│   ├── CONTEXT7-INTEGRATION.md  # Context7 setup
-│   └── TEST_REPORT.md           # Test results & validation
+│   └── COMPREHENSIVE_GUIDE.md   # Complete setup guide
 └── vscode-extension/            # VS Code extension files
     ├── package.json             # Extension manifest
     └── src/extension.ts         # Extension implementation

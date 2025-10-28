@@ -2,14 +2,14 @@
 
 ## **Overview**
 
-This document provides comprehensive guidance for AI assistants working on **my-mcp-server**, a Model Context Protocol (MCP) server. This is a **personal project** focused on practical development tools and API integrations for AI assistants in VS Code.
+This document provides comprehensive guidance for AI assistants working on **my-mcp-server**, a Model Context Protocol (MCP) server. This is a **personal project** focused on practical development tools and API integrations for AI assistants in VS Code. Remember to keep it simple and practical, avoiding unnecessary complexity. And, always search for official docs for the libraries/APIs being used before changing anything.
 
 **Quick Reference**: Before making ANY changes, you MUST:
 
 1. Read this AI-PROMPT.md file completely
 2. Check TODO.md for current priorities
 3. Review relevant documentation in docs/ folder
-4. Create a detailed plan before implementing
+4. Create a detailed checklist before implementing
 5. Use my-mcp-server tools to search official documentation
 6. Update core files (README.md, TODO.md, docs/) after changes
 
@@ -241,12 +241,6 @@ except Exception as e:
 
 ## **Current Project Priorities**
 
-### **Immediate Focus** (from TODO.md)
-
-- System monitoring tools (`system_stats`)
-- Performance improvements (caching, rate limiting)  
-- Developer experience enhancements
-
 ### **Quality Standards**
 
 - **Test before committing**: Use JSON-RPC test commands
@@ -259,7 +253,3 @@ except Exception as e:
 - No excess documents or scripts (personal project scale)
 - Keep documentation focused and practical
 - Prefer markdown checklists over complex project management
-
----
-
-**Key Insight**: This is a **practical development tool** for personal use, not an enterprise product. Focus on utility, maintainability, and clear documentation while avoiding unnecessary complexity.

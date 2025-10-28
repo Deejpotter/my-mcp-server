@@ -20,24 +20,32 @@
 ### Prerequisites
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) package manager
 
-### Installation
+### Installation (Recommended: Use a Virtual Environment)
 
-**Windows:**
-
-```cmd
-git clone https://github.com/Deejpotter/my-mcp-server.git
-cd my-mcp-server
-scripts/setup-windows.bat
-```
-
-**Linux/macOS:**
+**Step 1: Clone the repository**
 
 ```bash
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
-chmod +x scripts/setup-linux.sh && ./scripts/setup-linux.sh
+```
+
+**Step 2: Create and activate a virtual environment**
+
+```bash
+# On Linux/macOS
+python3 -m venv .venv
+source .venv/bin/activate
+
+# On Windows
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+**Step 3: Install dependencies**
+
+```bash
+pip install -r requirements-test.txt
 ```
 
 ### VS Code Configuration
@@ -49,8 +57,8 @@ Add to `%APPDATA%\Code\User\mcp.json` (Windows) or `~/.config/Code/User/mcp.json
   "servers": {
     "my-mcp-server": {
       "type": "stdio",
-      "command": "uv",
-      "args": ["run", "my-mcp-server"],
+      "command": "python",
+      "args": ["main.py"],
       "cwd": "/absolute/path/to/my-mcp-server"
     }
   },
@@ -75,10 +83,10 @@ CONTEXT7_API_KEY=your_context7_key_here
 
 ```bash
 # Test server startup
-uv run my-mcp-server --help
+python main.py --help
 
 # Test connection
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | python main.py
 
 # Validate security
 python scripts/validate_core_security.py
@@ -119,14 +127,18 @@ my-mcp-server/
    ```bash
    git clone https://github.com/Deejpotter/my-mcp-server.git
    cd my-mcp-server
-   uv sync
+
+# Create and activate venv first, then
+
+  pip install -r requirements-test.txt
+
    ```
 
 2. **Development Environment**:
 
    ```bash
    # Run with debug logging
-   uv run python main.py --log-level DEBUG
+  python main.py --log-level DEBUG
    ```
 
 3. **Security Validation** (Required before commits):
@@ -150,7 +162,7 @@ my-mcp-server/
 python scripts/security_check.py
 
 # 2. Functional testing
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | python main.py
 ```
 
 All must pass before committing changes.
@@ -191,7 +203,9 @@ All must pass before committing changes.
 3. **Test Implementation**:
 
    ```bash
-   echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"your_tool_name","arguments":{"param1":"test"}}}' | uv run my-mcp-server
+
+  echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"your_tool_name","arguments":{"param1":"test"}}}' | python main.py
+
    ```
 
 #### Code Standards
@@ -622,8 +636,8 @@ elif name == "newservice_action":
   "servers": {
     "my-mcp-server": {
       "type": "stdio",
-      "command": "uv",
-      "args": ["run", "my-mcp-server"],
+      "command": "python",
+      "args": ["main.py"],
       "cwd": "/absolute/path/to/my-mcp-server"
     }
   },
@@ -640,12 +654,15 @@ elif name == "newservice_action":
 
 #### "Program Not Found" Errors
 
-**Verify UV Installation:**
+**Verify Python & venv Installation:**
 
 ```bash
-uv --version
+python --version
+# Check venv activation
+which python  # Should show path inside .venv
+pip --version # Should show pip inside .venv
 cd /path/to/my-mcp-server
-uv run my-mcp-server --help
+python main.py --help
 ```
 
 **Add Working Directory:**
@@ -673,7 +690,6 @@ uv run my-mcp-server --help
   "args": [
     "/home/deejpotter/Repos/my-mcp-server/main.py"
   ],
-  "env": {},
   "type": "stdio",
   "active": true
 }
@@ -687,7 +703,6 @@ uv run my-mcp-server --help
   "args": [
     "C:/Users/YourUsername/Repos/my-mcp-server/main.py"
   ],
-  "env": {},
   "type": "stdio",
   "active": true
 }
@@ -716,8 +731,8 @@ uv run my-mcp-server --help
 {
   "mcpServers": {
     "my-mcp-server": {
-      "command": "uv",
-      "args": ["run", "my-mcp-server"],
+      "command": "python",
+      "args": ["main.py"],
       "cwd": "/absolute/path/to/my-mcp-server"
     }
   }
@@ -741,30 +756,20 @@ brew install python@3.12
 sudo apt install python3.12 python3.12-venv
 ```
 
-**Install UV:**
-
-```bash
-# Windows (PowerShell)
-irm https://astral.sh/uv/install.ps1 | iex
-
-# Linux/macOS
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
 #### Permission Errors
 
 **Linux/macOS:**
 
 ```bash
-chmod +x scripts/setup-linux.sh
-./scripts/setup-linux.sh
+chmod +x scripts/security_check.py
+./scripts/security_check.py
 ```
 
 **Windows:**
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\scripts\setup-windows.bat
+.\scripts\security_check.py
 ```
 
 ### API Integration Issues
@@ -800,27 +805,27 @@ curl -H "Authorization: token YOUR_GITHUB_TOKEN" https://api.github.com/user
 #### Enable Debug Logging
 
 ```bash
-uv run python main.py --log-level DEBUG
+python main.py --log-level DEBUG
 ```
 
 #### Test MCP Protocol
 
 ```bash
 # Test tools listing
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | python main.py
 
 # Test specific tool
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_file","arguments":{"file_path":"README.md"}}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_file","arguments":{"file_path":"README.md"}}}' | python main.py
 ```
 
 #### Test File Operations
 
 ```bash
 # Test file reading
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_file","arguments":{"file_path":"pyproject.toml"}}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_file","arguments":{"file_path":"pyproject.toml"}}}' | python main.py
 
 # Test command execution  
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"run_command","arguments":{"command":"echo hello"}}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"run_command","arguments":{"command":"echo hello"}}}' | python main.py
 ```
 
 #### Check VS Code Logs
@@ -867,7 +872,9 @@ top -p $(pgrep -f my-mcp-server)
    ```bash
    uname -a  # Linux/macOS
    python --version
-   uv --version
+
+  python --version
+
    ```
 
 2. **Configuration Files** (sanitized)

@@ -14,29 +14,29 @@ This is a Model Context Protocol (MCP) server providing development tools, API i
 
 ```bash
 # Install dependencies
-uv sync
+pip install -r requirements-test.txt
 
 # Run server
-uv run my-mcp-server
+python main.py
 
 # Run with debug logging
-uv run python main.py --log-level DEBUG
+python main.py --log-level DEBUG
 ```
 
 ### Testing
 
 ```bash
 # Test server startup
-uv run my-mcp-server --help
+python main.py --help
 
 # Test MCP protocol - list tools
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | python main.py
 
 # Test MCP protocol - call specific tool
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_file","arguments":{"file_path":"README.md"}}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_file","arguments":{"file_path":"README.md"}}}' | python main.py
 
 # Test resource listing
-echo '{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}' | uv run my-mcp-server
+echo '{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}' | python main.py
 ```
 
 ## Architecture
