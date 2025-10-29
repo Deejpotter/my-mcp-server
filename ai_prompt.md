@@ -39,18 +39,29 @@ You are working on **my-mcp-server**, a Model Context Protocol (MCP) server that
 
 ```text
 my-mcp-server/
-├── main.py                    # Core MCP server
+├── main.py                    # Core MCP server entry point
 ├── TODO.md                    # Track planned features and improvements
+├── src/                       # Consolidated source code (3 core files + utils)
+│   ├── tools.py               # All MCP tools (file ops, commands, search, web)
+│   ├── resources.py           # All MCP resources (system info, workspace, git)
+│   ├── integrations.py        # All external API integrations (ClickUp, GitHub, Context7, BookStack)
+│   └── utils/                 # Shared utilities (security, performance, caching)
+│       ├── security.py        # Path validation, command allowlists, SSRF protection
+│       ├── performance.py     # Performance tracking and metrics
+│       └── cache_rate_limit.py # API caching and rate limiting
 ├── scripts/                   # Setup utilities
 ├── docs/                      # Comprehensive documentation
 └── vscode-extension/          # Auto-registration for VS Code
 ```
 
+**Simplified Architecture**: The codebase is now organized into 3 main files (tools.py, resources.py, integrations.py) with shared utilities, making it easy to navigate and maintain.
+
 ### **Architecture Philosophy**
 
-- **Single-file simplicity**: Everything in `main.py` for easy maintenance
-- **Security-first**: Input validation, timeouts, file size limits
-- **Extensible patterns**: Clear MODIFICATION POINTs for adding tools
+- **Consolidated simplicity**: 3 core files (tools.py, resources.py, integrations.py) for easy navigation
+- **Security-first**: Input validation, timeouts, file size limits, command allowlists
+- **Extensible patterns**: Clear tool definitions and handler routing for adding features
+- **Shared utilities**: Common security, performance, and caching functions in utils/
 - **Local development focus**: stdio transport for VS Code integration
 
 ## **Development Workflow & File Management**

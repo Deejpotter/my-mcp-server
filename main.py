@@ -43,8 +43,11 @@ import mcp.types as types
 # Load environment variables
 load_dotenv()
 
-# Import the modular components
-from src.tool_registry import get_all_tools, handle_tool_call
+# Import the consolidated components
+# All tools are now in a single src/tools.py file for easier maintenance
+# All integrations are in src/integrations.py
+# Resources remain in src/resources.py
+from src.tools import get_all_tools, handle_tool_call
 from src.resources import get_all_resources, handle_resource_read
 
 # Configure logging to stderr (CRITICAL: Never log to stdout in MCP servers)
