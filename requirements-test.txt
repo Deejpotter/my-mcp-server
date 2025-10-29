@@ -1,6 +1,0 @@
-# Testing requirements for MCP Server Security Validation
-# Install with: pip install -r requirements-test.txt
-
-pytest>=7.0.0
-pytest-asyncio>=0.20.0
-httpx>=0.24.0

@@ -24,3 +24,11 @@ Thumbs.db
 # Project files
 node_modules/
 .env
+
+# Claude files
+.claude/
+
+# Caches
+.cache/
+.pytest_cache/
+.mypy_cache/
