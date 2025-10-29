@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Model Context Protocol (MCP) server providing development tools, API integrations, and documentation search capabilities for AI assistants. The project was refactored from a monolithic 1,794-line main.py to a clean modular design (150 lines).
+This is a Model Context Protocol (MCP) server providing development tools, API integrations, and documentation search capabilities for AI assistants. The project uses a **consolidated architecture** with all tools in `src/tools.py` for simplicity.
 
 **Project Scale:** Personal project with 1-2 contributors. Focus on practical utility over enterprise features. Avoid over-engineering.
 
@@ -41,45 +41,40 @@ echo '{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}' | python m
 
 ## Architecture
 
-**Note:** AI-PROMPT.md references "single-file simplicity" but the project has been refactored to modular architecture (see REFACTORING_SUMMARY.md). The current design separates concerns into modules while keeping main.py minimal.
-
 ### Core Components
 
-**Entry Point: main.py** (150 lines)
+**Entry Point: main.py**
 
 - MCP server initialization and protocol handlers
-- Delegates all tool/resource operations to modular components
+- Imports tools from consolidated `src/tools.py`
 - Uses stdio transport for local MCP clients (VS Code, Claude Desktop, etc.)
 
-**Modular Structure:**
+**Consolidated Structure:**
 
 ```
-src/mcp_server/
-├── tool_registry.py          # Central tool collection and routing
+src/
+├── tools.py                  # ALL MCP tools (consolidated)
 ├── resources.py              # MCP resource definitions and handlers
-├── tools/                    # Tool modules by category
-│   ├── file_operations.py   # read_file, write_file, list_files
-│   ├── system_commands.py   # run_command, git_command
-│   └── search_tools.py      # search_files, fetch_url
-├── integrations/            # External API integrations
-│   └── external_apis.py     # ClickUp, GitHub, Context7, BookStack
-└── utils/
-    └── security.py          # safe_read_file, safe_write_file, run_command
+├── integrations.py           # External API integrations
+└── utils/                    # Shared utilities
+    ├── security.py          # Security & path validation
+    ├── cache_rate_limit.py  # Caching & rate limiting
+    └── performance.py       # Performance tracking
 ```
 
 ### Key Design Patterns
 
-1. **Tool Registry Pattern**: All tools registered in `tool_registry.py` which collects from modules and routes calls
+1. **Consolidated Tools**: All tools in `src/tools.py` with routing via `handle_tool_call()`
 2. **Resource URIs**: Resources use URI scheme routing (system://, workspace://, git://)
 3. **Security Layer**: All file ops and commands go through security utilities with size limits and timeouts
-4. **Modular Tools**: Each category has `get_*_tools()` and `handle_*()` functions
+4. **Category-based handlers**: Tools organized by category with `_handle_file_operations()`, `_handle_system_commands()`, etc.
 
 ### MCP Protocol Implementation
 
 Three core MCP handlers in main.py:
 
-- `@server.list_tools()` → Returns all tool definitions via tool_registry
-- `@server.call_tool()` → Routes tool execution via tool_registry
+- `@server.list_tools()` → Returns all tool definitions from `src.tools.get_all_tools()`
+- `@server.call_tool()` → Routes tool execution via `src.tools.handle_tool_call()`
 - `@server.list_resources()` → Returns available data sources
 - `@server.read_resource()` → Fetches resource content via URI routing
 
@@ -88,16 +83,17 @@ Three core MCP handlers in main.py:
 ### Before Starting Work
 
 1. **Check core project files**: README.md, AI-PROMPT.md, TODO.md
-2. **Review relevant documentation**: docs/ folder files as needed
+2. **Review main.py and src/tools.py**: Understand current implementation
 3. **Create detailed plan**: Consider best actions, make comprehensive plan
 4. **Reference plan regularly**: Stay on track with planned approach
 
 ### File Management Philosophy
 
 - **Improve existing files over creating new ones**: Update and enhance current files
+- **All tools in src/tools.py**: Don't split tools into separate files
 - **Preserve existing code and comments**: Keep current code wherever possible
 - **Add detailed comments from author perspective**: Explain purpose and reasoning
-- **Update core files**: Always update README.md, AI-PROMPT.md, TODO.md, and docs/ when needed
+- **Update core files**: Always update README.md, AI-PROMPT.md, TODO.md when needed
 
 ### TODO.md Management
 
@@ -158,11 +154,10 @@ async with httpx.AsyncClient(timeout=30) as client:
 
 ### Adding a New Tool
 
-1. **Choose the appropriate module** in `src/mcp_server/tools/` or `src/mcp_server/integrations/`
-2. **Add tool definition** to the module's `get_*_tools()` function
-3. **Implement handler** in the module's `handle_*()` function
-4. **Update tool_registry.py** to include the new tool name in routing logic
-5. **Add references** to file header if introducing new technical concepts
+1. **Add to src/tools.py** in the appropriate category section
+2. **Add tool definition** to `get_all_tools()` function
+3. **Implement handler** in the corresponding `_handle_*()` function (e.g., `_handle_file_operations()`)
+4. **Add references** to file header if introducing new technical concepts
 
 Tool definitions use JSON Schema for input validation. Always return `List[types.TextContent]` from handlers.
 
@@ -175,9 +170,9 @@ Tool definitions use JSON Schema for input validation. Always return `List[types
 ### Adding External API Integration
 
 1. **Add environment variables** to `.env.example`
-2. **Create tool definitions** in `src/mcp_server/integrations/external_apis.py`
+2. **Add to src/integrations.py** with tool definitions
 3. **Implement async HTTP calls** using `httpx.AsyncClient` with timeouts
-4. **Update documentation** in `docs/API-INTEGRATIONS.md`
+4. **Update documentation** in README.md and AI-PROMPT.md
 
 ## Research and Documentation
 
@@ -257,23 +252,19 @@ Optional API integrations configured via `.env`:
 
 ## Documentation
 
-Comprehensive documentation in `docs/`:
+Core documentation files:
 
 - **AI-PROMPT.md** - Development style guide and philosophy
-- **DEVELOPMENT.md** - Architecture and development workflow
-- **EXTENDING.md** - How to add tools, resources, and integrations
-- **API-INTEGRATIONS.md** - External API setup guides
-- **TROUBLESHOOTING.md** - Common issues and solutions
-- **REFACTORING_SUMMARY.md** - Details on modular architecture refactoring
+- **CLAUDE.md** - This file - Quick reference for Claude Code
 - **TODO.md** - Current priorities and planned features
+- **docs/ADVANCED.md** - Remote deployment, API integrations, troubleshooting
 
 ## After Making Changes
 
 1. **Update core files**: README.md, AI-PROMPT.md, TODO.md as needed
-2. **Update docs/ folder**: Relevant documentation files
-3. **Mark TODO.md progress**: (in progress) for active, (completed dd/mm/yy) for finished
-4. **Test changes**: Use JSON-RPC test commands before finishing
-5. **Update file headers**: Add new references if introducing technical concepts
+2. **Mark TODO.md progress**: (in progress) for active, (completed dd/mm/yy) for finished
+3. **Test changes**: Use JSON-RPC test commands before finishing
+4. **Update file headers**: Add new references if introducing technical concepts
 
 ## Communication Style
 

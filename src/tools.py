@@ -50,30 +50,30 @@ logger = logging.getLogger(__name__)
 def get_all_tools() -> List[Tool]:
     """
     Get all available MCP tools across all categories.
-    
+
     Tools are organized by function:
     - File Operations: read_file, write_file, list_files, validate_path, batch_file_check
     - System Commands: run_command, git_command, system_stats, security_status, performance_metrics
     - Search Tools: search_files, fetch_url, search_docs_online
     - Web Search: web_search, web_search_news
-    
+
     Returns:
         List of all Tool definitions with schemas
     """
     tools = []
-    
+
     # File operation tools
     tools.extend(_get_file_tools())
-    
+
     # System command tools
     tools.extend(_get_system_tools())
-    
+
     # Search and fetch tools
     tools.extend(_get_search_tools())
-    
-    # Web search tools  
+
+    # Web search tools
     tools.extend(_get_web_search_tools())
-    
+
     return tools
 
 
@@ -476,36 +476,50 @@ def _get_web_search_tools() -> List[Tool]:
 # ============================================================================
 
 
-async def handle_tool_call(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def handle_tool_call(
+    name: str, arguments: Dict[str, Any]
+) -> List[types.TextContent]:
     """
     Route tool calls to appropriate handlers.
-    
+
     This is the main dispatcher that routes incoming tool calls to their
     specific implementation functions based on the tool name.
-    
+
     Args:
         name: Tool name to execute
         arguments: Tool arguments dictionary
-        
+
     Returns:
         List of TextContent with operation results
     """
     # File operations
-    if name in ["read_file", "write_file", "list_files", "validate_path", "batch_file_check"]:
+    if name in [
+        "read_file",
+        "write_file",
+        "list_files",
+        "validate_path",
+        "batch_file_check",
+    ]:
         return await _handle_file_operations(name, arguments)
-    
+
     # System commands
-    elif name in ["run_command", "git_command", "system_stats", "security_status", "performance_metrics"]:
+    elif name in [
+        "run_command",
+        "git_command",
+        "system_stats",
+        "security_status",
+        "performance_metrics",
+    ]:
         return await _handle_system_commands(name, arguments)
-    
+
     # Search tools
     elif name in ["search_files", "fetch_url", "search_docs_online"]:
         return await _handle_search_tools(name, arguments)
-    
+
     # Web search tools
     elif name in ["web_search", "web_search_news"]:
         return await _handle_web_search(name, arguments)
-    
+
     else:
         return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
 
@@ -515,35 +529,58 @@ async def handle_tool_call(name: str, arguments: Dict[str, Any]) -> List[types.T
 # ============================================================================
 
 
-async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def _handle_file_operations(
+    name: str, arguments: Dict[str, Any]
+) -> List[types.TextContent]:
     """Handle file operation tool calls with comprehensive security validation."""
-    
+
     if name == "read_file":
         try:
             file_path = arguments.get("file_path", "")
             max_size = arguments.get("max_size", 1024 * 1024)
 
             if not file_path:
-                return [types.TextContent(type="text", text="❌ Error: file_path is required for read operation")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: file_path is required for read operation",
+                    )
+                ]
 
             # Pre-validate path for security before attempting read
             path_validation = validate_file_path(file_path, "read")
             if not path_validation["valid"]:
                 security_errors = "; ".join(path_validation["checks"])
-                return [types.TextContent(type="text", text=f"🔒 Security Error: Cannot read file '{file_path}' - {security_errors}")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"🔒 Security Error: Cannot read file '{file_path}' - {security_errors}",
+                    )
+                ]
 
             # Perform secure file read with hardened function
             content = safe_read_file(file_path, max_size)
 
             # Success response with security confirmation
-            return [types.TextContent(type="text", text=f"📖 File read successfully (security validated)\n\n{content}")]
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"📖 File read successfully (security validated)\n\n{content}",
+                )
+            ]
 
         except ValueError as e:
-            return [types.TextContent(type="text", text=f"🔒 Security Error reading file: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"🔒 Security Error reading file: {str(e)}"
+                )
+            ]
         except FileNotFoundError as e:
             return [types.TextContent(type="text", text=f"📁 File not found: {str(e)}")]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error reading file: {str(e)}")]
+            return [
+                types.TextContent(type="text", text=f"❌ Error reading file: {str(e)}")
+            ]
 
     elif name == "write_file":
         try:
@@ -551,26 +588,49 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
             content = arguments.get("content", "")
 
             if not file_path:
-                return [types.TextContent(type="text", text="❌ Error: file_path is required for write operation")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: file_path is required for write operation",
+                    )
+                ]
 
             # Pre-validate path for security before attempting write
             path_validation = validate_file_path(file_path, "write")
             if not path_validation["valid"]:
                 security_errors = "; ".join(path_validation["checks"])
-                return [types.TextContent(type="text", text=f"🔒 Security Error: Cannot write to '{file_path}' - {security_errors}")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"🔒 Security Error: Cannot write to '{file_path}' - {security_errors}",
+                    )
+                ]
 
             # Perform secure file write with hardened function
             safe_write_file(file_path, content)
 
             # Success response with security confirmation
-            return [types.TextContent(type="text", text=f"✅ File written successfully (security validated): {file_path}")]
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"✅ File written successfully (security validated): {file_path}",
+                )
+            ]
 
         except ValueError as e:
-            return [types.TextContent(type="text", text=f"🔒 Security Error writing file: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"🔒 Security Error writing file: {str(e)}"
+                )
+            ]
         except PermissionError as e:
-            return [types.TextContent(type="text", text=f"🔐 Permission Error: {str(e)}")]
+            return [
+                types.TextContent(type="text", text=f"🔐 Permission Error: {str(e)}")
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error writing file: {str(e)}")]
+            return [
+                types.TextContent(type="text", text=f"❌ Error writing file: {str(e)}")
+            ]
 
     elif name == "list_files":
         try:
@@ -582,14 +642,27 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
             path_validation = validate_file_path(directory, "read")
             if not path_validation["valid"]:
                 security_errors = "; ".join(path_validation["checks"])
-                return [types.TextContent(type="text", text=f"🔒 Security Error: Cannot list directory '{directory}' - {security_errors}")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"🔒 Security Error: Cannot list directory '{directory}' - {security_errors}",
+                    )
+                ]
 
             base_path = Path(directory).resolve()
             if not base_path.exists():
-                return [types.TextContent(type="text", text=f"📁 Directory not found: {directory}")]
+                return [
+                    types.TextContent(
+                        type="text", text=f"📁 Directory not found: {directory}"
+                    )
+                ]
 
             if not base_path.is_dir():
-                return [types.TextContent(type="text", text=f"❌ Path is not a directory: {directory}")]
+                return [
+                    types.TextContent(
+                        type="text", text=f"❌ Path is not a directory: {directory}"
+                    )
+                ]
 
             # Secure file listing with path validation
             if recursive:
@@ -611,15 +684,33 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
             validated_files.sort()
 
             if validated_files:
-                file_list = "\n".join(f"📄 {os.path.relpath(f, directory)}" for f in validated_files)
-                return [types.TextContent(type="text", text=f"📂 Files in {directory} (security validated):\n{file_list}")]
+                file_list = "\n".join(
+                    f"📄 {os.path.relpath(f, directory)}" for f in validated_files
+                )
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"📂 Files in {directory} (security validated):\n{file_list}",
+                    )
+                ]
             else:
-                return [types.TextContent(type="text", text=f"📭 No accessible files found matching pattern '{pattern}' in {directory}")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"📭 No accessible files found matching pattern '{pattern}' in {directory}",
+                    )
+                ]
 
         except ValueError as e:
-            return [types.TextContent(type="text", text=f"🔒 Security Error listing files: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"🔒 Security Error listing files: {str(e)}"
+                )
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error listing files: {str(e)}")]
+            return [
+                types.TextContent(type="text", text=f"❌ Error listing files: {str(e)}")
+            ]
 
     elif name == "validate_path":
         try:
@@ -627,29 +718,42 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
             operation = arguments.get("operation", "read")
 
             if not file_path:
-                return [types.TextContent(type="text", text="❌ Error: file_path is required for validation")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: file_path is required for validation",
+                    )
+                ]
 
             # Perform comprehensive path validation
             validation_result = validate_file_path(file_path, operation)
 
             if validation_result["valid"]:
-                return [types.TextContent(
-                    type="text",
-                    text=f"✅ Path validation PASSED for '{file_path}'\n"
-                    f"🔒 Operation: {operation}\n"
-                    f"📍 Resolved path: {validation_result['path']}\n"
-                    f"✓ Checks: {'; '.join(validation_result['checks'])}"
-                )]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"✅ Path validation PASSED for '{file_path}'\n"
+                        f"🔒 Operation: {operation}\n"
+                        f"📍 Resolved path: {validation_result['path']}\n"
+                        f"✓ Checks: {'; '.join(validation_result['checks'])}",
+                    )
+                ]
             else:
-                return [types.TextContent(
-                    type="text",
-                    text=f"❌ Path validation FAILED for '{file_path}'\n"
-                    f"🔒 Operation: {operation}\n"
-                    f"❌ Issues: {'; '.join(validation_result['checks'])}"
-                )]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"❌ Path validation FAILED for '{file_path}'\n"
+                        f"🔒 Operation: {operation}\n"
+                        f"❌ Issues: {'; '.join(validation_result['checks'])}",
+                    )
+                ]
 
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error validating path: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error validating path: {str(e)}"
+                )
+            ]
 
     elif name == "batch_file_check":
         try:
@@ -659,7 +763,12 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
             max_file_size = arguments.get("max_file_size", 1048576)
 
             if not file_paths:
-                return [types.TextContent(type="text", text="❌ Error: file_paths is required (provide list of files to check)")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: file_paths is required (provide list of files to check)",
+                    )
+                ]
 
             results = []
             passed_count = 0
@@ -673,7 +782,9 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
                     validation = validate_file_path(file_path, "read")
                     if not validation["valid"]:
                         file_result["status"] = "❌ FAIL"
-                        file_result["issues"].append(f"Security: {'; '.join(validation['checks'])}")
+                        file_result["issues"].append(
+                            f"Security: {'; '.join(validation['checks'])}"
+                        )
 
                 # File existence and size check
                 try:
@@ -687,7 +798,9 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
                     file_size = os.path.getsize(file_path)
                     if file_size > max_file_size:
                         file_result["status"] = "⚠️ SKIP"
-                        file_result["issues"].append(f"File too large ({file_size} bytes > {max_file_size} bytes)")
+                        file_result["issues"].append(
+                            f"File too large ({file_size} bytes > {max_file_size} bytes)"
+                        )
                         results.append(file_result)
                         continue
 
@@ -706,7 +819,9 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
                         file_result["issues"].append("Syntax: OK")
                     except SyntaxError as e:
                         file_result["status"] = "❌ FAIL"
-                        file_result["issues"].append(f"Syntax error line {e.lineno}: {e.msg}")
+                        file_result["issues"].append(
+                            f"Syntax error line {e.lineno}: {e.msg}"
+                        )
                     except Exception as e:
                         file_result["status"] = "❌ FAIL"
                         file_result["issues"].append(f"Syntax check error: {str(e)}")
@@ -734,10 +849,18 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
             return [types.TextContent(type="text", text=output)]
 
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error in batch file check: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error in batch file check: {str(e)}"
+                )
+            ]
 
     else:
-        return [types.TextContent(type="text", text=f"❌ Unknown file operation tool: {name}")]
+        return [
+            types.TextContent(
+                type="text", text=f"❌ Unknown file operation tool: {name}"
+            )
+        ]
 
 
 # ============================================================================
@@ -745,9 +868,11 @@ async def _handle_file_operations(name: str, arguments: Dict[str, Any]) -> List[
 # ============================================================================
 
 
-async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def _handle_system_commands(
+    name: str, arguments: Dict[str, Any]
+) -> List[types.TextContent]:
     """Handle system command tool calls with comprehensive security validation."""
-    
+
     if name == "run_command":
         try:
             command = arguments.get("command", "")
@@ -756,18 +881,29 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
             allow_dangerous = arguments.get("allow_dangerous", False)
 
             if not command:
-                return [types.TextContent(type="text", text="❌ Error: command is required for execution")]
+                return [
+                    types.TextContent(
+                        type="text", text="❌ Error: command is required for execution"
+                    )
+                ]
 
             # Validate working directory if provided
             if cwd:
                 path_validation = validate_file_path(cwd, "read")
                 if not path_validation["valid"]:
                     security_errors = "; ".join(path_validation["checks"])
-                    return [types.TextContent(type="text", text=f"🔒 Security Error: Invalid working directory '{cwd}' - {security_errors}")]
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"🔒 Security Error: Invalid working directory '{cwd}' - {security_errors}",
+                        )
+                    ]
 
             # Execute command with appropriate security level
             if allow_dangerous:
-                result = secure_run_command(command, cwd or os.getcwd(), timeout, allow_dangerous=True)
+                result = secure_run_command(
+                    command, cwd or os.getcwd(), timeout, allow_dangerous=True
+                )
                 security_status = "⚠️ SECURITY REDUCED"
             else:
                 result = run_command(command, cwd or os.getcwd(), timeout)
@@ -807,9 +943,17 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
                 return [types.TextContent(type="text", text=error_output)]
 
         except ValueError as e:
-            return [types.TextContent(type="text", text=f"🔒 Security Error executing command: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"🔒 Security Error executing command: {str(e)}"
+                )
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error executing command: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error executing command: {str(e)}"
+                )
+            ]
 
     elif name == "git_command":
         try:
@@ -818,14 +962,24 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
             timeout = arguments.get("timeout", 60)
 
             if not git_args:
-                return [types.TextContent(type="text", text="❌ Error: git_args is required for git operations")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: git_args is required for git operations",
+                    )
+                ]
 
             # Validate working directory if provided
             if cwd:
                 path_validation = validate_file_path(cwd, "read")
                 if not path_validation["valid"]:
                     security_errors = "; ".join(path_validation["checks"])
-                    return [types.TextContent(type="text", text=f"🔒 Security Error: Invalid git directory '{cwd}' - {security_errors}")]
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"🔒 Security Error: Invalid git directory '{cwd}' - {security_errors}",
+                        )
+                    ]
 
             # Construct and validate the full git command
             git_command = f"git {git_args}"
@@ -833,7 +987,9 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
 
             # Format response with security context
             if result["success"]:
-                output = f"✅ Git command executed successfully (🔒 SECURITY VALIDATED)\n"
+                output = (
+                    f"✅ Git command executed successfully (🔒 SECURITY VALIDATED)\n"
+                )
                 output += f"📝 Command: {result['command']}\n"
 
                 if "security_check" in result:
@@ -861,9 +1017,18 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
                 return [types.TextContent(type="text", text=error_output)]
 
         except ValueError as e:
-            return [types.TextContent(type="text", text=f"🔒 Security Error executing git command: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"🔒 Security Error executing git command: {str(e)}",
+                )
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error executing git command: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error executing git command: {str(e)}"
+                )
+            ]
 
     elif name == "system_stats":
         try:
@@ -871,12 +1036,14 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
             try:
                 import psutil
             except ImportError:
-                return [types.TextContent(
-                    type="text",
-                    text="❌ Error: psutil library is not installed.\n\n"
-                    "Install it with: pip install psutil\n"
-                    "or: pip install psutil"
-                )]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: psutil library is not installed.\n\n"
+                        "Install it with: pip install psutil\n"
+                        "or: pip install psutil",
+                    )
+                ]
 
             interval = arguments.get("interval", 1.0)
             per_cpu = arguments.get("per_cpu", False)
@@ -939,7 +1106,11 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
             return [types.TextContent(type="text", text=output)]
 
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error getting system stats: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error getting system stats: {str(e)}"
+                )
+            ]
 
     elif name == "security_status":
         try:
@@ -949,7 +1120,9 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
             status_output = "🔒 MCP Server Security Status\n"
             status_output += "=" * 40 + "\n\n"
 
-            status_output += f"🛡️ Security Version: {security_config['security_version']}\n"
+            status_output += (
+                f"🛡️ Security Version: {security_config['security_version']}\n"
+            )
             status_output += f"🔐 Hardening Enabled: {'✅ YES' if security_config['hardening_enabled'] else '❌ NO'}\n\n"
 
             status_output += "📋 Security Features:\n"
@@ -958,7 +1131,7 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
             status_output += f"  • Environment Filtering: {'✅ Active' if security_config['environment_filtering_active'] else '❌ Disabled'}\n\n"
 
             status_output += "📊 Configuration Summary:\n"
-            status_output += f"  • Allowed Commands: {security_config['allowed_commands_count']} commands\n"
+            status_output += f"  • Allowed Commands: {len(security_config['allowed_commands'])} commands\n"
             status_output += f"  • Allowed Directories: {security_config['allowed_directories_count']} paths\n"
             status_output += f"  • Forbidden Paths: {security_config['forbidden_paths_count']} protected locations\n"
             status_output += f"  • Sensitive Patterns: {security_config['sensitive_patterns_count']} credential filters\n\n"
@@ -970,7 +1143,11 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
             return [types.TextContent(type="text", text=status_output)]
 
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error retrieving security status: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error retrieving security status: {str(e)}"
+                )
+            ]
 
     elif name == "performance_metrics":
         try:
@@ -983,7 +1160,12 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
                 # Get metrics for specific tool
                 metrics = tracker.get_metrics(tool_name)
                 if not metrics:
-                    return [types.TextContent(type="text", text=f"No performance data available for tool: {tool_name}")]
+                    return [
+                        types.TextContent(
+                            type="text",
+                            text=f"No performance data available for tool: {tool_name}",
+                        )
+                    ]
 
                 output = f"Performance Metrics for {tool_name}:\n"
                 output += f"  Total Calls: {metrics['total_calls']}\n"
@@ -1001,10 +1183,19 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
                 return [types.TextContent(type="text", text=summary)]
 
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error retrieving performance metrics: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"❌ Error retrieving performance metrics: {str(e)}",
+                )
+            ]
 
     else:
-        return [types.TextContent(type="text", text=f"❌ Unknown system command tool: {name}")]
+        return [
+            types.TextContent(
+                type="text", text=f"❌ Unknown system command tool: {name}"
+            )
+        ]
 
 
 # ============================================================================
@@ -1015,7 +1206,7 @@ async def _handle_system_commands(name: str, arguments: Dict[str, Any]) -> List[
 def _validate_url_security(url: str) -> Dict[str, Any]:
     """
     Validate URL for security before fetching.
-    
+
     Prevents Server-Side Request Forgery (SSRF) attacks by blocking:
     - Local network addresses (localhost, 127.0.0.1, private IPs)
     - File:// and other non-HTTP schemes
@@ -1027,7 +1218,10 @@ def _validate_url_security(url: str) -> Dict[str, Any]:
 
         # Ensure URL uses safe protocols
         if not url.lower().startswith(("http://", "https://")):
-            return {"valid": False, "error": "Only HTTP and HTTPS protocols are allowed"}
+            return {
+                "valid": False,
+                "error": "Only HTTP and HTTPS protocols are allowed",
+            }
 
         # Block localhost and local network access (SSRF prevention)
         blocked_patterns = [
@@ -1043,7 +1237,10 @@ def _validate_url_security(url: str) -> Dict[str, Any]:
         url_lower = url.lower()
         for pattern in blocked_patterns:
             if re.search(pattern, url_lower):
-                return {"valid": False, "error": "Access to local/private networks is blocked for security"}
+                return {
+                    "valid": False,
+                    "error": "Access to local/private networks is blocked for security",
+                }
 
         return {"valid": True, "url": url}
 
@@ -1051,9 +1248,11 @@ def _validate_url_security(url: str) -> Dict[str, Any]:
         return {"valid": False, "error": f"URL validation error: {str(e)}"}
 
 
-async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def _handle_search_tools(
+    name: str, arguments: Dict[str, Any]
+) -> List[types.TextContent]:
     """Handle search and fetch tool calls with comprehensive security validation."""
-    
+
     if name == "search_files":
         query = arguments.get("query", "")
         directory = arguments.get("directory", ".")
@@ -1063,20 +1262,37 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
 
         try:
             if not query:
-                return [types.TextContent(type="text", text="❌ Error: search query is required")]
+                return [
+                    types.TextContent(
+                        type="text", text="❌ Error: search query is required"
+                    )
+                ]
 
             # Validate search directory for security
             path_validation = validate_file_path(directory, "read")
             if not path_validation["valid"]:
                 security_errors = "; ".join(path_validation["checks"])
-                return [types.TextContent(type="text", text=f"🔒 Security Error: Cannot search directory '{directory}' - {security_errors}")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"🔒 Security Error: Cannot search directory '{directory}' - {security_errors}",
+                    )
+                ]
 
             path = Path(directory).resolve()
             if not path.exists():
-                return [types.TextContent(type="text", text=f"📁 Directory not found: {directory}")]
+                return [
+                    types.TextContent(
+                        type="text", text=f"📁 Directory not found: {directory}"
+                    )
+                ]
 
             if not path.is_dir():
-                return [types.TextContent(type="text", text=f"❌ Path is not a directory: {directory}")]
+                return [
+                    types.TextContent(
+                        type="text", text=f"❌ Path is not a directory: {directory}"
+                    )
+                ]
 
             matches = []
             search_query = query if case_sensitive else query.lower()
@@ -1105,10 +1321,16 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
                                 if search_query in check_line:
                                     matching_lines.append(f"{i}: {line.strip()}")
 
-                            matches.append({
-                                "file": str(file.relative_to(path) if file.is_relative_to(path) else file),
-                                "lines": matching_lines[:10],
-                            })
+                            matches.append(
+                                {
+                                    "file": str(
+                                        file.relative_to(path)
+                                        if file.is_relative_to(path)
+                                        else file
+                                    ),
+                                    "lines": matching_lines[:10],
+                                }
+                            )
 
                         files_processed += 1
 
@@ -1142,9 +1364,17 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
             return [types.TextContent(type="text", text=result)]
 
         except ValueError as e:
-            return [types.TextContent(type="text", text=f"🔒 Security Error searching files: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"🔒 Security Error searching files: {str(e)}"
+                )
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error searching files: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error searching files: {str(e)}"
+                )
+            ]
 
     elif name == "fetch_url":
         url = arguments.get("url", "")
@@ -1153,22 +1383,42 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
 
         try:
             if not url:
-                return [types.TextContent(type="text", text="❌ Error: URL is required for fetch operation")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: URL is required for fetch operation",
+                    )
+                ]
 
             if timeout > 60:
-                return [types.TextContent(type="text", text="🔒 Security Error: Timeout too long (max: 60 seconds)")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="🔒 Security Error: Timeout too long (max: 60 seconds)",
+                    )
+                ]
 
             # Validate URL for security (SSRF prevention)
             url_validation = _validate_url_security(url)
             if not url_validation["valid"]:
-                return [types.TextContent(type="text", text=f"🔒 Security Error: Invalid URL - {url_validation['error']}")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"🔒 Security Error: Invalid URL - {url_validation['error']}",
+                    )
+                ]
 
             # Perform secure HTTP request with limits
             async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream("GET", url) as response:
                     content_length = response.headers.get("content-length")
                     if content_length and int(content_length) > max_size:
-                        return [types.TextContent(type="text", text=f"🔒 Security Error: Content too large ({content_length} bytes, max: {max_size})")]
+                        return [
+                            types.TextContent(
+                                type="text",
+                                text=f"🔒 Security Error: Content too large ({content_length} bytes, max: {max_size})",
+                            )
+                        ]
 
                     content_chunks = []
                     total_size = 0
@@ -1176,7 +1426,12 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
                     async for chunk in response.aiter_bytes():
                         total_size += len(chunk)
                         if total_size > max_size:
-                            return [types.TextContent(type="text", text=f"🔒 Security Error: Content exceeded size limit ({total_size} bytes, max: {max_size})")]
+                            return [
+                                types.TextContent(
+                                    type="text",
+                                    text=f"🔒 Security Error: Content exceeded size limit ({total_size} bytes, max: {max_size})",
+                                )
+                            ]
                         content_chunks.append(chunk)
 
                     content = b"".join(content_chunks).decode("utf-8", errors="replace")
@@ -1185,10 +1440,14 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
                 output += f"📍 URL: {url}\n"
                 output += f"📊 Status: {response.status_code}\n"
                 output += f"📏 Content Length: {len(content)} characters\n"
-                output += f"🔒 Security: SSRF protection enabled, size limits enforced\n\n"
+                output += (
+                    f"🔒 Security: SSRF protection enabled, size limits enforced\n\n"
+                )
 
                 if len(content) > 10000:
-                    output += f"📄 Content (first 10,000 characters):\n{content[:10000]}\n\n"
+                    output += (
+                        f"📄 Content (first 10,000 characters):\n{content[:10000]}\n\n"
+                    )
                     output += f"... (content truncated for display, {len(content) - 10000} more characters)"
                 else:
                     output += f"📄 Content:\n{content}"
@@ -1196,11 +1455,24 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
                 return [types.TextContent(type="text", text=output)]
 
         except httpx.TimeoutException:
-            return [types.TextContent(type="text", text=f"⏱️ Request timeout: URL '{url}' took longer than {timeout} seconds")]
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"⏱️ Request timeout: URL '{url}' took longer than {timeout} seconds",
+                )
+            ]
         except httpx.RequestError as e:
-            return [types.TextContent(type="text", text=f"🌐 Network error fetching URL '{url}': {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"🌐 Network error fetching URL '{url}': {str(e)}"
+                )
+            ]
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error fetching URL '{url}': {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error fetching URL '{url}': {str(e)}"
+                )
+            ]
 
     elif name == "search_docs_online":
         query = arguments.get("query", "")
@@ -1209,7 +1481,12 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
 
         try:
             if not query:
-                return [types.TextContent(type="text", text="❌ Error: query is required for documentation search")]
+                return [
+                    types.TextContent(
+                        type="text",
+                        text="❌ Error: query is required for documentation search",
+                    )
+                ]
 
             output = f"🔍 **Documentation Search Results for: '{query}'**\n\n"
             results_found = False
@@ -1249,7 +1526,9 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
                                     if isinstance(topic, dict) and "Text" in topic:
                                         output += f"- {topic.get('Text', '')}\n"
                                         if "FirstURL" in topic:
-                                            output += f"  🔗 {topic.get('FirstURL', '')}\n"
+                                            output += (
+                                                f"  🔗 {topic.get('FirstURL', '')}\n"
+                                            )
                                         output += "\n"
                                 results_found = True
                 except Exception as e:
@@ -1300,7 +1579,11 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
             return [types.TextContent(type="text", text=output)]
 
         except Exception as e:
-            return [types.TextContent(type="text", text=f"❌ Error searching documentation: {str(e)}")]
+            return [
+                types.TextContent(
+                    type="text", text=f"❌ Error searching documentation: {str(e)}"
+                )
+            ]
 
     else:
         return [types.TextContent(type="text", text=f"❌ Unknown search tool: {name}")]
@@ -1311,9 +1594,11 @@ async def _handle_search_tools(name: str, arguments: Dict[str, Any]) -> List[typ
 # ============================================================================
 
 
-async def _handle_web_search(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def _handle_web_search(
+    name: str, arguments: Dict[str, Any]
+) -> List[types.TextContent]:
     """Handle web search tool calls using DuckDuckGo."""
-    
+
     if name == "web_search":
         return await _handle_general_web_search(arguments)
     elif name == "web_search_news":
@@ -1322,50 +1607,64 @@ async def _handle_web_search(name: str, arguments: Dict[str, Any]) -> List[types
         return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
-async def _handle_general_web_search(arguments: Dict[str, Any]) -> List[types.TextContent]:
+async def _handle_general_web_search(
+    arguments: Dict[str, Any],
+) -> List[types.TextContent]:
     """Handle general web search requests."""
     query = arguments.get("query", "")
     max_results = min(arguments.get("max_results", 10), 50)
     region = arguments.get("region", "wt-wt")
     time_limit = arguments.get("time_limit")
-    
+
     if not query:
-        return [types.TextContent(type="text", text="Error: Query parameter is required")]
-    
+        return [
+            types.TextContent(type="text", text="Error: Query parameter is required")
+        ]
+
     try:
         from duckduckgo_search import DDGS
-        
-        logger.info(f"Performing web search: query='{query}', max_results={max_results}")
-        
+
+        logger.info(
+            f"Performing web search: query='{query}', max_results={max_results}"
+        )
+
         with DDGS() as ddgs:
             results = ddgs.text(
                 keywords=query,
                 region=region,
                 safesearch="moderate",
                 timelimit=time_limit,
-                max_results=max_results
+                max_results=max_results,
             )
-        
+
         if not results:
-            return [types.TextContent(type="text", text=f"No results found for query: {query}")]
-        
+            return [
+                types.TextContent(
+                    type="text", text=f"No results found for query: {query}"
+                )
+            ]
+
         formatted_results = [f"🔍 **Web Search Results for: {query}**\n"]
         formatted_results.append(f"Found {len(results)} results:\n")
-        
+
         for i, result in enumerate(results, 1):
             title = result.get("title", "No title")
             url = result.get("href", "")
             body = result.get("body", "No description")
-            
+
             formatted_results.append(f"\n**{i}. {title}**")
             formatted_results.append(f"🔗 {url}")
             formatted_results.append(f"📝 {body}\n")
-        
+
         return [types.TextContent(type="text", text="\n".join(formatted_results))]
-        
+
     except Exception as e:
         logger.error(f"Web search failed: {e}")
-        return [types.TextContent(type="text", text=f"Error performing web search: {str(e)}")]
+        return [
+            types.TextContent(
+                type="text", text=f"Error performing web search: {str(e)}"
+            )
+        ]
 
 
 async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextContent]:
@@ -1374,44 +1673,56 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
     max_results = min(arguments.get("max_results", 10), 50)
     region = arguments.get("region", "wt-wt")
     time_limit = arguments.get("time_limit", "w")
-    
+
     if not query:
-        return [types.TextContent(type="text", text="Error: Query parameter is required")]
-    
+        return [
+            types.TextContent(type="text", text="Error: Query parameter is required")
+        ]
+
     try:
         from duckduckgo_search import DDGS
-        
-        logger.info(f"Performing news search: query='{query}', max_results={max_results}, time_limit={time_limit}")
-        
+
+        logger.info(
+            f"Performing news search: query='{query}', max_results={max_results}, time_limit={time_limit}"
+        )
+
         with DDGS() as ddgs:
             results = ddgs.news(
                 keywords=query,
                 region=region,
                 safesearch="moderate",
                 timelimit=time_limit,
-                max_results=max_results
+                max_results=max_results,
             )
-        
+
         if not results:
-            return [types.TextContent(type="text", text=f"No news articles found for query: {query}")]
-        
+            return [
+                types.TextContent(
+                    type="text", text=f"No news articles found for query: {query}"
+                )
+            ]
+
         formatted_results = [f"📰 **News Search Results for: {query}**\n"]
         formatted_results.append(f"Found {len(results)} articles:\n")
-        
+
         for i, result in enumerate(results, 1):
             title = result.get("title", "No title")
             url = result.get("url", "")
             body = result.get("body", "No description")
             date = result.get("date", "Unknown date")
             source = result.get("source", "Unknown source")
-            
+
             formatted_results.append(f"\n**{i}. {title}**")
             formatted_results.append(f"🔗 {url}")
             formatted_results.append(f"📅 {date} | 📰 {source}")
             formatted_results.append(f"📝 {body}\n")
-        
+
         return [types.TextContent(type="text", text="\n".join(formatted_results))]
-        
+
     except Exception as e:
         logger.error(f"News search failed: {e}")
-        return [types.TextContent(type="text", text=f"Error performing news search: {str(e)}")]
+        return [
+            types.TextContent(
+                type="text", text=f"Error performing news search: {str(e)}"
+            )
+        ]

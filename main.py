@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-MCP (Model Context Protocol) Server - Modular Architecture
-Updated: December 2024
+MCP (Model Context Protocol) Server - Consolidated Architecture
+Updated: 29/10/25
 By: Daniel Potter
 
 This server provides practical development tools and resources for MCP clients.
-It follows MCP best practices with a modular architecture for maintainability.
+All tools are consolidated in src/tools.py for simplified maintenance.
 
 MCP ARCHITECTURE OVERVIEW:
 - MCP enables AI assistants (like GitHub Copilot) to call server functions securely
@@ -13,12 +13,11 @@ MCP ARCHITECTURE OVERVIEW:
 - Communication happens via JSON-RPC over stdio (local) or HTTP (remote)
 - Each tool has a schema that describes its inputs - this helps the AI understand how to call it
 
-MODULAR DESIGN:
-- tools/ - Individual tool modules (file_operations, system_commands, search_tools)
-- integrations/ - External API integrations (ClickUp, GitHub, Context7, etc.)
-- utils/ - Shared utilities and security functions
-- resources.py - MCP resource definitions and handlers
-- tool_registry.py - Central tool registration and routing
+CONSOLIDATED DESIGN:
+- src/tools.py - ALL MCP tools in one file (file operations, system commands, search, web search)
+- src/integrations.py - External API integrations (ClickUp, GitHub, Context7, BookStack)
+- src/utils/ - Shared utilities and security functions
+- src/resources.py - MCP resource definitions and handlers
 
 References:
 MCP Protocol: https://modelcontextprotocol.io/docs/concepts/tools

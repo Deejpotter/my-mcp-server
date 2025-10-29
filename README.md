@@ -4,11 +4,12 @@ A comprehensive Model Context Protocol (MCP) server with **modular architecture*
 
 ## 📚 **Documentation**
 
-**📂 All documentation is consolidated in [`docs/COMPREHENSIVE_GUIDE.md`](docs/COMPREHENSIVE_GUIDE.md)** - complete guide covering development, security, API integrations, and troubleshooting.
+**This is a simplified, consolidated MCP server with all tools in a single file for easy maintenance.**
 
 **Quick Links:**
 
-- **[Complete Guide](docs/COMPREHENSIVE_GUIDE.md)** - Everything you need in one document
+- **[AI Prompt Guide](AI-PROMPT.md)** - Guide for AI assistants working on this project
+- **[Advanced Configuration](docs/ADVANCED.md)** - Remote deployment, API integrations, troubleshooting
 
 > **Note:** This is the local development version. For remote deployment, see [my-mcp-server-remote](https://github.com/Deejpotter/my-mcp-server-remote).
 
@@ -130,13 +131,9 @@ my-mcp-server/
 ├── scripts/
 │   └── security_check.py        # Security validation
 ├── src/
-│   ├── tool_registry.py         # Tool routing & performance tracking
+│   ├── tools.py                 # ALL MCP tools (consolidated)
 │   ├── resources.py             # MCP resources
-│   ├── tools/                   # Tool implementations
-│   │   ├── file_operations.py   # File & batch validation tools
-│   │   └── system_commands.py   # System monitoring & commands
-│   ├── integrations/            # External API integrations
-│   │   └── external_apis.py     # ClickUp, GitHub, BookStack, Context7
+│   ├── integrations.py          # External API integrations
 │   └── utils/                   # Shared utilities
 │       ├── security.py          # Security & path validation
 │       ├── cache_rate_limit.py  # Caching & rate limiting
@@ -145,8 +142,6 @@ my-mcp-server/
 │   ├── test_integration.py      # Integration tests
 │   ├── test_security_hardening.py # Security tests
 │   └── test_new_features.py     # Feature tests
-├── docs/
-│   └── COMPREHENSIVE_GUIDE.md   # Complete setup guide
 └── vscode-extension/            # VS Code extension files
     ├── package.json             # Extension manifest
     └── src/extension.ts         # Extension implementation

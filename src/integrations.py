@@ -22,7 +22,7 @@ from mcp.types import Tool, TextContent
 import mcp.types as types
 
 # Import caching and rate limiting utilities
-from ..utils.cache_rate_limit import (
+from .utils.cache_rate_limit import (
     api_cache,
     context7_limiter,
     github_limiter,
