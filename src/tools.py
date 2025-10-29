@@ -16,7 +16,7 @@ References:
 MCP Tools Pattern: https://modelcontextprotocol.io/docs/concepts/tools
 OWASP Path Traversal: https://owasp.org/www-community/attacks/Path_Traversal
 CWE-78 Command Injection: https://cwe.mitre.org/data/definitions/78.html
-DuckDuckGo Search: https://github.com/deedy5/duckduckgo_search
+DuckDuckGo Search: https://github.com/deedy5/ddgs
 """
 
 import glob
@@ -1610,11 +1610,9 @@ async def _handle_web_search(
 async def _handle_general_web_search(
     arguments: Dict[str, Any],
 ) -> List[types.TextContent]:
-    """Handle general web search requests."""
+    """Handle general web search requests using Google Search."""
     query = arguments.get("query", "")
     max_results = min(arguments.get("max_results", 10), 50)
-    region = arguments.get("region", "wt-wt")
-    time_limit = arguments.get("time_limit")
 
     if not query:
         return [
@@ -1622,20 +1620,14 @@ async def _handle_general_web_search(
         ]
 
     try:
-        from duckduckgo_search import DDGS
-
         logger.info(
             f"Performing web search: query='{query}', max_results={max_results}"
         )
 
-        with DDGS() as ddgs:
-            results = ddgs.text(
-                keywords=query,
-                region=region,
-                safesearch="moderate",
-                timelimit=time_limit,
-                max_results=max_results,
-            )
+        search = GoogleSearch(
+            {"q": query, "num": max_results, "api_key": os.getenv("SERPAPI_API_KEY")}
+        )
+        results = search.get_dict().get("organic_results", [])
 
         if not results:
             return [
@@ -1649,12 +1641,12 @@ async def _handle_general_web_search(
 
         for i, result in enumerate(results, 1):
             title = result.get("title", "No title")
-            url = result.get("href", "")
-            body = result.get("body", "No description")
+            url = result.get("link", "")
+            snippet = result.get("snippet", "No description")
 
             formatted_results.append(f"\n**{i}. {title}**")
             formatted_results.append(f"🔗 {url}")
-            formatted_results.append(f"📝 {body}\n")
+            formatted_results.append(f"📝 {snippet}\n")
 
         return [types.TextContent(type="text", text="\n".join(formatted_results))]
 
@@ -1668,11 +1660,9 @@ async def _handle_general_web_search(
 
 
 async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextContent]:
-    """Handle news search requests."""
+    """Handle news search requests using Google News."""
     query = arguments.get("query", "")
     max_results = min(arguments.get("max_results", 10), 50)
-    region = arguments.get("region", "wt-wt")
-    time_limit = arguments.get("time_limit", "w")
 
     if not query:
         return [
@@ -1680,20 +1670,19 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
         ]
 
     try:
-        from duckduckgo_search import DDGS
-
         logger.info(
-            f"Performing news search: query='{query}', max_results={max_results}, time_limit={time_limit}"
+            f"Performing news search: query='{query}', max_results={max_results}"
         )
 
-        with DDGS() as ddgs:
-            results = ddgs.news(
-                keywords=query,
-                region=region,
-                safesearch="moderate",
-                timelimit=time_limit,
-                max_results=max_results,
-            )
+        search = GoogleSearch(
+            {
+                "q": query,
+                "tbm": "nws",
+                "num": max_results,
+                "api_key": os.getenv("SERPAPI_API_KEY"),
+            }
+        )
+        results = search.get_dict().get("news_results", [])
 
         if not results:
             return [
@@ -1707,15 +1696,14 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
 
         for i, result in enumerate(results, 1):
             title = result.get("title", "No title")
-            url = result.get("url", "")
-            body = result.get("body", "No description")
-            date = result.get("date", "Unknown date")
+            url = result.get("link", "")
+            snippet = result.get("snippet", "No description")
             source = result.get("source", "Unknown source")
 
             formatted_results.append(f"\n**{i}. {title}**")
             formatted_results.append(f"🔗 {url}")
-            formatted_results.append(f"📅 {date} | 📰 {source}")
-            formatted_results.append(f"📝 {body}\n")
+            formatted_results.append(f"📰 {source}")
+            formatted_results.append(f"📝 {snippet}\n")
 
         return [types.TextContent(type="text", text="\n".join(formatted_results))]
 
