@@ -2,7 +2,7 @@
 
 A comprehensive Model Context Protocol (MCP) server with **modular architecture** providing development tools, API integrations, and documentation search capabilities for AI assistants.
 
-## 📚 **Documentation**
+## **Documentation**
 
 **This is a simplified, consolidated MCP server with all tools in a single file for easy maintenance.**
 
@@ -13,7 +13,7 @@ A comprehensive Model Context Protocol (MCP) server with **modular architecture*
 
 > **Note:** This is the local development version. For remote deployment, see [my-mcp-server-remote](https://github.com/Deejpotter/my-mcp-server-remote).
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Prerequisites**
 
@@ -46,7 +46,7 @@ python -m venv .venv
 pip install -r requirements-test.txt
 ```
 
-## 🛠️ **Features**
+## **Features**
 
 - **File & System Operations** - File management, directory browsing, command execution with security hardening, system resource monitoring
 - **Web Search** - Real-time web and news search via DuckDuckGo for blog posts, articles, recent discussions, and breaking news
@@ -54,7 +54,7 @@ pip install -r requirements-test.txt
 - **API Integrations** - ClickUp tasks, BookStack knowledge management (create/read/search), GitHub code search
 - **Development Tools** - Git operations, project analysis, real-time web content, system statistics monitoring
 - **Performance Optimizations** - API response caching (5-min TTL), rate limiting protection, reduced API quota consumption
-- **🔒 Enterprise Security** - Comprehensive protection against injection attacks, path traversal, and credential exposure
+- **Enterprise Security** - Comprehensive protection against injection attacks, path traversal, and credential exposure
 
 ### **Security Features**
 
@@ -68,7 +68,7 @@ This MCP server includes **enterprise-grade security hardening**:
 
 See [Security Guidelines](docs/SECURITY_GUIDELINES.md) for implementation details.
 
-## ⚙️ **Quick Configuration**
+## **Quick Configuration**
 
 ### **VS Code (GitHub Copilot)**
 
@@ -121,7 +121,7 @@ source .venv/bin/activate  # (Linux/macOS)
 python scripts/security_check.py
 ```
 
-## 📁 **Project Structure**
+## **Project Structure**
 
 ```text
 my-mcp-server/
@@ -147,11 +147,11 @@ my-mcp-server/
     └── src/extension.ts         # Extension implementation
 ```
 
-## 📄 **License**
+## **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 **Related Projects**
+## **Related Projects**
 
 - **[MCP Protocol Specification](https://modelcontextprotocol.io/)** - Official MCP documentation
 - **[Remote Server Version](https://github.com/Deejpotter/my-mcp-server-remote)** - For cloud deployment
