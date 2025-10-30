@@ -34,12 +34,14 @@ logger = logging.getLogger(__name__)
 
 try:
     from serpapi import GoogleSearch
+
     GOOGLE_SEARCH_AVAILABLE = True
 except ImportError:
     GOOGLE_SEARCH_AVAILABLE = False
 
 try:
     from ddgs import DDGS
+
     DDGS_AVAILABLE = True
 except ImportError:
     DDGS_AVAILABLE = False
@@ -1503,11 +1505,11 @@ async def _handle_general_web_search(
     api_key = os.getenv("SERPAPI_API_KEY")
     if api_key and GOOGLE_SEARCH_AVAILABLE:
         try:
-            logger.info(f"Performing Google search: query='{query}', max_results={max_results}")
-            
-            search = GoogleSearch(
-                {"q": query, "num": max_results, "api_key": api_key}
+            logger.info(
+                f"Performing Google search: query='{query}', max_results={max_results}"
             )
+
+            search = GoogleSearch({"q": query, "num": max_results, "api_key": api_key})
             results = search.get_dict().get("organic_results", [])
 
             if results:
@@ -1523,18 +1525,22 @@ async def _handle_general_web_search(
                     formatted_results.append(f"🔗 {url}")
                     formatted_results.append(f"📝 {snippet}\n")
 
-                return [types.TextContent(type="text", text="\n".join(formatted_results))]
+                return [
+                    types.TextContent(type="text", text="\n".join(formatted_results))
+                ]
         except Exception as e:
             logger.warning(f"Google Search failed, falling back to DuckDuckGo: {e}")
-    
+
     # Fallback to DuckDuckGo
     if DDGS_AVAILABLE:
         try:
-            logger.info(f"Performing DuckDuckGo search: query='{query}', max_results={max_results}")
-            
+            logger.info(
+                f"Performing DuckDuckGo search: query='{query}', max_results={max_results}"
+            )
+
             with DDGS() as ddgs:
                 results = list(ddgs.text(query, max_results=max_results))
-            
+
             if not results:
                 return [
                     types.TextContent(
@@ -1555,7 +1561,7 @@ async def _handle_general_web_search(
                 formatted_results.append(f"📝 {snippet}\n")
 
             return [types.TextContent(type="text", text="\n".join(formatted_results))]
-            
+
         except Exception as e:
             logger.error(f"DuckDuckGo search failed: {e}")
             return [
@@ -1566,8 +1572,8 @@ async def _handle_general_web_search(
     else:
         return [
             types.TextContent(
-                type="text", 
-                text="Web search is unavailable. Please install 'google-search-results' (SerpAPI) or 'ddgs' package."
+                type="text",
+                text="Web search is unavailable. Please install 'google-search-results' (SerpAPI) or 'ddgs' package.",
             )
         ]
 
@@ -1586,8 +1592,10 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
     api_key = os.getenv("SERPAPI_API_KEY")
     if api_key and GOOGLE_SEARCH_AVAILABLE:
         try:
-            logger.info(f"Performing Google News search: query='{query}', max_results={max_results}")
-            
+            logger.info(
+                f"Performing Google News search: query='{query}', max_results={max_results}"
+            )
+
             search = GoogleSearch(
                 {
                     "q": query,
@@ -1613,18 +1621,24 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
                     formatted_results.append(f"📰 {source}")
                     formatted_results.append(f"📝 {snippet}\n")
 
-                return [types.TextContent(type="text", text="\n".join(formatted_results))]
+                return [
+                    types.TextContent(type="text", text="\n".join(formatted_results))
+                ]
         except Exception as e:
-            logger.warning(f"Google News search failed, falling back to DuckDuckGo: {e}")
-    
+            logger.warning(
+                f"Google News search failed, falling back to DuckDuckGo: {e}"
+            )
+
     # Fallback to DuckDuckGo News
     if DDGS_AVAILABLE:
         try:
-            logger.info(f"Performing DuckDuckGo News search: query='{query}', max_results={max_results}")
-            
+            logger.info(
+                f"Performing DuckDuckGo News search: query='{query}', max_results={max_results}"
+            )
+
             with DDGS() as ddgs:
                 results = list(ddgs.news(query, max_results=max_results))
-            
+
             if not results:
                 return [
                     types.TextContent(
@@ -1650,7 +1664,7 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
                 formatted_results.append(f"�📝 {snippet}\n")
 
             return [types.TextContent(type="text", text="\n".join(formatted_results))]
-            
+
         except Exception as e:
             logger.error(f"DuckDuckGo news search failed: {e}")
             return [
@@ -1661,7 +1675,7 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
     else:
         return [
             types.TextContent(
-                type="text", 
-                text="News search is unavailable. Please install 'google-search-results' (SerpAPI) or 'ddgs' package."
+                type="text",
+                text="News search is unavailable. Please install 'google-search-results' (SerpAPI) or 'ddgs' package.",
             )
         ]
