@@ -30,6 +30,20 @@ import httpx
 from mcp.types import Tool, TextContent
 import mcp.types as types
 
+logger = logging.getLogger(__name__)
+
+try:
+    from serpapi import GoogleSearch
+    GOOGLE_SEARCH_AVAILABLE = True
+except ImportError:
+    GOOGLE_SEARCH_AVAILABLE = False
+
+try:
+    from ddgs import DDGS
+    DDGS_AVAILABLE = True
+except ImportError:
+    DDGS_AVAILABLE = False
+
 from .utils.security import (
     safe_read_file,
     safe_write_file,
@@ -54,7 +68,7 @@ def get_all_tools() -> List[Tool]:
     Tools are organized by function:
     - File Operations: read_file, write_file, list_files, validate_path, batch_file_check
     - System Commands: run_command, git_command, system_stats, security_status, performance_metrics
-    - Search Tools: search_files, fetch_url, search_docs_online
+    - Search Tools: search_files, fetch_url
     - Web Search: web_search, web_search_news
 
     Returns:
@@ -375,41 +389,17 @@ def _get_search_tools() -> List[Tool]:
                 "required": ["url"],
             },
         ),
-        Tool(
-            name="search_docs_online",
-            description="Search online documentation from multiple sources (MDN, Stack Overflow, GitHub, DevDocs). "
-            "Provides aggregated results from various documentation platforms with security validation.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Search query for documentation",
-                    },
-                    "source": {
-                        "type": "string",
-                        "description": "Documentation source: mdn, stackoverflow, github, devdocs, or all (default: all)",
-                        "default": "all",
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Maximum number of results to return per source (default: 5)",
-                        "default": 5,
-                    },
-                },
-                "required": ["query"],
-            },
-        ),
     ]
 
 
 def _get_web_search_tools() -> List[Tool]:
-    """Web search tool definitions using DuckDuckGo."""
+    """Web search tool definitions using Google Search (with DuckDuckGo fallback)."""
     return [
         Tool(
             name="web_search",
-            description="Search the web using DuckDuckGo for general information, blog posts, articles, "
-            "and online discussions. Returns title, URL, and description for each result. "
+            description="Search the web for general information, blog posts, articles, and online discussions. "
+            "Uses Google Search (SerpAPI) when SERPAPI_API_KEY is available, otherwise falls back to DuckDuckGo. "
+            "Returns title, URL, and description for each result. "
             "Use this to find recent information, opinions, tutorials, or any web content.",
             inputSchema={
                 "type": "object",
@@ -439,7 +429,8 @@ def _get_web_search_tools() -> List[Tool]:
         ),
         Tool(
             name="web_search_news",
-            description="Search for recent news articles and blog posts using DuckDuckGo News. "
+            description="Search for recent news articles and blog posts. "
+            "Uses Google News (SerpAPI) when SERPAPI_API_KEY is available, otherwise falls back to DuckDuckGo News. "
             "Ideal for finding breaking news, recent developments, or timely discussions. "
             "Returns article title, URL, summary, publication date, and source.",
             inputSchema={
@@ -513,7 +504,7 @@ async def handle_tool_call(
         return await _handle_system_commands(name, arguments)
 
     # Search tools
-    elif name in ["search_files", "fetch_url", "search_docs_online"]:
+    elif name in ["search_files", "fetch_url"]:
         return await _handle_search_tools(name, arguments)
 
     # Web search tools
@@ -1474,117 +1465,6 @@ async def _handle_search_tools(
                 )
             ]
 
-    elif name == "search_docs_online":
-        query = arguments.get("query", "")
-        source = arguments.get("source", "all")
-        limit = arguments.get("limit", 5)
-
-        try:
-            if not query:
-                return [
-                    types.TextContent(
-                        type="text",
-                        text="❌ Error: query is required for documentation search",
-                    )
-                ]
-
-            output = f"🔍 **Documentation Search Results for: '{query}'**\n\n"
-            results_found = False
-
-            # MDN Web Docs search
-            if source in ["all", "mdn"]:
-                try:
-                    mdn_url = f"https://developer.mozilla.org/api/v1/search?q={query}&locale=en-US"
-                    async with httpx.AsyncClient(timeout=10) as client:
-                        response = await client.get(mdn_url)
-                        if response.status_code == 200:
-                            data = response.json()
-                            documents = data.get("documents", [])[:limit]
-                            if documents:
-                                output += "### 📘 MDN Web Docs\n"
-                                for doc in documents:
-                                    output += f"- **{doc.get('title', 'Untitled')}**\n"
-                                    output += f"  {doc.get('summary', 'No summary available')}\n"
-                                    output += f"  🔗 https://developer.mozilla.org{doc.get('mdn_url', '')}\n\n"
-                                results_found = True
-                except Exception as e:
-                    output += f"⚠️ MDN search error: {str(e)}\n\n"
-
-            # Stack Overflow search
-            if source in ["all", "stackoverflow"]:
-                try:
-                    so_query = f"site:stackoverflow.com {query}"
-                    so_url = f"https://api.duckduckgo.com/?q={so_query}&format=json&no_html=1"
-                    async with httpx.AsyncClient(timeout=10) as client:
-                        response = await client.get(so_url)
-                        if response.status_code == 200:
-                            data = response.json()
-                            related_topics = data.get("RelatedTopics", [])[:limit]
-                            if related_topics:
-                                output += "### 💬 Stack Overflow\n"
-                                for topic in related_topics:
-                                    if isinstance(topic, dict) and "Text" in topic:
-                                        output += f"- {topic.get('Text', '')}\n"
-                                        if "FirstURL" in topic:
-                                            output += (
-                                                f"  🔗 {topic.get('FirstURL', '')}\n"
-                                            )
-                                        output += "\n"
-                                results_found = True
-                except Exception as e:
-                    output += f"⚠️ Stack Overflow search error: {str(e)}\n\n"
-
-            # GitHub search
-            if source in ["all", "github"]:
-                try:
-                    github_url = f"https://api.github.com/search/repositories?q={query}&sort=stars&per_page={limit}"
-                    headers = {"Accept": "application/vnd.github.v3+json"}
-
-                    github_token = os.getenv("GITHUB_TOKEN")
-                    if github_token:
-                        headers["Authorization"] = f"token {github_token}"
-
-                    async with httpx.AsyncClient(timeout=10) as client:
-                        response = await client.get(github_url, headers=headers)
-                        if response.status_code == 200:
-                            data = response.json()
-                            items = data.get("items", [])[:limit]
-                            if items:
-                                output += "### 💻 GitHub Repositories\n"
-                                for item in items:
-                                    output += f"- **{item.get('full_name', 'Unknown')}** ⭐ {item.get('stargazers_count', 0)}\n"
-                                    output += f"  {item.get('description', 'No description')}\n"
-                                    output += f"  🔗 {item.get('html_url', '')}\n\n"
-                                results_found = True
-                        elif response.status_code == 403:
-                            output += "⚠️ GitHub: Rate limit exceeded. Set GITHUB_TOKEN for higher limits.\n\n"
-                except Exception as e:
-                    output += f"⚠️ GitHub search error: {str(e)}\n\n"
-
-            # DevDocs link
-            if source in ["all", "devdocs"]:
-                try:
-                    devdocs_url = f"https://devdocs.io/search?q={query}"
-                    output += f"### 📚 DevDocs\n"
-                    output += f"Search DevDocs directly: {devdocs_url}\n\n"
-                    results_found = True
-                except Exception as e:
-                    output += f"⚠️ DevDocs link error: {str(e)}\n\n"
-
-            if not results_found:
-                output += "❌ No results found. Try refining your search query.\n"
-
-            output += f"\n💡 **Tip**: Use 'source' parameter to search specific platforms only."
-
-            return [types.TextContent(type="text", text=output)]
-
-        except Exception as e:
-            return [
-                types.TextContent(
-                    type="text", text=f"❌ Error searching documentation: {str(e)}"
-                )
-            ]
-
     else:
         return [types.TextContent(type="text", text=f"❌ Unknown search tool: {name}")]
 
@@ -1610,7 +1490,7 @@ async def _handle_web_search(
 async def _handle_general_web_search(
     arguments: Dict[str, Any],
 ) -> List[types.TextContent]:
-    """Handle general web search requests using Google Search."""
+    """Handle general web search using Google Search with DuckDuckGo fallback."""
     query = arguments.get("query", "")
     max_results = min(arguments.get("max_results", 10), 50)
 
@@ -1619,48 +1499,81 @@ async def _handle_general_web_search(
             types.TextContent(type="text", text="Error: Query parameter is required")
         ]
 
-    try:
-        logger.info(
-            f"Performing web search: query='{query}', max_results={max_results}"
-        )
+    # Try Google Search first if API key is available
+    api_key = os.getenv("SERPAPI_API_KEY")
+    if api_key and GOOGLE_SEARCH_AVAILABLE:
+        try:
+            logger.info(f"Performing Google search: query='{query}', max_results={max_results}")
+            
+            search = GoogleSearch(
+                {"q": query, "num": max_results, "api_key": api_key}
+            )
+            results = search.get_dict().get("organic_results", [])
 
-        search = GoogleSearch(
-            {"q": query, "num": max_results, "api_key": os.getenv("SERPAPI_API_KEY")}
-        )
-        results = search.get_dict().get("organic_results", [])
+            if results:
+                formatted_results = [f"🔍 **Google Search Results for: {query}**\n"]
+                formatted_results.append(f"Found {len(results)} results:\n")
 
-        if not results:
+                for i, result in enumerate(results, 1):
+                    title = result.get("title", "No title")
+                    url = result.get("link", "")
+                    snippet = result.get("snippet", "No description")
+
+                    formatted_results.append(f"\n**{i}. {title}**")
+                    formatted_results.append(f"🔗 {url}")
+                    formatted_results.append(f"📝 {snippet}\n")
+
+                return [types.TextContent(type="text", text="\n".join(formatted_results))]
+        except Exception as e:
+            logger.warning(f"Google Search failed, falling back to DuckDuckGo: {e}")
+    
+    # Fallback to DuckDuckGo
+    if DDGS_AVAILABLE:
+        try:
+            logger.info(f"Performing DuckDuckGo search: query='{query}', max_results={max_results}")
+            
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=max_results))
+            
+            if not results:
+                return [
+                    types.TextContent(
+                        type="text", text=f"No results found for query: {query}"
+                    )
+                ]
+
+            formatted_results = [f"🔍 **DuckDuckGo Search Results for: {query}**\n"]
+            formatted_results.append(f"Found {len(results)} results:\n")
+
+            for i, result in enumerate(results, 1):
+                title = result.get("title", "No title")
+                url = result.get("href", "")
+                snippet = result.get("body", "No description")
+
+                formatted_results.append(f"\n**{i}. {title}**")
+                formatted_results.append(f"🔗 {url}")
+                formatted_results.append(f"📝 {snippet}\n")
+
+            return [types.TextContent(type="text", text="\n".join(formatted_results))]
+            
+        except Exception as e:
+            logger.error(f"DuckDuckGo search failed: {e}")
             return [
                 types.TextContent(
-                    type="text", text=f"No results found for query: {query}"
+                    type="text", text=f"Error performing web search: {str(e)}"
                 )
             ]
-
-        formatted_results = [f"🔍 **Web Search Results for: {query}**\n"]
-        formatted_results.append(f"Found {len(results)} results:\n")
-
-        for i, result in enumerate(results, 1):
-            title = result.get("title", "No title")
-            url = result.get("link", "")
-            snippet = result.get("snippet", "No description")
-
-            formatted_results.append(f"\n**{i}. {title}**")
-            formatted_results.append(f"🔗 {url}")
-            formatted_results.append(f"📝 {snippet}\n")
-
-        return [types.TextContent(type="text", text="\n".join(formatted_results))]
-
-    except Exception as e:
-        logger.error(f"Web search failed: {e}")
+    else:
         return [
             types.TextContent(
-                type="text", text=f"Error performing web search: {str(e)}"
+                type="text", 
+                text="Web search is unavailable. Please install 'google-search-results' (SerpAPI) or 'ddgs' package."
             )
         ]
 
 
 async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextContent]:
-    """Handle news search requests using Google News."""
+    """Handle news search using Google News with DuckDuckGo fallback."""
     query = arguments.get("query", "")
     max_results = min(arguments.get("max_results", 10), 50)
 
@@ -1669,48 +1582,86 @@ async def _handle_news_search(arguments: Dict[str, Any]) -> List[types.TextConte
             types.TextContent(type="text", text="Error: Query parameter is required")
         ]
 
-    try:
-        logger.info(
-            f"Performing news search: query='{query}', max_results={max_results}"
-        )
+    # Try Google News first if API key is available
+    api_key = os.getenv("SERPAPI_API_KEY")
+    if api_key and GOOGLE_SEARCH_AVAILABLE:
+        try:
+            logger.info(f"Performing Google News search: query='{query}', max_results={max_results}")
+            
+            search = GoogleSearch(
+                {
+                    "q": query,
+                    "tbm": "nws",
+                    "num": max_results,
+                    "api_key": api_key,
+                }
+            )
+            results = search.get_dict().get("news_results", [])
 
-        search = GoogleSearch(
-            {
-                "q": query,
-                "tbm": "nws",
-                "num": max_results,
-                "api_key": os.getenv("SERPAPI_API_KEY"),
-            }
-        )
-        results = search.get_dict().get("news_results", [])
+            if results:
+                formatted_results = [f"📰 **Google News Results for: {query}**\n"]
+                formatted_results.append(f"Found {len(results)} articles:\n")
 
-        if not results:
+                for i, result in enumerate(results, 1):
+                    title = result.get("title", "No title")
+                    url = result.get("link", "")
+                    snippet = result.get("snippet", "No description")
+                    source = result.get("source", "Unknown source")
+
+                    formatted_results.append(f"\n**{i}. {title}**")
+                    formatted_results.append(f"🔗 {url}")
+                    formatted_results.append(f"📰 {source}")
+                    formatted_results.append(f"📝 {snippet}\n")
+
+                return [types.TextContent(type="text", text="\n".join(formatted_results))]
+        except Exception as e:
+            logger.warning(f"Google News search failed, falling back to DuckDuckGo: {e}")
+    
+    # Fallback to DuckDuckGo News
+    if DDGS_AVAILABLE:
+        try:
+            logger.info(f"Performing DuckDuckGo News search: query='{query}', max_results={max_results}")
+            
+            with DDGS() as ddgs:
+                results = list(ddgs.news(query, max_results=max_results))
+            
+            if not results:
+                return [
+                    types.TextContent(
+                        type="text", text=f"No news articles found for query: {query}"
+                    )
+                ]
+
+            formatted_results = [f"📰 **DuckDuckGo News Results for: {query}**\n"]
+            formatted_results.append(f"Found {len(results)} articles:\n")
+
+            for i, result in enumerate(results, 1):
+                title = result.get("title", "No title")
+                url = result.get("url", "")
+                snippet = result.get("body", "No description")
+                source = result.get("source", "Unknown source")
+                date = result.get("date", "")
+
+                formatted_results.append(f"\n**{i}. {title}**")
+                formatted_results.append(f"🔗 {url}")
+                formatted_results.append(f"📰 {source}")
+                if date:
+                    formatted_results.append(f"� {date}")
+                formatted_results.append(f"�📝 {snippet}\n")
+
+            return [types.TextContent(type="text", text="\n".join(formatted_results))]
+            
+        except Exception as e:
+            logger.error(f"DuckDuckGo news search failed: {e}")
             return [
                 types.TextContent(
-                    type="text", text=f"No news articles found for query: {query}"
+                    type="text", text=f"Error performing news search: {str(e)}"
                 )
             ]
-
-        formatted_results = [f"📰 **News Search Results for: {query}**\n"]
-        formatted_results.append(f"Found {len(results)} articles:\n")
-
-        for i, result in enumerate(results, 1):
-            title = result.get("title", "No title")
-            url = result.get("link", "")
-            snippet = result.get("snippet", "No description")
-            source = result.get("source", "Unknown source")
-
-            formatted_results.append(f"\n**{i}. {title}**")
-            formatted_results.append(f"🔗 {url}")
-            formatted_results.append(f"📰 {source}")
-            formatted_results.append(f"📝 {snippet}\n")
-
-        return [types.TextContent(type="text", text="\n".join(formatted_results))]
-
-    except Exception as e:
-        logger.error(f"News search failed: {e}")
+    else:
         return [
             types.TextContent(
-                type="text", text=f"Error performing news search: {str(e)}"
+                type="text", 
+                text="News search is unavailable. Please install 'google-search-results' (SerpAPI) or 'ddgs' package."
             )
         ]

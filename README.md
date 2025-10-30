@@ -90,7 +90,7 @@ Add to `%APPDATA%\Code\User\mcp.json` (Windows) or `~/.config/Code/User/mcp.json
 
 ### **Other MCP Clients**
 
-For Claude Desktop, Jan app, Continue.dev, and other clients, see the [Complete Guide](docs/COMPREHENSIVE_GUIDE.md).
+For Claude Desktop, Jan app, Continue.dev, and other clients, see the [Complete Guide](./COMPREHENSIVE_GUIDE.md).
 
 ### **Environment Variables (Optional)**
 
