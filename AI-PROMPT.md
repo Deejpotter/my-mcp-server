@@ -23,13 +23,9 @@ This document provides comprehensive guidance for AI assistants working on **my-
 6. [Expected AI Assistance Style](#expected-ai-assistance-style) - Before starting work, when helping with code, discussing architecture, and after making changes
 7. [Current Project Priorities](#current-project-priorities) - Immediate focus, quality standards, and avoiding over-engineering
 
-**Key Principle**: This is a **consolidated architecture** with all tools in `src/tools.py`. Preserve existing code, add detailed comments from the author's perspective, and always reference official documentation.
+**Key Principle**: This is a **TypeScript modular architecture** with tools organized by category. Preserve existing code, add detailed comments from the author's perspective, and always reference official documentation.
 
 ---
-
-```text
-Project Structure (Consolidated)
-```
 
 ## **Project Context**
 
@@ -39,25 +35,32 @@ You are working on **my-mcp-server**, a Model Context Protocol (MCP) server that
 
 ```text
 my-mcp-server/
-├── main.py                    # Core MCP server entry point
-├── TODO.md                    # Track planned features and improvements
-├── scripts/                   # Setup utilities
 ├── src/
-│   ├── tools.py              # ALL MCP tools (consolidated)
-│   ├── resources.py          # MCP resources
-│   ├── integrations.py       # External API integrations
+│   ├── server.ts             # MCP server entry point (TypeScript)
+│   ├── tools/                # MCP tools (modular TypeScript)
+│   │   ├── fileTools.ts      # File operations (read, write, list)
+│   │   ├── systemTools.ts    # System stats and monitoring
+│   │   ├── commandTools.ts   # Command execution with security
+│   │   └── gitTools.ts       # Git command operations
+│   ├── resources/            # MCP resources
+│   │   ├── systemResources.ts  # System and workspace info
+│   │   └── gitResources.ts     # Git repository status
 │   └── utils/                # Shared utilities
-│       ├── security.py       # Security & path validation
-│       ├── cache_rate_limit.py  # Caching & rate limiting
-│       └── performance.py    # Performance tracking
-└── vscode-extension/          # Auto-registration for VS Code
+│       ├── security.ts       # Security & path validation
+│       ├── cache.ts          # Caching & rate limiting
+│       └── performance.ts    # Performance tracking
+├── dist/                     # Compiled JavaScript (generated)
+├── package.json              # Node.js dependencies
+├── tsconfig.json             # TypeScript configuration
+└── TODO.md                   # Track planned features and improvements
 ```
 
 ### **Architecture Philosophy**
 
-- **Consolidated simplicity**: All tools in `src/tools.py` for easy maintenance
-- **Security-first**: Input validation, timeouts, file size limits
-- **Clear patterns**: Consistent tool implementation patterns
+- **Type-safe modular architecture**: TypeScript with Zod validation for all tools
+- **Security-first**: Input validation, command allowlisting, path traversal prevention
+- **Official MCP SDK**: Using @modelcontextprotocol/sdk for TypeScript
+- **Clear patterns**: Consistent tool registration with McpServer.registerTool()
 - **Local development focus**: stdio transport for VS Code integration
 
 ## **Development Workflow & File Management**
@@ -67,17 +70,18 @@ my-mcp-server/
 Before making any changes, always:
 
 1. **Check core project files**: README.md, AI-PROMPT.md, TODO.md
-2. **Review main.py and src/tools.py**: Understand current implementation
-3. **Analyze existing code patterns**: Understand current implementation before suggesting changes
-4. **Use my-mcp-server tools**: Search for official documentation using built-in tools
+2. **Review src/server.ts and src/tools/**: Understand current TypeScript implementation
+3. **Analyze existing code patterns**: Follow TypeScript/Zod patterns in existing tools
+4. **Use Context7**: Always use Context7 for library documentation (MCP SDK, Zod, Node.js APIs)
 5. **Search online**: For information not available in official documentation
 
 ### **File Management Philosophy**
 
-- **Improve existing files over creating new ones**: Update and enhance current files rather than replacing
-- **All tools go in src/tools.py**: Don't split tools into separate files
+- **Modular TypeScript structure**: Tools organized by category in src/tools/ directory
+- **One tool type per file**: fileTools.ts, systemTools.ts, commandTools.ts, gitTools.ts
 - **Preserve current code and comments**: Keep my existing code wherever possible
 - **Add detailed comments from my perspective**: Explain code purpose from the original author's viewpoint
+- **Follow existing patterns**: Use McpServer.registerTool() with Zod schemas like existing tools
 - **Update core files**: Always update README.md, AI-PROMPT.md, TODO.md when finding new information
 
 ### **Planning and Execution**
@@ -99,25 +103,25 @@ The TODO.md file serves to track current state of changes and progress:
 
 ### **File Header Standards**
 
-Every file must start with this exact header structure:
+Every TypeScript file must start with this exact header structure:
 
-```python
-"""
-Updated: current date structured as dd/mm/yy
-By: Daniel Potter
-
-Description of the purpose of the file and anything that's really important to know to work with the file.
-
-References:
-Important reference: https://importantreference.com/important-part
-Another reference: https://docs.example.com/relevant-section
-"""
+```typescript
+/**
+ * Updated: current date structured as dd/mm/yy
+ * By: Current Author Name
+ *
+ * Description of the purpose of the file and anything that's really important to know to work with the file.
+ *
+ * References:
+ * Important reference: https://importantreference.com/important-part
+ * Another reference: https://docs.example.com/relevant-section
+ */
 ```
 
 **Key Requirements:**
 
 - **Date format**: Always dd/mm/yy format for consistency
-- **Author**: Daniel Potter (or contributing author)
+- **Author**: Current Author Name (could use git username or real name)
 - **Description**: Concise purpose and critical working knowledge
 - **References**: Link technical decisions to official documentation
 
@@ -145,25 +149,30 @@ When researching or making technical decisions:
 
 ### **Comment Examples**
 
-```python
-# Use asyncio.create_task() for concurrent API calls - improves response time
-# Reference: https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
-task = asyncio.create_task(fetch_data())
+```typescript
+// Use async/await for all MCP tool handlers - required by SDK
+// Reference: https://github.com/modelcontextprotocol/typescript-sdk
+server.registerTool("tool_name", schema, async (args) => {
+  // Handler implementation
+});
 
-# HTTPx chosen over requests for async support in MCP servers
-# Reference: https://www.python-httpx.org/async/
-async with httpx.AsyncClient(timeout=30) as client:
-    response = await client.get(url)
+// Zod schemas provide runtime validation and type safety
+// Reference: https://zod.dev/
+const schema = z.object({
+  file_path: z.string().describe("Path to the file"),
+  max_size: z.number().optional().default(1024 * 1024)
+});
 ```
 
 ## **Technical Implementation**
 
 ### **Tool Development Pattern**
 
-1. **Schema Definition**: Clear descriptions, required vs optional parameters
-2. **Error Handling**: Always return `TextContent`, never raise exceptions
-3. **Input Validation**: Check parameters, provide helpful error messages
-4. **Security**: Validate file paths, use timeouts, respect size limits
+1. **Schema Definition**: Use Zod schemas with clear descriptions, required vs optional parameters
+2. **Error Handling**: Return content with isError flag, never throw unhandled exceptions
+3. **Input Validation**: Zod handles schema validation automatically
+4. **Security**: Use validatePath() from utils/security.ts, enforce timeouts and size limits
+5. **Registration**: Use server.registerTool() with tool name, schema, and async handler
 
 ### **Tool Implementation Standards**
 
@@ -174,14 +183,23 @@ async with httpx.AsyncClient(timeout=30) as client:
 
 ### **Error Handling Philosophy**
 
-```python
-# Always return TextContent, never raise exceptions - MCP requirement
-# Reference: https://modelcontextprotocol.io/docs/concepts/tools
-try:
-    result = do_something()
-    return [types.TextContent(type="text", text=f"Success: {result}")]
-except Exception as e:
-    return [types.TextContent(type="text", text=f"Error: {str(e)}")]
+```typescript
+// Always return content with isError flag for failures - MCP requirement
+// Reference: https://modelcontextprotocol.io/docs/concepts/tools
+server.registerTool("tool_name", schema, async (args) => {
+  try {
+    const result = await doSomething();
+    return {
+      content: [{ type: "text", text: `Success: ${result}` }],
+    };
+  } catch (error: unknown) {
+    const err = error as Error;
+    return {
+      content: [{ type: "text", text: `Error: ${err.message}` }],
+      isError: true,
+    };
+  }
+});
 ```
 
 ### **API Integration Pattern**
@@ -199,11 +217,13 @@ except Exception as e:
 - **Concise and actionable**: Get to the point, provide next steps
 - **Problem-solving focused**: Address the "why" behind decisions
 - **Organized presentation**: Use headers, lists, code blocks effectively
+- **No emoji or visual decorations**: Keep documentation clean and professional with plain text only
 
 ### **Documentation Standards**
 
 - **Plain text navigation**: Use clear headings without visual decorations
 - **Clear hierarchies**: ## for main sections, ### for subsections
+- **No emoji**: Documentation should be clean and professional with no emoji or decorative symbols
 - **Code examples**: Always include working examples, not placeholders
 - **Practical focus**: Real-world usage over theoretical concepts
 - **Reference linking**: Connect technical decisions to official documentation
@@ -225,13 +245,14 @@ except Exception as e:
 
 1. **Preserve existing code**: Keep current code and comments where possible
 2. **Add detailed comments**: From original author's perspective explaining purpose
-3. **Follow single-file architecture**: Don't suggest file splits for main.py
+3. **Follow modular TypeScript architecture**: Tools organized by category (file, system, command, git)
 4. **Include complete examples**: With error handling and explanatory comments
-5. **Add file headers**: Use required format for any new files
+5. **Add file headers**: Use required TypeScript comment format for any new files
 6. **Update References section**: When introducing new technical concepts
-7. **Use my-mcp-server tools**: Search for official documentation first
-8. **Search online**: For information not in official docs
-9. **Always use context7**: Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
+7. **Use Zod for validation**: All tool schemas must use Zod (z.object, z.string, etc.)
+8. **Import with .js extensions**: TypeScript requires .js for ES module imports (NodeNext resolution)
+9. **Always use Context7**: Use Context7 for MCP SDK, Zod, Node.js API documentation automatically
+10. **Never use console.log()**: It breaks stdio transport - use console.error() for debugging only
 
 ### **When Discussing Architecture**
 

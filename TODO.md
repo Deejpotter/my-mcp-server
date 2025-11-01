@@ -1,63 +1,107 @@
 # TODO & Planned Changes
 
-## **Near Term (Next Few Weeks)**
+## Current Priorities
 
-### **New Tools**
+### Testing & Validation (in progress)
 
-- [x] Add `system_stats` tool for CPU/memory monitoring (completed 26/10/25)
-- [x] Implement multi-source `search_docs_online` for documentation (completed 26/10/25)
-- [x] Implement `batch_file_check` for multi-file validation (completed 26/10/25)
-- [x] Create `project_analyzer` tool that combines multiple existing tools (completed 01/11/25)
+- [ ] Test all core tools in VS Code
+  - File operations (read_file, write_file, list_files)
+  - System monitoring (system_stats)
+  - Command execution (run_command, security_status)
+  - Git operations (git_command)
+  
+- [ ] Verify all resources working
+  - system://info
+  - workspace://info
+  - git://status
+  
+- [ ] Security validation
+  - Path traversal prevention
+  - Command allowlist enforcement
+  - File size limits
+  - Timeout protection
 
-### **Improvements**
+### Documentation
 
-- [x] Add caching for expensive API calls (Context7, GitHub) (completed 26/10/25)
-- [x] Implement rate limiting for external API calls (completed 26/10/25)
-- [x] Add tool execution time logging (completed 26/10/25)
+- [ ] Add usage examples to README
+- [ ] Create tool usage guide with real-world examples
+- [ ] Document security best practices
+- [ ] Add troubleshooting guide for common issues
 
-### **Documentation**
+## Near Term (Next Few Weeks)
 
-- [x] AI-PROMPT.md development style guide (completed)
-- [x] Context7 setup and testing documentation (completed)
-- [x] Context7 real API integration with fallback system (completed 26/10/25)
-- [x] BookStack integration tools complete (completed 26/10/25)
-- [ ] Add video tutorial links to README
-- [ ] Create quick-reference card for common commands
+### Testing & Quality
 
-## **Future Ideas (Someday/Maybe)**
+- [ ] Add Vitest unit tests for all tools
+  - File operations test suite
+  - Security validation tests
+  - Command execution tests
+  - Git tool tests
+  
+- [ ] Integration tests for MCP protocol
+- [ ] Performance benchmarks
+- [ ] Code coverage reporting
 
-### **New Integrations**
+### Enhancement Ideas
 
-- [ ] Notion API integration for note management
-- [ ] Slack integration for team notifications
-- [ ] Discord webhook support
-- [ ] Linear integration for issue tracking
+- [ ] Add performance metrics tool
+  - Track tool execution times
+  - Show success/failure rates
+  - Display min/max/avg execution times
+  
+- [ ] Add batch file operations
+  - Validate multiple files at once
+  - Report syntax errors and security issues
+  
+- [ ] Add project analyzer tool
+  - Combine system, workspace, and git info
+  - Provide project health summary
 
-### **Advanced Features**
+## Future Ideas (Someday/Maybe)
 
-- [ ] Web dashboard for server monitoring
+### New Tool Categories
+
+- [ ] Web search tools
+  - DuckDuckGo integration
+  - Google Search (with SerpAPI)
+  - News search
+  
+- [ ] Documentation search
+  - Multi-source lookup (MDN, Stack Overflow, GitHub)
+  - Intelligent caching
+  
+- [ ] API Integrations
+  - GitHub code search and repos
+  - ClickUp task management
+  - Context7 documentation
+  - BookStack knowledge base
+
+### Advanced Features
+
 - [ ] Plugin system for third-party tools
-- [ ] Configuration GUI for non-technical users
-- [ ] Backup/restore functionality for settings
+- [ ] Configuration UI for non-technical users
+- [ ] Workspace templates
+- [ ] Custom security policies per workspace
 
-### **Developer Experience**
+### Developer Experience
 
-- [ ] Hot reloading for development
+- [ ] Hot module reloading for faster development
 - [ ] Built-in testing framework for tools
 - [ ] Performance profiling utilities
-- [ ] Auto-completion for VS Code extension
+- [ ] Auto-completion definitions for VS Code
 
-## **Known Issues**
+## Known Issues
 
-- [ ] Large file operations can timeout (>1MB)
-- [ ] Windows path handling inconsistent in some tools
-- [ ] Error messages could be more user-friendly
+- [ ] Large file operations may timeout (>1MB default limit)
+- [ ] Some Windows path edge cases may need handling
+- [ ] Error messages could be more user-friendly in some cases
 
-## **Ideas from Users**
+## Ideas from Users
 
-> Add user suggestions here
+> Add user suggestions and feature requests here
 
 ---
 
-**Last Updated:** October 26, 2025  
-**Priority:** High | Medium | Low
+**Last Updated:** November 2, 2025  
+**Status:** Core tools complete, testing in progress  
+**Next Priority:** Complete validation and testing phase

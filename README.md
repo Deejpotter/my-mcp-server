@@ -1,163 +1,360 @@
 # My MCP Server
 
-A comprehensive Model Context Protocol (MCP) server with **modular architecture** providing development tools, API integrations, and documentation search capabilities for AI assistants.
+A comprehensive Model Context Protocol (MCP) server built with **TypeScript** providing development tools and utilities for AI assistants in VS Code.
 
-## **Documentation**
+## **Overview**
 
-**This is a simplified, consolidated MCP server with all tools in a single file for easy maintenance.**
+This MCP server provides essential development tools with enterprise-grade security, built using the official MCP TypeScript SDK. It's designed for seamless integration with GitHub Copilot, Claude Desktop, and other MCP-compatible AI assistants.
+
+**Key Features:**
+
+- **Security First** - Command allowlisting, path validation, no sensitive data exposure
+- **File Operations** - Read, write, and list files with comprehensive security checks
+- **System Tools** - Real-time CPU, memory, disk, and network monitoring
+- **Command Execution** - Safe shell command execution with allowlist validation
+- **Git Integration** - Execute git commands and access repository status
+- **Type Safe** - Full TypeScript with Zod schema validation
 
 **Quick Links:**
 
 - **[AI Prompt Guide](AI-PROMPT.md)** - Guide for AI assistants working on this project
-- **[Advanced Configuration](docs/ADVANCED.md)** - Remote deployment, API integrations, troubleshooting
-
-> **Note:** This is the local development version. For remote deployment, see [my-mcp-server-remote](https://github.com/Deejpotter/my-mcp-server-remote).
+- **[TODO](TODO.md)** - Current development priorities and roadmap
 
 ## **Quick Start**
 
 ### **Prerequisites**
 
-- Python 3.12+
+- Node.js 18 or higher
+- npm (comes with Node.js)
+- Git (for git-related tools)
 
-### **Installation (Recommended: Use a Virtual Environment)**
-
-### Step 1: Clone the repository
+### **Installation**
 
 ```bash
+# Clone the repository
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
+
+# Install dependencies
+npm install
+
+# Build the server
+npm run build
+
+# Start the server
+npm start
 ```
 
-### Step 2: Create and activate a virtual environment
+### **Development Mode (VS Code)**
+
+For development with auto-reload on file changes:
 
 ```bash
-# On Linux/macOS
-python3 -m venv .venv
-source .venv/bin/activate
-
-# On Windows
-python -m venv .venv
-.venv\Scripts\activate
+npm run dev
 ```
 
-### Step 3: Install dependencies
+### **Available Scripts**
 
-```bash
-pip install -r requirements-test.txt
-# For web search tools, also install:
-pip install serpapi ddgs
-```
+- `npm run build` - Compile TypeScript to JavaScript
+- `npm run dev` - Run in development mode with auto-reload (uses tsx)
+- `npm start` - Run the compiled server
+- `npm run typecheck` - Check TypeScript types without building
+- `npm run lint` - Run ESLint code quality checks
 
-## **Features**
+## **Available Tools**
 
-- **File & System Operations** - File management, directory browsing, command execution with security hardening, system resource monitoring
-- **Web Search** - Real-time web and news search via DuckDuckGo for blog posts, articles, recent discussions, and breaking news
-- **Documentation Search** - Multi-source documentation lookup (MDN, Stack Overflow, GitHub, DevDocs) with intelligent caching
-- **API Integrations** - ClickUp tasks, BookStack knowledge management (create/read/search), GitHub code search
-- **Development Tools** - Git operations, project analysis, real-time web content, system statistics monitoring
-- **Performance Optimizations** - API response caching (5-min TTL), rate limiting protection, reduced API quota consumption
-- **Enterprise Security** - Comprehensive protection against injection attacks, path traversal, and credential exposure
+All tools include comprehensive security validation and error handling.
 
-### **Security Features**
+### **File Operations**
 
-This MCP server includes **enterprise-grade security hardening**:
+- **read_file** - Read file contents with size limits and path validation
+  - Security: Blocks path traversal, validates paths within working directory
+  - Default max size: 1MB (configurable)
+  
+- **write_file** - Write content to files with automatic directory creation
+  - Security: Path validation, prevents writing to forbidden directories
+  - Creates parent directories automatically
+  
+- **list_files** - List files with glob pattern support
+  - Supports recursive directory traversal
+  - Filters out forbidden paths (.git, node_modules, .env)
 
-- **Command Injection Protection** - Allowlist-based validation prevents arbitrary code execution
-- **Path Traversal Prevention** - Canonical path resolution blocks unauthorized file access  
-- **Credential Protection** - Environment variable filtering prevents accidental exposure
-- **SSRF Protection** - URL validation prevents server-side request forgery attacks
-- **Resource Limits** - File size and timeout controls prevent resource exhaustion
+### **System Tools**
 
-See [Security Guidelines](docs/SECURITY_GUIDELINES.md) for implementation details.
+- **system_stats** - Real-time system resource monitoring
+  - CPU usage and count
+  - Memory usage (total, free, used)
+  - Disk usage information
+  - Network interface details
 
-## **Quick Configuration**
+### **Command Execution**
 
-### **VS Code (GitHub Copilot)**
+- **run_command** - Execute shell commands with security validation
+  - Allowlist-only execution (git, ls, pwd, echo, cat, grep, find, npm, node, etc.)
+  - Timeout protection (default 30 seconds)
+  - Working directory validation
+  
+- **security_status** - View security configuration
+  - Shows allowed commands
+  - Lists forbidden paths and directories
+  - Displays current security settings
 
-Add to `%APPDATA%\Code\User\mcp.json` (Windows) or `~/.config/Code/User/mcp.json` (Linux/macOS):
+### **Git Integration**
+
+- **git_command** - Execute git commands safely
+  - Validated git operations only
+  - Repository directory validation
+  - Timeout protection (default 60 seconds)
+
+## **Available Resources**
+
+Resources provide read-only context information to AI assistants.
+
+- **system://info** - System information (platform, architecture, Node.js version, CPU count, memory, uptime)
+- **workspace://info** - Workspace details (project name, file counts, directory structure)
+- **git://status** - Current git repository status
+
+## **Security Features**
+
+This MCP server implements enterprise-grade security measures:
+
+### **Command Injection Protection**
+
+- Allowlist-based command validation
+- Only pre-approved commands can execute
+- Dangerous command patterns blocked (rm -rf, format, etc.)
+
+### **Path Traversal Prevention**
+
+- All file paths validated against working directory
+- Canonical path resolution prevents directory escape
+- Forbidden directories automatically blocked (.git, node_modules, .env)
+
+### **Resource Limits**
+
+- File size limits prevent memory exhaustion (default 1MB)
+- Command timeout protection (30-60 seconds)
+- Buffer size limits on command output
+
+### **Information Disclosure Protection**
+
+- No hostname exposure in resources
+- Full filesystem paths replaced with relative paths
+- Environment variables filtered for sensitive data
+
+## **VS Code Integration**
+
+### **Setup for GitHub Copilot**
+
+Add to your VS Code MCP settings file:
+
+**Windows:** `%APPDATA%\Code\User\mcp.json`
+
+**macOS/Linux:** `~/.config/Code/User/mcp.json`
+
+### **Production Mode (Recommended)**
+
+Best for normal daily use. Runs the compiled JavaScript for better performance and stability.
+
+**Requirements:** Run `npm run build` after any code changes.
 
 ```json
 {
   "servers": {
     "my-mcp-server": {
-      "type": "stdio",
-      "command": "python",
-      "args": ["main.py"],
-      "cwd": "/absolute/path/to/my-mcp-server"
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "~/Repos/my-mcp-server",
+        "start"
+      ],
+      "env": {}
     }
-  },
-  "inputs": []
+  }
 }
 ```
 
-### **Other MCP Clients**
+**Benefits:**
 
-For Claude Desktop, Jan app, Continue.dev, and other clients, see the [Complete Guide](./COMPREHENSIVE_GUIDE.md).
+- Faster startup and lower memory usage
+- More stable for long-running background process
+- Standard production Node.js setup
+
+### **Development Mode**
+
+Best for active development. Runs TypeScript directly with hot reload.
+
+**Requirements:** Only needs `npm install` (no build step).
+
+```json
+{
+  "servers": {
+    "my-mcp-server": {
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "~/Repos/my-mcp-server",
+        "run",
+        "dev"
+      ],
+      "env": {}
+    }
+  }
+}
+```
+
+**Benefits:**
+
+- No build step required
+- Auto-restarts on file changes
+- Faster iteration during development
+
+**Note:** Adjust paths to match your installation directory. The `~/Repos/my-mcp-server` path works on both Windows and Linux.
+
+## **Setup for Jan AI**
+
+Jan uses a different configuration format. Add to Jan's MCP settings:
+
+**Production Mode (Recommended):**
+
+```json
+{
+  "type": "stdio",
+  "command": "node",
+  "args": [
+    "C:/Users/YourUserName/Repos/my-mcp-server/dist/server.js"
+  ],
+  "active": true
+}
+```
+
+**Requirements:** Run `npm run build` after any code changes.
+
+**Note:** Use absolute paths with forward slashes for Windows compatibility.
+
+## **Configuration**
 
 ### **Environment Variables (Optional)**
 
-Create `.env` file for API integrations:
+Create a `.env` file for optional API integrations:
 
 ```env
-GITHUB_TOKEN=ghp_your_token_here
-CLICKUP_API_TOKEN=pk_your_token_here
-BOOKSTACK_URL=https://your-bookstack.com
-BOOKSTACK_TOKEN_ID=your_id
-BOOKSTACK_TOKEN_SECRET=your_secret
+# Future integrations (not yet implemented)
+GITHUB_TOKEN=your_github_token_here
+CLICKUP_API_TOKEN=your_clickup_token_here
 CONTEXT7_API_KEY=your_context7_key_here
 ```
 
-```bash
-# Navigate to project directory
-cd /path/to/my-mcp-server
-
-# Test server startup
-python main.py --help
-
-# Test connection
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | python main.py
-
-# Validate security hardening (includes MCP logging compliance)
-source .venv/bin/activate  # (Linux/macOS)
-.venv\Scripts\activate     # (Windows)
-python scripts/security_check.py
-```
+The server works fully without these - they're only needed for future API integration features.
 
 ## **Project Structure**
 
 ```text
 my-mcp-server/
-├── main.py                      # MCP server entry point
-├── pyproject.toml               # Project dependencies & config
-├── .env.example                 # Environment template
-├── scripts/
-│   └── security_check.py        # Security validation
 ├── src/
-│   ├── tools.py                 # ALL MCP tools (consolidated)
-│   ├── resources.py             # MCP resources
-│   ├── integrations.py          # External API integrations
-│   └── utils/                   # Shared utilities
-│       ├── security.py          # Security & path validation
-│       ├── cache_rate_limit.py  # Caching & rate limiting
-│       └── performance.py       # Performance tracking
-├── tests/
-│   ├── test_integration.py      # Integration tests
-│   ├── test_security_hardening.py # Security tests
-│   └── test_new_features.py     # Feature tests
-└── vscode-extension/            # VS Code extension files
-    ├── package.json             # Extension manifest
-    └── src/extension.ts         # Extension implementation
+│   ├── server.ts              # Main MCP server entry point
+│   ├── tools/                 # MCP tool implementations
+│   │   ├── fileTools.ts       # File read/write/list operations
+│   │   ├── systemTools.ts     # System monitoring and stats
+│   │   ├── commandTools.ts    # Command execution and security
+│   │   └── gitTools.ts        # Git command operations
+│   ├── resources/             # MCP resources (read-only data)
+│   │   ├── systemResources.ts # System and workspace information
+│   │   └── gitResources.ts    # Git repository status
+│   └── utils/                 # Shared utility functions
+│       ├── security.ts        # Security validation and checks
+│       ├── cache.ts           # Caching and rate limiting
+│       └── performance.ts     # Performance tracking
+├── dist/                      # Compiled JavaScript (generated by build)
+├── package.json               # Node.js dependencies and scripts
+├── tsconfig.json              # TypeScript compiler configuration
+├── .eslintrc.json             # ESLint code quality rules
+└── README.md                  # This file
 ```
+
+## **Development**
+
+### **Adding New Tools**
+
+Tools are organized by category. To add a new tool:
+
+1. Choose the appropriate file in `src/tools/` or create a new category
+2. Use the `server.registerTool()` pattern with Zod schemas
+3. Implement security validation using utilities from `src/utils/security.ts`
+4. Register in `src/server.ts` if creating a new file
+
+Example tool structure:
+
+```typescript
+server.registerTool(
+  "tool_name",
+  {
+    title: "Tool Title",
+    description: "What the tool does",
+    inputSchema: {
+      param: z.string().describe("Parameter description"),
+    },
+    outputSchema: {
+      result: z.string(),
+    },
+  },
+  async ({ param }) => {
+    try {
+      // Tool implementation
+      return {
+        content: [{ type: "text", text: "Success message" }],
+      };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return {
+        content: [{ type: "text", text: `Error: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+```
+
+### **Code Standards**
+
+- **TypeScript strict mode** - All code must pass type checking
+- **Zod validation** - All tool inputs validated with Zod schemas
+- **Security first** - Use `validatePath()` and `validateCommand()` from utils
+- **Error handling** - Always return content with `isError` flag, never throw
+- **Comments** - Add JSDoc comments explaining purpose and security considerations
+- **No console.log** - Use `console.error()` for debugging (stdout is for MCP protocol)
+
+## **Troubleshooting**
+
+### **Server Won't Start**
+
+1. Check Node.js version: `node --version` (must be 18+)
+2. Rebuild: `npm run build`
+3. Check for errors: `npm run typecheck`
+
+### **Tools Not Appearing in VS Code**
+
+1. Verify MCP settings file location and syntax
+2. Restart VS Code completely
+3. Check server is built: `npm run build`
+4. Check dist/server.js exists
+
+### **Security Validation Errors**
+
+1. Run `security_status` tool to see allowed commands
+2. Ensure file paths are within working directory
+3. Check command is in allowlist (git, ls, pwd, etc.)
+
+## **Contributing**
+
+This is a personal project, but suggestions and improvements are welcome. When contributing:
+
+1. Follow existing code patterns and structure
+2. Add comprehensive error handling
+3. Include security validation for all user inputs
+4. Update documentation for any new features
+5. Test thoroughly before submitting
 
 ## **License**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## **Related Projects**
-
-- **[MCP Protocol Specification](https://modelcontextprotocol.io/)** - Official MCP documentation
-- **[Remote Server Version](https://github.com/Deejpotter/my-mcp-server-remote)** - For cloud deployment
-
----
-
-**Need help?** Check the [documentation guides](docs/) for detailed setup instructions, API integrations, and troubleshooting.
+MIT License - see [LICENSE](LICENSE) file for details.
