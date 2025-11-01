@@ -29,7 +29,7 @@ export function registerSystemTools(server: McpServer) {
 				loadAverage: z.array(z.number()),
 			},
 		},
-		async () => {
+		() => {
 			const totalMem = os.totalmem();
 			const freeMem = os.freemem();
 			const usedMem = totalMem - freeMem;

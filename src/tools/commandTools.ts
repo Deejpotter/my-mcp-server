@@ -89,9 +89,9 @@ export function registerCommandTools(server: McpServer) {
 				};
 			} catch (error: any) {
 				const output = {
-					stdout: error.stdout?.toString().trim() || "",
-					stderr: error.stderr?.toString().trim() || error.message,
-					exitCode: error.code || 1,
+					stdout: "",
+					stderr: "Command failed",
+					exitCode: 1,
 					success: false,
 				};
 
@@ -126,7 +126,7 @@ export function registerCommandTools(server: McpServer) {
 				forbidden_dirs: z.array(z.string()),
 			},
 		},
-		async () => {
+		() => {
 			const config = getSecurityConfig();
 
 			return {

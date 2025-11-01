@@ -1,4 +1,3 @@
-
 /**
  * MCP Server - TypeScript Implementation
  *
