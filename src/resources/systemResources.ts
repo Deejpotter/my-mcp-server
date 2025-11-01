@@ -23,7 +23,7 @@ export function registerSystemResources(server: McpServer) {
 			description: "Basic development environment details (no sensitive data)",
 			mimeType: "text/plain",
 		},
-		async (uri) => {
+		(uri) => {
 			const info = `System Information
 ==================
 
