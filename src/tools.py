@@ -1,22 +1,33 @@
 """
-Updated: 29/10/25
+Updated: 01/11/25
 By: Daniel Potter
 
-All MCP server tools consolidated into a single file for easier maintenance and navigation.
-Includes file operations, system commands, search tools, and web search functionality.
+Consolidated tool registry and handlers for the MCP server.
 
-Security Features:
-- Path traversal attack prevention through canonical path resolution
-- Command injection prevention through allowlist validation
-- SSRF protection for URL fetching
-- Environment variable filtering to prevent credential exposure
-- File size limits to prevent memory exhaustion
+Purpose (beginner-friendly):
+- This module defines all the "tools" your MCP server exposes to AI clients.
+    A tool is a callable operation (for example, `read_file` or `run_command`) that
+    the AI can invoke. Each tool is described by a `Tool` schema (name, description,
+    input schema) so the agent knows how to call it.
+- Design choice: tools are centralized (all in one file) to make discovery,
+    schema validation, and instrumentation straightforward. If you prefer
+    per-function decorators, see the MCP SDK `FastMCP` examples, but this
+    registry/dispatcher pattern is intentionally explicit and easy to modify.
+
+How to add a new tool (quick):
+1. Add a Tool() entry in one of the `_get_*_tools()` functions so the tool
+     appears in the registry returned by `get_all_tools()`.
+2. Implement its behavior in the corresponding handler (e.g., _handle_file_operations,
+     _handle_system_commands, or add a new handler and route it from `handle_tool_call`).
+
+Security & style notes:
+- Keep all validation in helper functions (see `src/utils/security.py`).
+- Tools should return a list of `types.TextContent` objects and avoid raising
+    exceptions directly to the caller — catch and return helpful error text instead.
 
 References:
-MCP Tools Pattern: https://modelcontextprotocol.io/docs/concepts/tools
-OWASP Path Traversal: https://owasp.org/www-community/attacks/Path_Traversal
-CWE-78 Command Injection: https://cwe.mitre.org/data/definitions/78.html
-DuckDuckGo Search: https://github.com/deedy5/ddgs
+- MCP Tools Pattern: https://modelcontextprotocol.io/docs/concepts/tools
+- OWASP Path Traversal: https://owasp.org/www-community/attacks/Path_Traversal
 """
 
 import glob
@@ -32,13 +43,14 @@ import mcp.types as types
 
 logger = logging.getLogger(__name__)
 
+# Test if the google search API key is available.
 try:
     from serpapi import GoogleSearch
 
     GOOGLE_SEARCH_AVAILABLE = True
 except ImportError:
     GOOGLE_SEARCH_AVAILABLE = False
-
+# Otherwise, use DuckDuckGo.
 try:
     from ddgs import DDGS
 
@@ -57,10 +69,92 @@ from .utils.security import (
 
 logger = logging.getLogger(__name__)
 
+# Decorator-based registry PoC (coexistence with the central dispatcher)
+from .registry import registry
+
+
+# -------------------------------
+# PoC decorated tool implementations
+# These small wrappers demonstrate the standard MCP pattern (see FastMCP)
+# and register simple, well-typed handlers via `@registry.tool()`.
+# They deliberately reuse the hardened helpers in `src.utils.security` so
+# behavior and security checks remain consistent with the centralized
+# implementations. This is a migration PoC — the main dispatcher is
+# unchanged and will continue to call `_handle_file_operations`.
+# -------------------------------
+
+
+@registry.tool("read_file")
+async def read_file_tool(file_path: str, max_size: int = 1024 * 1024) -> str:
+    """Decorator-registered PoC for reading a file safely.
+
+    Returns the raw file contents (string) or raises ValueError on security
+    validation failures. The centralized dispatcher still returns TextContent
+    blocks; this PoC shows a simple typed tool interface for later migration.
+    """
+    # Pre-validate path for security before attempting read
+    path_validation = validate_file_path(file_path, "read")
+    if not path_validation["valid"]:
+        raise ValueError(
+            f"Security validation failed for {file_path}: {'; '.join(path_validation['checks'])}"
+        )
+
+    # Use the hardened file reader
+    return safe_read_file(file_path, max_size)
+
+
+@registry.tool("write_file")
+async def write_file_tool(file_path: str, content: str) -> str:
+    """Decorator-registered PoC for writing to a file safely.
+
+    Returns a confirmation string on success or raises ValueError / PermissionError
+    on failure.
+    """
+    path_validation = validate_file_path(file_path, "write")
+    if not path_validation["valid"]:
+        raise ValueError(
+            f"Security validation failed for {file_path}: {'; '.join(path_validation['checks'])}"
+        )
+
+    safe_write_file(file_path, content)
+    return f"File written: {file_path}"
+
+
+@registry.tool("list_files")
+async def list_files_tool(directory: str = ".", pattern: str = "*", recursive: bool = False) -> list[str]:
+    """Decorator-registered PoC for listing files.
+
+    Returns a list of validated, accessible file paths (strings).
+    """
+    path_validation = validate_file_path(directory, "read")
+    if not path_validation["valid"]:
+        raise ValueError(
+            f"Security validation failed for {directory}: {'; '.join(path_validation['checks'])}"
+        )
+
+    base_path = Path(directory).resolve()
+    if not base_path.exists() or not base_path.is_dir():
+        raise ValueError(f"Directory not found or not a directory: {directory}")
+
+    if recursive:
+        search_pattern = str(base_path / "**" / pattern)
+        files = glob.glob(search_pattern, recursive=True)
+    else:
+        search_pattern = str(base_path / pattern)
+        files = glob.glob(search_pattern)
+
+    validated_files = [f for f in files if os.path.isfile(f) and validate_file_path(f, "read")["valid"]]
+    validated_files.sort()
+    return validated_files
+
+
 
 # ============================================================================
 # TOOL DEFINITIONS - All tools registered with MCP
 # ============================================================================
+# This section defines all available tools by returning a list of Tool() schemas.
+# To add a new tool, add its Tool() schema in the relevant _get_*_tools() function below.
+# The functions are organized by tool category for clarity but there is no actual requirement to do so, it just makes the code more organised.
 
 
 def get_all_tools() -> List[Tool]:
@@ -90,17 +184,37 @@ def get_all_tools() -> List[Tool]:
     # Web search tools
     tools.extend(_get_web_search_tools())
 
+    # Project Analyzer tool (new)
+    tools.append(
+        Tool(
+            name="project_analyzer",
+            description="Analyze the current project by combining file, system, and git status information. Provides a summary of project health, structure, and recent changes.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        )
+    )
     return tools
 
 
 def _get_file_tools() -> List[Tool]:
-    """File operation tool definitions with security documentation."""
+    """
+    File operation Tool schemas.
+
+    Returns a list of Tool definitions for file-related operations. These are
+    simple, well-documented schemas describing the inputs each tool expects.
+    The behavior for each tool is implemented in `_handle_file_operations`.
+    """
+
     return [
         Tool(
             name="read_file",
-            description="Read the contents of a file with comprehensive security validation. "
-            "Validates file paths against security allowlists and prevents path traversal attacks. "
-            "Enforces file size limits to prevent memory exhaustion.",
+            description=(
+                "Read the contents of a file with comprehensive security validation. "
+                "Validates file paths against security allowlists and prevents path traversal attacks."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -119,9 +233,11 @@ def _get_file_tools() -> List[Tool]:
         ),
         Tool(
             name="write_file",
-            description="Write content to a file with security path validation. "
-            "Validates destination paths against security allowlists and prevents "
-            "writing to protected system directories.",
+            description=(
+                "Write content to a file with security path validation. "
+                "Validates destination paths against security allowlists and prevents "
+                "writing to protected system directories."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -139,9 +255,11 @@ def _get_file_tools() -> List[Tool]:
         ),
         Tool(
             name="list_files",
-            description="List files in a directory with security path validation. "
-            "Validates directory paths against security allowlists and prevents "
-            "listing protected system directories.",
+            description=(
+                "List files in a directory with security path validation. "
+                "Validates directory paths against security allowlists and prevents "
+                "listing protected system directories."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -165,8 +283,10 @@ def _get_file_tools() -> List[Tool]:
         ),
         Tool(
             name="validate_path",
-            description="Validate a file path against security policies without performing operations. "
-            "Useful for checking path safety before performing file operations.",
+            description=(
+                "Validate a file path against security policies without performing operations. "
+                "Useful for checking path safety before performing file operations."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -185,9 +305,10 @@ def _get_file_tools() -> List[Tool]:
         ),
         Tool(
             name="batch_file_check",
-            description="Validate multiple files at once for syntax errors, security issues, and basic linting. "
-            "Supports Python files (.py) with syntax checking. "
-            "Returns a comprehensive report with validation status for each file.",
+            description=(
+                "Validate multiple files at once for syntax errors, security issues, and basic linting. "
+                "Supports Python files (.py) with syntax checking. Returns a comprehensive report with validation status for each file."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -417,8 +538,9 @@ def _get_web_search_tools() -> List[Tool]:
                     },
                     "region": {
                         "type": "string",
-                        "description": "Region code for localized results (e.g., 'us-en', 'uk-en', 'wt-wt' for worldwide)",
-                        "default": "wt-wt",
+                        "description": "Region code for localized results (e.g., 'us-en', 'uk-en', 'wt-wt' for worldwide, and 'au-en' for Australia)",
+                        # Default to Australia, change as needed.
+                        "default": "au-en",
                     },
                     "time_limit": {
                         "type": "string",
@@ -449,8 +571,9 @@ def _get_web_search_tools() -> List[Tool]:
                     },
                     "region": {
                         "type": "string",
-                        "description": "Region code for localized news (e.g., 'us-en', 'uk-en', 'wt-wt')",
-                        "default": "wt-wt",
+                        "description": "Region code for localized results (e.g., 'us-en', 'uk-en', 'wt-wt' for worldwide, and 'au-en' for Australia)",
+                        # Default to Australia, change as needed.
+                        "default": "au-en",
                     },
                     "time_limit": {
                         "type": "string",
@@ -464,26 +587,111 @@ def _get_web_search_tools() -> List[Tool]:
     ]
 
 
+def get_tools_by_category() -> Dict[str, List[Tool]]:
+    """
+    Return the tools grouped by directive/category.
+
+    This helper keeps the same Tool objects but groups them into logical
+    directives so a human (or a UI) can display them grouped under a heading
+    such as "File Operations" or "Web Search". This is intentionally
+    convenience-focused and does not change the MCP schemas or behavior.
+
+    Returns:
+        dict: mapping from category name to list[Tool]
+    """
+    return {
+        "file_operations": _get_file_tools(),
+        "system_commands": _get_system_tools(),
+        "search_tools": _get_search_tools(),
+        "web_search": _get_web_search_tools(),
+        "project": [
+            Tool(
+                name="project_analyzer",
+                description=(
+                    "Analyze the current project by combining file, system, and git status information. "
+                    "Provides a summary of project health, structure, and recent changes."
+                ),
+                inputSchema={"type": "object", "properties": {}, "required": []},
+            )
+        ],
+    }
+
+
+def list_tools_by_directive_text() -> str:
+    """
+    Return a human-readable string listing tools grouped under directives.
+
+    Use this when you want a simple, user-friendly listing (for debugging,
+    documentation, or a simple UI) that shows each tool name and its short
+    description grouped by category.
+
+    Example output:
+        File Operations:
+          - read_file: Read the contents of a file...
+          - write_file: Write content to a file...
+
+    Returns:
+        str: formatted multi-line string
+    """
+    groups = get_tools_by_category()
+    lines = []
+    for heading, tools in groups.items():
+        # Present a nicer title for humans
+        pretty = {
+            "file_operations": "File Operations",
+            "system_commands": "System Commands",
+            "search_tools": "Search Tools",
+            "web_search": "Web Search",
+            "project": "Project Tools",
+        }.get(heading, heading)
+
+        lines.append(f"{pretty}:")
+        for t in tools:
+            # Tool.description may be long; keep first line only for the summary
+            desc = (
+                t.description.split("\n")[0] if getattr(t, "description", None) else ""
+            )
+            lines.append(f"  - {t.name}: {desc}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 # ============================================================================
 # TOOL HANDLERS - Route and execute tool calls
 # ============================================================================
+# This section implements the actual tool call handlers that run the logic.
+# These functions receive tool calls from `handle_tool_call` and execute whatever is needed.
+# To add a new tool, first, make sure its Tool() schema is defined above in `get_all_tools()`,
+# then add a routing branch in `handle_tool_call` to call its function n
+# The actual logic for each tool is implemented in helper functions below.
 
 
 async def handle_tool_call(
     name: str, arguments: Dict[str, Any]
 ) -> List[types.TextContent]:
     """
-    Route tool calls to appropriate handlers.
+    Main dispatcher for executing tools requested by MCP clients.
 
-    This is the main dispatcher that routes incoming tool calls to their
-    specific implementation functions based on the tool name.
+    How it works (beginners):
+    - The MCP server receives a `call_tool` request with `name` and `arguments`.
+    - This function matches `name` against known tool groups and forwards the
+      call to a specialized handler (file ops, system commands, search, etc.).
+    - Handlers return a list of `types.TextContent` elements describing the
+      result. We avoid raising errors to the client; instead handlers return
+      human-friendly error TextContent.
+
+    Where to add custom behavior:
+    - If you add a new Tool schema to `get_all_tools()`, add a corresponding routing
+      branch here to call its implementation. Prefer adding handlers in the
+      same file (grouped by responsibility) and keep logic small and well-tested.
 
     Args:
-        name: Tool name to execute
+        name: Tool name to execute (string)
         arguments: Tool arguments dictionary
 
     Returns:
-        List of TextContent with operation results
+        List[TextContent]: contents describing success/error and any output
     """
     # File operations
     if name in [
@@ -513,8 +721,42 @@ async def handle_tool_call(
     elif name in ["web_search", "web_search_news"]:
         return await _handle_web_search(name, arguments)
 
+    # Project Analyzer tool
+    elif name == "project_analyzer":
+        return await _handle_project_analyzer()
     else:
         return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
+
+
+# ============================================================================
+# PROJECT ANALYZER TOOL
+# ============================================================================
+
+
+async def _handle_project_analyzer() -> List[types.TextContent]:
+    """
+    Analyze the current project by combining file, system, and git status information.
+    Returns a summary of project health, structure, and recent changes.
+    """
+    try:
+        # Get system info
+        from .resources import handle_resource_read
+
+        sys_info = await handle_resource_read("system://info")
+        ws_info = await handle_resource_read("workspace://info")
+        git_status = await handle_resource_read("git://status")
+
+        output = "📝 **Project Analyzer Report**\n\n"
+        output += "## System Information\n" + sys_info + "\n\n"
+        output += "## Workspace Information\n" + ws_info + "\n\n"
+        output += "## Git Status\n" + git_status + "\n\n"
+        output += "---\n"
+        output += "Summary: This report combines system, workspace, and git status for a quick overview of project health and recent changes.\n"
+        return [types.TextContent(type="text", text=output)]
+    except Exception as e:
+        return [
+            types.TextContent(type="text", text=f"Error in project_analyzer: {str(e)}")
+        ]
 
 
 # ============================================================================

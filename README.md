@@ -21,14 +21,14 @@ A comprehensive Model Context Protocol (MCP) server with **modular architecture*
 
 ### **Installation (Recommended: Use a Virtual Environment)**
 
-**Step 1: Clone the repository**
+### Step 1: Clone the repository
 
 ```bash
 git clone https://github.com/Deejpotter/my-mcp-server.git
 cd my-mcp-server
 ```
 
-**Step 2: Create and activate a virtual environment**
+### Step 2: Create and activate a virtual environment
 
 ```bash
 # On Linux/macOS
@@ -40,10 +40,12 @@ python -m venv .venv
 .venv\Scripts\activate
 ```
 
-**Step 3: Install dependencies**
+### Step 3: Install dependencies
 
 ```bash
 pip install -r requirements-test.txt
+# For web search tools, also install:
+pip install serpapi ddgs
 ```
 
 ## **Features**

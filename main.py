@@ -1,28 +1,39 @@
 #!/usr/bin/env python3
 """
-MCP (Model Context Protocol) Server - Consolidated Architecture
-Updated: 29/10/25
+Updated: 01/11/25
 By: Daniel Potter
 
-This server provides practical development tools and resources for MCP clients.
-All tools are consolidated in src/tools.py for simplified maintenance.
+Entry point for the local MCP (Model Context Protocol) server used in this
+project. This file wires the protocol-level Server to the consolidated tool
+registry in `src/tools.py` and to the resource handlers in `src/resources.py`.
 
-MCP ARCHITECTURE OVERVIEW:
-- MCP enables AI assistants (like GitHub Copilot) to call server functions securely
-- This server exposes "tools" (functions) and "resources" (data sources) to AI clients
-- Communication happens via JSON-RPC over stdio (local) or HTTP (remote)
-- Each tool has a schema that describes its inputs - this helps the AI understand how to call it
+Purpose and structure (beginner-friendly):
+- Why this file exists: MCP requires a running process that exposes _tools_,
+    _resources_, and _prompts_ over a transport (stdio or HTTP). `main.py` creates
+    that server, registers discovery handlers (list_tools/list_resources/list_prompts),
+    and routes incoming tool calls to the centralized dispatcher.
+- How things connect:
+    - `src/tools.py` defines the tool schemas and implements the business logic.
+    - `src/resources.py` exposes read-only resources like workspace and system info.
+    - `src/prompts.py` contains prompt templates and a renderer used by the
+        prompt handlers below.
+    - The Server instance here exposes the MCP API (list_tools, call_tool,
+        list_resources, read_resource, list_prompts, get_prompt).
 
-CONSOLIDATED DESIGN:
-- src/tools.py - ALL MCP tools in one file (file operations, system commands, search, web search)
-- src/integrations.py - External API integrations (ClickUp, GitHub, Context7, BookStack)
-- src/utils/ - Shared utilities and security functions
-- src/resources.py - MCP resource definitions and handlers
+Quick edits you might want to make as a beginner:
+- To add a new tool: implement the tool in `src/tools.py` and add its schema
+    to `get_all_tools()` (no decorator needed here). The server will list it.
+- To add a resource: add a resource entry to `src/resources.py` and implement
+    its read handler there.
+- To change prompts: edit `src/prompts.py` or add prompt files (future work).
+
+Notes & safety:
+- Never use `print()` in this process — MCP communicates over stdio and
+    printing will corrupt the JSON-RPC stream. Use `logger` which writes to stderr.
+- Keep side-effects in tools guarded (timeouts, path validation).
 
 References:
-MCP Protocol: https://modelcontextprotocol.io/docs/concepts/tools
-Context7 MCP: https://github.com/upstash/context7
-HTTPx Async: https://www.python-httpx.org/async/
+- MCP Protocol: https://modelcontextprotocol.io/docs/concepts/tools
 """
 
 import asyncio
@@ -48,6 +59,7 @@ load_dotenv()
 # Resources remain in src/resources.py
 from src.tools import get_all_tools, handle_tool_call
 from src.resources import get_all_resources, handle_resource_read
+from src import prompts as prompt_module
 
 # Configure logging to stderr (CRITICAL: Never log to stdout in MCP servers)
 logging.basicConfig(
@@ -61,7 +73,7 @@ logger = logging.getLogger(__name__)
 server = Server("my-mcp-server")
 
 """
-MCP servers use decorator-based syntax similar to Flask/FastAPI. 
+MCP servers use decorator-based syntax similar to Flask. 
 The @server.list_tools() decorator registers available functions, while @server.call_tool() handles execution.
 All handlers must be async functions and return appropriate content types (TextContent, etc.).
 
@@ -79,11 +91,7 @@ async def handle_list_tools() -> list[Tool]:
     """
     Define all available tools (functions) that AI can call.
 
-    Tools are organized in modules:
-    - File Operations: read_file, write_file, list_files
-    - System Commands: run_command, git_command
-    - Search Tools: search_files, fetch_url
-    - External APIs: clickup_*, github_search_code, context7_search
+    Registers all MCP tools provided by the server
     """
     return get_all_tools()
 
@@ -139,6 +147,61 @@ async def handle_read_resource(uri: str) -> str:
         return f"Error: {str(e)}"
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+# ---------------------------------------------------------------------------
+# Prompt handlers (MCP prompt API using server decorators)
+# ---------------------------------------------------------------------------
+
+
+@server.list_prompts()
+async def handle_list_prompts() -> list[types.Prompt]:
+    """Return available prompts as MCP Prompt objects."""
+    try:
+        prompts = []
+        for p in prompt_module.get_all_prompts():
+            # Construct a minimal Prompt object. If prompt metadata includes
+            # argument definitions, extend this to populate PromptArgument items.
+            prompts.append(
+                types.Prompt(
+                    name=p.get("id") or p.get("name"),
+                    description=p.get("description", ""),
+                    arguments=[],
+                )
+            )
+
+        return prompts
+    except Exception as e:
+        # Return empty list on failure to avoid raising to MCP client
+        return []
+
+
+@server.get_prompt()
+async def handle_get_prompt(
+    name: str, arguments: dict[str, str] | None
+) -> types.GetPromptResult:
+    """Render and return a prompt by id as a GetPromptResult.
+
+    The implementation uses `src.prompts.render_prompt` to produce the
+    rendered prompt text and wraps it into a PromptMessage/TextContent.
+    """
+    try:
+        params = arguments or {}
+        rendered = prompt_module.render_prompt(name, **params)
+
+        return types.GetPromptResult(
+            description=f"Rendered prompt: {name}",
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(type="text", text=rendered),
+                )
+            ],
+        )
+    except KeyError:
+        raise ValueError(f"Unknown prompt: {name}")
+    except Exception as e:
+        raise ValueError(f"Error rendering prompt: {e}")
 
 
 # Server Entry Point and Transport Layer
