@@ -123,6 +123,11 @@ All tools include comprehensive security validation and error handling.
   - Retrieve book details and table of contents
   - View all chapters and pages in structured format
 
+- **bookstack_create_shelf** - Create new shelves
+  - Create top-level shelves to organize multiple books
+  - Optionally add books during shelf creation
+  - Supports descriptions and tags
+
 - **bookstack_create_book** - Create new books
   - Create top-level books with name, description, and tags
   - Returns book ID and URL for adding chapters/pages
