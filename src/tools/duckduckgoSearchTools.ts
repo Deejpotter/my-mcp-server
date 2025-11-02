@@ -2,36 +2,18 @@
  * Updated: 02/11/25
  * By: Daniel Potter
  *
- * DuckDuckGo Search tool using Instant Answer API.
+ * DuckDuckGo Search tool using HTML search endpoint.
  * Provides web search results without requiring an API key.
  * Free and unlimited searches with no authentication required.
  *
  * References:
- * DuckDuckGo Instant Answer API: https://duckduckgo.com/api
- * DuckDuckGo HTML Scraping (used for fallback): https://html.duckduckgo.com/html/
+ * DuckDuckGo HTML Search: https://html.duckduckgo.com/html/
+ * duckduckgo_search Python library: https://github.com/deedy5/duckduckgo_search
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { genericLimiter } from "../utils/cache.js";
-
-/**
- * DuckDuckGo Instant Answer API response structure
- * Reference: https://duckduckgo.com/api
- */
-interface DDGRelatedTopic {
-	Text?: string;
-	FirstURL?: string;
-}
-
-interface DDGResponse {
-	Abstract?: string;
-	AbstractText?: string;
-	AbstractSource?: string;
-	AbstractURL?: string;
-	RelatedTopics?: (DDGRelatedTopic | { Topics?: DDGRelatedTopic[] })[];
-	Heading?: string;
-}
 
 /**
  * Structured search result returned to the client
@@ -66,9 +48,6 @@ export function registerDuckDuckGoSearchTools(server: McpServer) {
 					.describe("Maximum number of results to return (default: 10)"),
 			},
 			outputSchema: {
-				abstract: z.string().optional(),
-				abstractSource: z.string().optional(),
-				abstractURL: z.string().optional(),
 				results: z.array(
 					z.object({
 						title: z.string(),
@@ -97,81 +76,106 @@ export function registerDuckDuckGoSearchTools(server: McpServer) {
 					};
 				}
 
-				// Use DuckDuckGo Instant Answer API
-				// Reference: https://duckduckgo.com/api
+				// Use DuckDuckGo HTML search endpoint for actual web results
+				// Reference: https://html.duckduckgo.com/html/
 				const params = new URLSearchParams({
 					q: query,
-					format: "json",
-					no_html: "1",
-					skip_disambig: "1",
+					kl: "wt-wt", // Region: worldwide
 				});
 
 				const response = await fetch(
-					`https://api.duckduckgo.com/?${params.toString()}`,
+					`https://html.duckduckgo.com/html/?${params.toString()}`,
 					{
 						method: "GET",
 						headers: {
-							"User-Agent": "my-mcp-server/1.0.0",
-							Accept: "application/json",
+							"User-Agent":
+								"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+							Accept: "text/html",
 						},
 					}
 				);
 
 				if (!response.ok) {
 					throw new Error(
-						`DuckDuckGo API request failed: ${response.status} ${response.statusText}`
+						`DuckDuckGo search failed: ${response.status} ${response.statusText}`
 					);
 				}
 
-				const data = (await response.json()) as DDGResponse;
+				const html = await response.text();
 
-				// Extract results from related topics
+				// Parse HTML to extract search results
 				const results: SearchResult[] = [];
 				let position = 1;
 
-				// Add abstract as first result if available
-				if (data.AbstractText && data.AbstractURL) {
-					results.push({
-						title: data.Heading || query,
-						url: data.AbstractURL,
-						snippet: data.AbstractText,
-						position: position++,
-					});
-				}
+				// Helper function to decode HTML entities and strip HTML tags
+				const cleanHtml = (text: string): string => {
+					return text
+						.replace(/<[^>]*>/g, "") // Strip HTML tags
+						.replace(/&amp;/g, "&")
+						.replace(/&lt;/g, "<")
+						.replace(/&gt;/g, ">")
+						.replace(/&quot;/g, '"')
+						.replace(/&#x27;/g, "'")
+						.replace(/&#39;/g, "'")
+						.replace(/&nbsp;/g, " ")
+						.trim();
+				};
 
-				// Extract related topics
-				if (data.RelatedTopics) {
-					for (const topic of data.RelatedTopics) {
-						if (position > max_results) break;
+				// Extract result blocks - each result is in a div with class starting with "result"
+				const resultRegex = /<div[^>]*class="result[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/g;
+				let resultMatch;
 
-						// Handle nested topics
-						if ("Topics" in topic && topic.Topics) {
-							for (const subTopic of topic.Topics) {
-								if (position > max_results) break;
-								if (subTopic.Text && subTopic.FirstURL) {
-									results.push({
-										title: subTopic.Text.split(" - ")[0] || subTopic.Text,
-										url: subTopic.FirstURL,
-										snippet: subTopic.Text,
-										position: position++,
-									});
-								}
-							}
-						} else if ("Text" in topic && topic.Text && topic.FirstURL) {
-							results.push({
-								title: topic.Text.split(" - ")[0] || topic.Text,
-								url: topic.FirstURL,
-								snippet: topic.Text,
-								position: position++,
-							});
+				while (
+					(resultMatch = resultRegex.exec(html)) !== null &&
+					position <= max_results
+				) {
+					const resultBlock = resultMatch[1];
+					if (!resultBlock) continue;
+
+					// Extract title from result__a link
+					const titleMatch = resultBlock.match(
+						/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/
+					);
+					if (!titleMatch) continue;
+
+					const [, hrefAttr, titleText] = titleMatch;
+					if (!hrefAttr || !titleText) continue;
+
+					// Decode the URL (DuckDuckGo wraps URLs in //duckduckgo.com/l/?uddg= parameter)
+					let url = hrefAttr;
+					const uddgMatch = url.match(/uddg=([^&]+)/);
+					if (uddgMatch && uddgMatch[1]) {
+						try {
+							url = decodeURIComponent(uddgMatch[1]);
+						} catch (e) {
+							url = uddgMatch[1];
 						}
+					}
+
+					// Clean title
+					const title = cleanHtml(titleText);
+
+					// Extract snippet from result__snippet
+					let snippet = "";
+					const snippetMatch = resultBlock.match(
+						/<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/
+					);
+					if (snippetMatch && snippetMatch[1]) {
+						snippet = cleanHtml(snippetMatch[1]);
+					}
+
+					// Only add if we have a valid URL (not a relative DuckDuckGo link)
+					if (url && !url.startsWith("/") && !url.startsWith("//") && title) {
+						results.push({
+							title,
+							url,
+							snippet,
+							position: position++,
+						});
 					}
 				}
 
 				const output = {
-					abstract: data.AbstractText,
-					abstractSource: data.AbstractSource,
-					abstractURL: data.AbstractURL,
 					results: results.slice(0, max_results),
 					totalResults: results.length,
 					query,
@@ -179,24 +183,17 @@ export function registerDuckDuckGoSearchTools(server: McpServer) {
 
 				// Format results for text output
 				let formattedResults = "";
-				if (data.AbstractText) {
-					formattedResults += `Abstract: ${data.AbstractText}\n`;
-					if (data.AbstractSource) {
-						formattedResults += `Source: ${data.AbstractSource}\n`;
-					}
-					if (data.AbstractURL) {
-						formattedResults += `URL: ${data.AbstractURL}\n`;
-					}
-					formattedResults += "\n";
-				}
 
 				if (results.length > 0) {
-					formattedResults += results
-						.map((r) => `[${r.position}] ${r.title}\n${r.url}\n${r.snippet}\n`)
-						.join("\n");
+					formattedResults = results
+						.map((r) => {
+							const snippetText = r.snippet ? `\n${r.snippet}` : "";
+							return `[${r.position}] ${r.title}\n${r.url}${snippetText}`;
+						})
+						.join("\n\n");
 				} else {
-					formattedResults +=
-						"No results found. Try a more specific search query.";
+					formattedResults =
+						"No results found. Try a different search query or check your spelling.";
 				}
 
 				return {
