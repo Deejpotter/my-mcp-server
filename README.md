@@ -79,13 +79,33 @@ All tools include comprehensive security validation and error handling.
   - Supports recursive directory traversal
   - Filters out forbidden paths (.git, node_modules, .env)
 
-### **System Tools**
+### **Web Search**
 
-- **system_stats** - Real-time system resource monitoring
-  - CPU usage and count
-  - Memory usage (total, free, used)
-  - Disk usage information
-  - Network interface details
+- **google_search** - Search Google using SerpAPI
+  - Returns structured results: title, URL, snippet, position
+  - Requires `SERPAPI_API_KEY` environment variable (free tier: 100 searches/month)
+  - Supports location-specific results
+
+- **duckduckgo_search** - Search DuckDuckGo using Instant Answer API
+  - No API key required - free and unlimited
+  - Returns instant answers, abstract, source, and related topics
+  - Privacy-focused search option
+
+### **Documentation Lookup**
+
+- **resolve_library_id** - Find the correct Context7 library ID for a package
+  - Search for libraries, frameworks, and documentation
+  - Returns best matches with metadata (code snippets, trust score, versions)
+
+- **get_documentation** - Fetch comprehensive documentation from Context7
+  - Get up-to-date, version-specific documentation
+  - Optional topic filtering for focused documentation
+  - Configurable token limits for documentation length
+
+- **search_documentation** - Search across multiple libraries in Context7
+  - Full-text search across documentation
+  - Filter by category/technology
+  - Get relevance-ranked results with snippets
 
 ### **Command Execution**
 
@@ -110,8 +130,6 @@ All tools include comprehensive security validation and error handling.
 
 Resources provide read-only context information to AI assistants.
 
-- **system://info** - System information (platform, architecture, Node.js version, CPU count, memory, uptime)
-- **workspace://info** - Workspace details (project name, file counts, directory structure)
 - **git://status** - Current git repository status
 
 ## **Security Features**

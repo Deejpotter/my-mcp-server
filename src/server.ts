@@ -22,6 +22,7 @@ import { registerCommandTools } from "./tools/commandTools.js";
 import { registerGitTools } from "./tools/gitTools.js";
 import { registerGoogleSearchTools } from "./tools/googleSearchTools.js";
 import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js";
+import { registerContext7Tools } from "./tools/context7Tools.js";
 import { registerGitResources } from "./resources/gitResources.js";
 
 // CRITICAL: Never use console.log in MCP servers - it corrupts stdio transport
@@ -38,6 +39,7 @@ registerCommandTools(server);
 registerGitTools(server);
 registerGoogleSearchTools(server);
 registerDuckDuckGoSearchTools(server);
+registerContext7Tools(server);
 
 // Register all resources
 registerGitResources(server);
