@@ -6,9 +6,9 @@ The MCP Server documentation has been successfully created in BookStack!
 
 ### What Was Created
 
-**Shelf 1**: Server info (ID: 1)
+**Shelf**: Server info (ID: 1)
 
-- Production MCP Server documentation
+- Production MCP Server documentation and development guides
 
 **Book**: MCP Server (ID: 3, slug: mcp-server-XGf)
 
@@ -26,22 +26,14 @@ The MCP Server documentation has been successfully created in BookStack!
    - Configuration
    - First Steps
 
-**Shelf 2**: Development (ID: 2)
+**Additional Page**:
 
-- Development guides and AI assistant resources
-
-**Book**: Prompts & AI Guides (ID: 4, slug: prompts-ai-guides)
-
-- Added to the "Development" shelf
-
-**Pages**:
-
-1. **AI Assistant Guidelines** (ID: 7) - Complete AI-PROMPT.md content
-   - Project context and structure
-   - Development workflow and file management
-   - Code standards and documentation
-   - Technical implementation patterns
-   - Communication style guidelines
+- **AI Assistant Guidelines** (ID: 7) - Complete AI-PROMPT.md content
+  - Project context and structure
+  - Development workflow and file management
+  - Code standards and documentation
+  - Technical implementation patterns
+  - Communication style guidelines
 
 ## Access Your Documentation
 
@@ -49,8 +41,6 @@ Visit your BookStack instance and navigate to:
 
 - **Server Info Shelf**: <http://bookstack.deejpotter.com/shelves/server-info>
   - **MCP Server Book**: <http://bookstack.deejpotter.com/books/mcp-server-XGf>
-- **Development Shelf**: <http://bookstack.deejpotter.com/shelves/development>
-  - **Prompts & AI Guides Book**: <http://bookstack.deejpotter.com/books/prompts-ai-guides>
 
 **Recent Updates**:
 
