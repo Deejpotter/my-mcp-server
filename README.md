@@ -20,7 +20,8 @@ This MCP server provides essential development tools with enterprise-grade secur
 
 **Quick Links:**
 
-- **[Complete Documentation](YOUR_BOOKSTACK_URL/books/mcp-server-XGf)** - Full documentation in BookStack
+- **[Complete Documentation](http://bookstack.deejpotter.com/shelves/server-info)** - Full documentation in BookStack ("Server info" shelf)
+- **[MCP Server Book](http://bookstack.deejpotter.com/books/mcp-server-XGf)** - Direct link to MCP Server documentation
 - **[AI Prompt Guide](AI-PROMPT.md)** - Guide for AI assistants working on this project
 - **[TODO](TODO.md)** - Current development priorities and roadmap
 
@@ -119,6 +120,11 @@ All tools include comprehensive security validation and error handling.
   - Returns previews and metadata
   - Requires `BOOKSTACK_URL`, `BOOKSTACK_TOKEN_ID`, `BOOKSTACK_TOKEN_SECRET`
 
+- **bookstack_get_shelf** - Get shelf details and books
+  - Retrieve shelf information including all books
+  - View book list in display order
+  - Includes metadata and hierarchy
+
 - **bookstack_get_page** - Retrieve full page content
   - Get page content in HTML and Markdown formats
   - Includes all metadata and hierarchy information
@@ -147,6 +153,11 @@ All tools include comprehensive security validation and error handling.
   - Supports both HTML and Markdown content
   - Automatic base64 image extraction to gallery
   - Requires either book_id or chapter_id
+
+- **bookstack_update_shelf** - Update shelf details and books
+  - Modify shelf name, description, and book assignments
+  - Reorder books by providing new books array
+  - Partial updates supported
 
 - **bookstack_update_book** - Update book details
   - Modify book name, description, and tags

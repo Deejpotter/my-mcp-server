@@ -1,4 +1,4 @@
-# BookStack Integration - Complete!
+# BookStack Integration - Complete
 
 ## ✅ Documentation Created Successfully
 
@@ -6,9 +6,14 @@ The MCP Server documentation has been successfully created in BookStack!
 
 ### What Was Created
 
+**Shelf**: Server info (ID: 1)
+- Organized location for all server-related documentation
+
 **Book**: MCP Server (ID: 3, slug: mcp-server-XGf)
+- Added to the "Server info" shelf
 
 **Chapters**:
+
 1. **Overview** (ID: 1) - Project introduction and capabilities
    - Introduction
    - Features & Capabilities  
@@ -21,7 +26,9 @@ The MCP Server documentation has been successfully created in BookStack!
 
 ## Access Your Documentation
 
-Visit your BookStack instance and navigate to the **MCP Server** book to view the complete documentation.
+Visit your BookStack instance and navigate to:
+- **Shelf**: http://bookstack.deejpotter.com/shelves/server-info
+- **Book**: http://bookstack.deejpotter.com/books/mcp-server-XGf
 
 ## Configuration
 
@@ -36,23 +43,29 @@ BOOKSTACK_TOKEN_SECRET=your_token_secret_here
 ## Available BookStack Tools
 
 ### Read Operations
+
 - `bookstack_search` - Full-text search across documentation
+- `bookstack_get_shelf` - Get shelf details and list of books
 - `bookstack_get_page` - Get page content by ID
 - `bookstack_get_book` - Get book with table of contents
 
 ### Create Operations
+
 - `bookstack_create_shelf` - Organize multiple books
 - `bookstack_create_book` - Create new books
 - `bookstack_create_chapter` - Add chapters to books
 - `bookstack_create_page` - Add pages with Markdown/HTML
 
 ### Update Operations
+
+- `bookstack_update_shelf` - Modify shelf details and book assignments
 - `bookstack_update_book` - Modify book details
 - `bookstack_update_page` - Edit page content
 
 ## Usage Examples
 
 ### Search Documentation
+
 ```typescript
 bookstack_search({
   query: "MCP Server installation",
@@ -61,6 +74,7 @@ bookstack_search({
 ```
 
 ### Get Page Content
+
 ```typescript
 bookstack_get_page({
   page_id: 1
@@ -68,6 +82,7 @@ bookstack_get_page({
 ```
 
 ### Create New Page
+
 ```typescript
 bookstack_create_page({
   name: "Advanced Features",

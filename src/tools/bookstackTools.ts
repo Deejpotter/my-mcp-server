@@ -242,12 +242,13 @@ export function registerBookStackTools(server: McpServer) {
 					type: item.type,
 					url: item.url,
 					preview: item.preview_html
-						? item.preview_html.replace(/<[^>]*>/g, "").substring(0, 200)
+						? String(item.preview_html)
+								.replace(/<[^>]*>/g, "")
+								.substring(0, 200)
 						: undefined,
 					created_at: item.created_at,
 					updated_at: item.updated_at,
 				}));
-
 				const output = {
 					results,
 					total: data.total,
@@ -1307,6 +1308,247 @@ Common issues:
 1. Check that you have permission to create shelves
 2. Ensure the shelf name is not empty
 3. If adding books, verify those book IDs exist
+4. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// BOOKSTACK GET SHELF TOOL
+	server.registerTool(
+		"bookstack_get_shelf",
+		{
+			title: "BookStack Get Shelf",
+			description:
+				"Retrieve details about a specific shelf by ID. Returns shelf information including " +
+				"name, description, and list of books in the shelf.",
+			inputSchema: {
+				shelf_id: z
+					.number()
+					.positive()
+					.describe("The ID of the shelf to retrieve (required)"),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				description: z.string(),
+				books: z.array(
+					z.object({
+						id: z.number(),
+						name: z.string(),
+						slug: z.string(),
+					})
+				),
+				url: z.string().optional(),
+				created_at: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ shelf_id }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Get the shelf
+				const shelf = (await bookstackRequest(
+					`shelves/${shelf_id}`
+				)) as ShelfContent;
+
+				const output = {
+					id: shelf.id,
+					name: shelf.name,
+					slug: shelf.slug,
+					description: shelf.description,
+					books: shelf.books,
+					url: shelf.url,
+					created_at: shelf.created_at,
+					updated_at: shelf.updated_at,
+				};
+
+				// Format book list
+				const bookList =
+					shelf.books.length > 0
+						? shelf.books
+								.map((book, idx) => `${idx + 1}. ${book.name} (ID: ${book.id})`)
+								.join("\n")
+						: "No books in this shelf";
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Shelf: "${shelf.name}"\n\nID: ${shelf.id}\nSlug: ${shelf.slug}\nDescription: ${shelf.description}\n\nBooks (${shelf.books.length}):\n${bookList}`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error retrieving BookStack shelf: ${err.message}
+
+Common issues:
+1. Check that the shelf ID is correct
+2. Ensure you have permission to view shelves
+3. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// BOOKSTACK UPDATE SHELF TOOL
+	server.registerTool(
+		"bookstack_update_shelf",
+		{
+			title: "BookStack Update Shelf",
+			description:
+				"Update an existing shelf's details including name, description, books, and tags. " +
+				"Only provide the fields you want to update. Books array replaces existing books completely.",
+			inputSchema: {
+				shelf_id: z
+					.number()
+					.positive()
+					.describe("The ID of the shelf to update (required)"),
+				name: z
+					.string()
+					.min(1)
+					.optional()
+					.describe("New name/title for the shelf"),
+				description: z
+					.string()
+					.optional()
+					.describe("New description text for the shelf"),
+				books: z
+					.array(z.number().positive())
+					.optional()
+					.describe(
+						"New array of book IDs for the shelf. Replaces existing books completely. Books will be displayed in this order."
+					),
+				tags: z
+					.array(
+						z.object({
+							name: z.string(),
+							value: z.string().optional(),
+						})
+					)
+					.optional()
+					.describe(
+						"New array of tags for the shelf. Replaces existing tags completely."
+					),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				description: z.string(),
+				url: z.string().optional(),
+				created_at: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ shelf_id, name, description, books, tags }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Build request body with only provided fields
+				const requestBody: Record<string, unknown> = {};
+
+				if (name !== undefined) {
+					requestBody.name = name;
+				}
+
+				if (description !== undefined) {
+					requestBody.description = description;
+				}
+
+				if (books !== undefined) {
+					requestBody.books = books;
+				}
+
+				if (tags !== undefined) {
+					requestBody.tags = tags;
+				}
+
+				// Update the shelf
+				const shelf = (await bookstackRequest(
+					`shelves/${shelf_id}`,
+					"PUT",
+					requestBody
+				)) as ShelfContent;
+
+				const output = {
+					id: shelf.id,
+					name: shelf.name,
+					slug: shelf.slug,
+					description: shelf.description,
+					url: shelf.url,
+					created_at: shelf.created_at,
+					updated_at: shelf.updated_at,
+				};
+
+				const updateInfo = [];
+				if (name) updateInfo.push(`Name updated to: "${name}"`);
+				if (description) updateInfo.push("Description updated");
+				if (books) updateInfo.push(`Books updated (${books.length} books)`);
+				if (tags) updateInfo.push(`Tags updated (${tags.length} tags)`);
+
+				const updates =
+					updateInfo.length > 0 ? `\n\n${updateInfo.join("\n")}` : "";
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully updated shelf: "${shelf.name}"\n\nID: ${shelf.id}\nURL: ${shelf.url}${updates}`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error updating BookStack shelf: ${err.message}
+
+Common issues:
+1. Check that the shelf ID is correct
+2. Ensure you have permission to update shelves
+3. If updating books, verify those book IDs exist
 4. Verify your API credentials are correct`,
 						},
 					],
