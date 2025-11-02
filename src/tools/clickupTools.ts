@@ -93,7 +93,10 @@ async function clickupRequest(
 		let errorMessage = `ClickUp API error: ${response.status} ${response.statusText}`;
 
 		try {
-			const errorJson = JSON.parse(errorText) as { err?: string; error?: string };
+			const errorJson = JSON.parse(errorText) as {
+				err?: string;
+				error?: string;
+			};
 			if (errorJson.err) {
 				errorMessage = errorJson.err;
 			} else if (errorJson.error) {
@@ -209,7 +212,7 @@ export function registerClickUpTools(server: McpServer) {
 						? {
 								priority: response.priority.priority,
 								color: response.priority.color,
-							}
+						  }
 						: undefined,
 					assignees: response.assignees,
 					tags: response.tags,
@@ -223,7 +226,9 @@ export function registerClickUpTools(server: McpServer) {
 				// Format text output
 				const assigneesList =
 					response.assignees.length > 0
-						? response.assignees.map((a) => `  - ${a.username} (${a.email})`).join("\n")
+						? response.assignees
+								.map((a) => `  - ${a.username} (${a.email})`)
+								.join("\n")
 						: "  None";
 
 				const tagsList =
@@ -232,7 +237,9 @@ export function registerClickUpTools(server: McpServer) {
 						: "  None";
 
 				const dueDate = response.due_date
-					? `\nDue Date: ${new Date(parseInt(response.due_date)).toLocaleString()}`
+					? `\nDue Date: ${new Date(
+							parseInt(response.due_date)
+					  ).toLocaleString()}`
 					: "";
 
 				const priority = response.priority
@@ -243,7 +250,15 @@ export function registerClickUpTools(server: McpServer) {
 					content: [
 						{
 							type: "text",
-							text: `ClickUp Task: ${response.name}\n\nID: ${response.id}\nStatus: ${response.status.status}${priority}${dueDate}\nList: ${response.list.name}\n\nAssignees:\n${assigneesList}\n\nTags:\n${tagsList}\n\nDescription:\n${response.description || "No description"}\n\nURL: ${response.url}`,
+							text: `ClickUp Task: ${response.name}\n\nID: ${
+								response.id
+							}\nStatus: ${
+								response.status.status
+							}${priority}${dueDate}\nList: ${
+								response.list.name
+							}\n\nAssignees:\n${assigneesList}\n\nTags:\n${tagsList}\n\nDescription:\n${
+								response.description || "No description"
+							}\n\nURL: ${response.url}`,
 						},
 					],
 					structuredContent: output,
@@ -281,11 +296,16 @@ Common issues:
 				task_id: z.string().min(1).describe("The ID of the task to update"),
 				name: z.string().optional().describe("New task name"),
 				description: z.string().optional().describe("New task description"),
-				status: z.string().optional().describe("New status (e.g., 'to do', 'in progress', 'complete')"),
+				status: z
+					.string()
+					.optional()
+					.describe("New status (e.g., 'to do', 'in progress', 'complete')"),
 				priority: z
 					.number()
 					.optional()
-					.describe("Priority level: 1=Urgent, 2=High, 3=Normal, 4=Low, null=No priority"),
+					.describe(
+						"Priority level: 1=Urgent, 2=High, 3=Normal, 4=Low, null=No priority"
+					),
 				due_date: z
 					.number()
 					.optional()
@@ -308,7 +328,16 @@ Common issues:
 				url: z.string(),
 			},
 		},
-		async ({ task_id, name, description, status, priority, due_date, assignees_add, assignees_rem }) => {
+		async ({
+			task_id,
+			name,
+			description,
+			status,
+			priority,
+			due_date,
+			assignees_add,
+			assignees_rem,
+		}) => {
 			try {
 				// Apply rate limiting
 				if (!genericLimiter.allowCall()) {
@@ -336,15 +365,21 @@ Common issues:
 				if (assignees_add || assignees_rem) {
 					updateData.assignees = {};
 					if (assignees_add) {
-						(updateData.assignees as Record<string, unknown>).add = assignees_add;
+						(updateData.assignees as Record<string, unknown>).add =
+							assignees_add;
 					}
 					if (assignees_rem) {
-						(updateData.assignees as Record<string, unknown>).rem = assignees_rem;
+						(updateData.assignees as Record<string, unknown>).rem =
+							assignees_rem;
 					}
 				}
 
 				// Update task
-				const response = (await clickupRequest(`task/${task_id}`, "PUT", updateData)) as ClickUpTask;
+				const response = (await clickupRequest(
+					`task/${task_id}`,
+					"PUT",
+					updateData
+				)) as ClickUpTask;
 
 				const output = {
 					id: response.id,
@@ -394,16 +429,28 @@ Common issues:
 				"Create a new task in a ClickUp list. " +
 				"Requires a list ID and task name. Optionally set description, status, priority, assignees, and due date.",
 			inputSchema: {
-				list_id: z.string().min(1).describe("The ID of the list where the task will be created"),
+				list_id: z
+					.string()
+					.min(1)
+					.describe("The ID of the list where the task will be created"),
 				name: z.string().min(1).describe("Task name"),
 				description: z.string().optional().describe("Task description"),
-				status: z.string().optional().describe("Initial status (e.g., 'to do')"),
+				status: z
+					.string()
+					.optional()
+					.describe("Initial status (e.g., 'to do')"),
 				priority: z
 					.number()
 					.optional()
 					.describe("Priority: 1=Urgent, 2=High, 3=Normal, 4=Low"),
-				due_date: z.number().optional().describe("Due date as Unix timestamp in milliseconds"),
-				assignees: z.array(z.number()).optional().describe("Array of user IDs to assign"),
+				due_date: z
+					.number()
+					.optional()
+					.describe("Due date as Unix timestamp in milliseconds"),
+				assignees: z
+					.array(z.number())
+					.optional()
+					.describe("Array of user IDs to assign"),
 				tags: z.array(z.string()).optional().describe("Array of tag names"),
 			},
 			outputSchema: {
@@ -415,7 +462,16 @@ Common issues:
 				url: z.string(),
 			},
 		},
-		async ({ list_id, name, description, status, priority, due_date, assignees, tags }) => {
+		async ({
+			list_id,
+			name,
+			description,
+			status,
+			priority,
+			due_date,
+			assignees,
+			tags,
+		}) => {
 			try {
 				// Apply rate limiting
 				if (!genericLimiter.allowCall()) {
@@ -444,7 +500,11 @@ Common issues:
 				if (tags && tags.length > 0) taskData.tags = tags;
 
 				// Create task
-				const response = (await clickupRequest(`list/${list_id}/task`, "POST", taskData)) as ClickUpTask;
+				const response = (await clickupRequest(
+					`list/${list_id}/task`,
+					"POST",
+					taskData
+				)) as ClickUpTask;
 
 				const output = {
 					id: response.id,

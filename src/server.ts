@@ -15,6 +15,19 @@
  * @date 2025-11-02
  */
 
+// Load environment variables from .env file
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// Get the project root directory (one level up from dist/)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const projectRoot = join(__dirname, "..");
+
+// Load .env from project root
+dotenv.config({ path: join(projectRoot, ".env") });
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerFileTools } from "./tools/fileTools.js";

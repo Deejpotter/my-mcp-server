@@ -17,7 +17,7 @@ import { z } from "zod";
 
 /**
  * Register all workflow prompts with the MCP server
- * 
+ *
  * Each prompt includes:
  * - System message: Sets expert context for Claude
  * - User message template: Provides structured workflow guidance
@@ -29,8 +29,18 @@ export function registerPrompts(server: McpServer) {
 		"code_review_guide",
 		"Systematic code review workflow with quality, security, and performance checks",
 		{
-			language: z.string().optional().describe("Programming language of the code (e.g., 'TypeScript', 'Python')"),
-			focus_areas: z.string().optional().describe("Specific areas to focus on (e.g., 'security', 'performance', 'testing')"),
+			language: z
+				.string()
+				.optional()
+				.describe(
+					"Programming language of the code (e.g., 'TypeScript', 'Python')"
+				),
+			focus_areas: z
+				.string()
+				.optional()
+				.describe(
+					"Specific areas to focus on (e.g., 'security', 'performance', 'testing')"
+				),
 		},
 		// eslint-disable-next-line @typescript-eslint/require-await
 		async (args) => {
@@ -219,8 +229,14 @@ Start by running \`git_command\` with \`git status\` and \`git diff\` to analyze
 		"library_research_workflow",
 		"Systematic approach to researching and evaluating libraries, frameworks, and tools",
 		{
-			library_name: z.string().optional().describe("Name of the library or framework to research"),
-			use_case: z.string().optional().describe("Specific use case or requirement for the library"),
+			library_name: z
+				.string()
+				.optional()
+				.describe("Name of the library or framework to research"),
+			use_case: z
+				.string()
+				.optional()
+				.describe("Specific use case or requirement for the library"),
 		},
 		// eslint-disable-next-line @typescript-eslint/require-await
 		async (args) => {
@@ -330,8 +346,14 @@ Start by clarifying requirements, then systematically work through discovery and
 		"bug_investigation_guide",
 		"Structured debugging methodology for systematic bug investigation and resolution",
 		{
-			error_description: z.string().optional().describe("Description of the bug or error"),
-			context: z.string().optional().describe("Context about when/where the bug occurs"),
+			error_description: z
+				.string()
+				.optional()
+				.describe("Description of the bug or error"),
+			context: z
+				.string()
+				.optional()
+				.describe("Context about when/where the bug occurs"),
 		},
 		async (args) => {
 			const errorDescription = args?.error_description || "[describe the bug]";
@@ -445,12 +467,20 @@ Start by gathering information about the bug using available tools, then work th
 		"feature_implementation_plan",
 		"Break down feature requirements into a structured implementation plan with steps and checklists",
 		{
-			feature_description: z.string().optional().describe("Description of the feature to implement"),
-			constraints: z.string().optional().describe("Any constraints or specific requirements"),
+			feature_description: z
+				.string()
+				.optional()
+				.describe("Description of the feature to implement"),
+			constraints: z
+				.string()
+				.optional()
+				.describe("Any constraints or specific requirements"),
 		},
 		async (args) => {
-			const featureDescription = args?.feature_description || "[describe the feature to implement]";
-			const constraints = args?.constraints || "[any constraints or requirements]";
+			const featureDescription =
+				args?.feature_description || "[describe the feature to implement]";
+			const constraints =
+				args?.constraints || "[any constraints or requirements]";
 
 			return {
 				messages: [
@@ -589,8 +619,13 @@ Start by exploring the codebase to understand the current implementation, then w
 		"search_strategy_guide",
 		"Transforms user's rough search intent into optimized queries for Google, DuckDuckGo, and Context7 tools",
 		{
-			user_query: z.string().describe("The user's original search query or intent"),
-			context: z.string().optional().describe("Additional context about what they're working on"),
+			user_query: z
+				.string()
+				.describe("The user's original search query or intent"),
+			context: z
+				.string()
+				.optional()
+				.describe("Additional context about what they're working on"),
 		},
 		async (args) => {
 			const userQuery = args?.user_query || "[user's search query]";
@@ -622,8 +657,8 @@ You provide actionable search plans with specific queries ready to execute.`,
 ## User's Original Query
 "${userQuery}"
 
-${context ? `## Additional Context\n${context}\n` : ''}
-${context ? `## Additional Context\n${context}\n` : ''}
+${context ? `## Additional Context\n${context}\n` : ""}
+${context ? `## Additional Context\n${context}\n` : ""}
 ## Your Task
 Analyze the user's query and create an optimized search strategy. Provide:
 
@@ -764,4 +799,3 @@ Now analyze the user's query and provide the optimized search plan!`,
 		}
 	);
 }
-

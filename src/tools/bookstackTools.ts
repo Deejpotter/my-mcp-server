@@ -195,7 +195,7 @@ export function registerBookStackTools(server: McpServer) {
 						id: z.number(),
 						name: z.string(),
 						type: z.enum(["bookshelf", "book", "chapter", "page"]),
-						url: z.string(),
+						url: z.string().optional(),
 						preview: z.string().optional(),
 						created_at: z.string(),
 						updated_at: z.string(),
@@ -330,7 +330,7 @@ Common issues:
 				markdown: z.string().optional(),
 				book_id: z.number(),
 				chapter_id: z.number().optional(),
-				url: z.string(),
+				url: z.string().optional(),
 				created_at: z.string(),
 				updated_at: z.string(),
 			},
@@ -431,7 +431,7 @@ Common issues:
 						type: z.enum(["page", "chapter"]),
 					})
 				),
-				url: z.string(),
+				url: z.string().optional(),
 				created_at: z.string(),
 				updated_at: z.string(),
 			},
@@ -543,7 +543,7 @@ Common issues:
 				name: z.string(),
 				slug: z.string(),
 				description: z.string(),
-				url: z.string(),
+				url: z.string().optional(),
 				created_at: z.string(),
 				updated_at: z.string(),
 			},
@@ -662,7 +662,7 @@ Common issues:
 				slug: z.string(),
 				book_id: z.number(),
 				description: z.string(),
-				url: z.string(),
+				url: z.string().optional(),
 				created_at: z.string(),
 				updated_at: z.string(),
 			},
@@ -809,7 +809,7 @@ Common issues:
 				slug: z.string(),
 				book_id: z.number(),
 				chapter_id: z.number().optional(),
-				url: z.string(),
+				url: z.string().optional(),
 				created_at: z.string(),
 				updated_at: z.string(),
 			},
@@ -959,7 +959,7 @@ Common issues:
 				name: z.string(),
 				slug: z.string(),
 				description: z.string(),
-				url: z.string(),
+				url: z.string().optional(),
 				updated_at: z.string(),
 			},
 		},
@@ -1090,7 +1090,7 @@ Common issues:
 				slug: z.string(),
 				book_id: z.number(),
 				chapter_id: z.number().optional(),
-				url: z.string(),
+				url: z.string().optional(),
 				updated_at: z.string(),
 			},
 		},
@@ -1198,7 +1198,10 @@ Common issues:
 				"multiple books. Can optionally add books to the shelf during creation. " +
 				"Returns the created shelf with ID and URL.",
 			inputSchema: {
-				name: z.string().min(1).describe("The name/title of the shelf (required)"),
+				name: z
+					.string()
+					.min(1)
+					.describe("The name/title of the shelf (required)"),
 				description: z
 					.string()
 					.optional()
@@ -1226,7 +1229,7 @@ Common issues:
 				name: z.string(),
 				slug: z.string(),
 				description: z.string(),
-				url: z.string(),
+				url: z.string().optional(),
 				created_at: z.string(),
 				updated_at: z.string(),
 			},

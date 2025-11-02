@@ -122,7 +122,8 @@ export function registerDuckDuckGoSearchTools(server: McpServer) {
 				};
 
 				// Extract result blocks - each result is in a div with class starting with "result"
-				const resultRegex = /<div[^>]*class="result[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/g;
+				const resultRegex =
+					/<div[^>]*class="result[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/g;
 				let resultMatch;
 
 				while (

@@ -10,13 +10,17 @@ This MCP server provides essential development tools with enterprise-grade secur
 
 - **Security First** - Command allowlisting, path validation, no sensitive data exposure
 - **File Operations** - Read, write, and list files with comprehensive security checks
-- **System Tools** - Real-time CPU, memory, disk, and network monitoring
+- **Web Search** - Google Search (SerpAPI) and DuckDuckGo integration
+- **Documentation Lookup** - Context7 integration for library documentation
+- **BookStack Integration** - Full CRUD operations for documentation management
+- **ClickUp Integration** - Task management with complete metadata support
 - **Command Execution** - Safe shell command execution with allowlist validation
 - **Git Integration** - Execute git commands and access repository status
 - **Type Safe** - Full TypeScript with Zod schema validation
 
 **Quick Links:**
 
+- **[Complete Documentation](YOUR_BOOKSTACK_URL/books/mcp-server-XGf)** - Full documentation in BookStack
 - **[AI Prompt Guide](AI-PROMPT.md)** - Guide for AI assistants working on this project
 - **[TODO](TODO.md)** - Current development priorities and roadmap
 
