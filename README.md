@@ -86,10 +86,10 @@ All tools include comprehensive security validation and error handling.
   - Requires `SERPAPI_API_KEY` environment variable (free tier: 100 searches/month)
   - Supports location-specific results
 
-- **duckduckgo_search** - Search DuckDuckGo using Instant Answer API
+- **duckduckgo_search** - Search DuckDuckGo for web results
   - No API key required - free and unlimited
-  - Returns instant answers, abstract, source, and related topics
-  - Privacy-focused search option
+  - Returns real web search results with titles, URLs, and snippets
+  - Privacy-focused search option without tracking
 
 ### **Documentation Lookup**
 
@@ -98,6 +98,47 @@ All tools include comprehensive security validation and error handling.
   - Returns best matches with metadata (code snippets, trust score, versions)
 
 - **get_documentation** - Fetch comprehensive documentation from Context7
+  - Get up-to-date, version-specific documentation
+  - Optional topic filtering for focused documentation
+  - Configurable token limits for documentation length
+
+- **search_documentation** - Search across multiple libraries in Context7
+  - Full-text search across documentation
+  - Filter by category/technology
+  - Get relevance-ranked results with snippets
+
+### **BookStack Integration**
+
+- **bookstack_search** - Search across BookStack documentation
+  - Search books, pages, chapters, and shelves
+  - Supports advanced search syntax (filters, exact matches, tags)
+  - Returns previews and metadata
+  - Requires `BOOKSTACK_URL`, `BOOKSTACK_TOKEN_ID`, `BOOKSTACK_TOKEN_SECRET`
+
+- **bookstack_get_page** - Retrieve full page content
+  - Get page content in HTML and Markdown formats
+  - Includes all metadata and hierarchy information
+
+- **bookstack_get_book** - Get book structure
+  - Retrieve book details and table of contents
+  - View all chapters and pages in structured format
+
+### **ClickUp Integration**
+
+- **clickup_get_task** - Retrieve task details
+  - Get complete task information including status, priority, assignees
+  - View tags, dates, descriptions, and custom fields
+  - Requires `CLICKUP_API_TOKEN`
+
+- **clickup_create_task** - Create new tasks
+  - Create tasks in any list with name, description, status
+  - Set priority, due dates, assignees, and tags
+  - Returns task ID and URL
+
+- **clickup_update_task** - Update existing tasks
+  - Modify task properties (name, description, status, priority)
+  - Add or remove assignees
+  - Update due dates and other fields
   - Get up-to-date, version-specific documentation
   - Optional topic filtering for focused documentation
   - Configurable token limits for documentation length
@@ -263,16 +304,34 @@ Jan uses a different configuration format. Add to Jan's MCP settings:
 
 ### **Environment Variables (Optional)**
 
-Create a `.env` file for optional API integrations:
+Create a `.env` file for API integrations:
 
 ```env
-# Future integrations (not yet implemented)
-GITHUB_TOKEN=your_github_token_here
-CLICKUP_API_TOKEN=your_clickup_token_here
+# Google Search (via SerpAPI) - Required for google_search tool
+# Get your key from: https://serpapi.com/manage-api-key
+# Free tier: 100 searches/month
+SERPAPI_API_KEY=your_serpapi_key_here
+
+# Context7 - Optional for enhanced documentation lookup
+# Get your key from: https://context7.com
 CONTEXT7_API_KEY=your_context7_key_here
+
+# BookStack - Required for BookStack tools
+# Create tokens in your BookStack instance: Settings > API Tokens
+BOOKSTACK_URL=https://your-bookstack-instance.com
+BOOKSTACK_TOKEN_ID=your_token_id_here
+BOOKSTACK_TOKEN_SECRET=your_token_secret_here
+
+# ClickUp - Required for ClickUp tools
+# Get your token from: https://app.clickup.com/settings/apps
+CLICKUP_API_TOKEN=your_clickup_token_here
+
+# GitHub - Optional for enhanced code search
+# Create at: https://github.com/settings/tokens
+GITHUB_TOKEN=your_github_token_here
 ```
 
-The server works fully without these - they're only needed for future API integration features.
+**Note:** DuckDuckGo search works without any API keys - it's completely free and unlimited!
 
 ## **Project Structure**
 
