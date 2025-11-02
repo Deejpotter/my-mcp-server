@@ -20,9 +20,12 @@ This MCP server provides essential development tools with enterprise-grade secur
 
 **Quick Links:**
 
-- **[Complete Documentation](http://bookstack.deejpotter.com/shelves/server-info)** - Full documentation in BookStack ("Server info" shelf)
-- **[MCP Server Book](http://bookstack.deejpotter.com/books/mcp-server-XGf)** - Direct link to MCP Server documentation
-- **[AI Prompt Guide](AI-PROMPT.md)** - Guide for AI assistants working on this project
+- **[Complete Documentation](http://bookstack.deejpotter.com/)** - Full documentation in BookStack
+  - **[Server Info Shelf](http://bookstack.deejpotter.com/shelves/server-info)** - Production MCP Server documentation
+  - **[MCP Server Book](http://bookstack.deejpotter.com/books/mcp-server-XGf)** - Installation, configuration, and usage
+  - **[Development Shelf](http://bookstack.deejpotter.com/shelves/development)** - Development guides and resources
+  - **[Prompts & AI Guides Book](http://bookstack.deejpotter.com/books/prompts-ai-guides)** - AI assistant guidelines
+- **[AI Prompt Guide](AI-PROMPT.md)** - Guide for AI assistants working on this project (also in BookStack)
 - **[TODO](TODO.md)** - Current development priorities and roadmap
 
 ## **Quick Start**
