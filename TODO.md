@@ -53,19 +53,18 @@
 - Updated AI-PROMPT.md with prompt development patterns
 - Successfully registered in `src/server.ts` and built
 
+**Phase 4.75: Fix DuckDuckGo Search** ✅
+
+- **Root Cause**: Was using DuckDuckGo Instant Answer API which only returns Wikipedia abstracts
+- **Solution**: Switched to HTML endpoint (`html.duckduckgo.com/html/`)
+- Implemented HTML parsing to extract real web search results
+- Added URL decoding for DuckDuckGo's wrapped links (uddg parameter)
+- Added HTML entity and tag cleaning for titles and snippets
+- Removed abstract/abstractSource/abstractURL fields from output schema
+- Successfully built and committed (8fde548)
+- **Note**: Requires MCP server restart to test changes
+
 ### 🔄 Next Priorities (for laptop continuation)
-
-**Bug Fix: DuckDuckGo Search** (IMMEDIATE)
-
-- **Root Cause**: Currently using DuckDuckGo Instant Answer API (`api.duckduckgo.com`)
-  - This API only returns Wikipedia abstracts and related topics, NOT web search results
-  - Need to switch to HTML search endpoint (`html.duckduckgo.com/html/`) used by Python library
-- **Solution**: Implement HTML parsing like `duckduckgo_search` Python library
-  - Use POST request to `https://html.duckduckgo.com/html/`
-  - Parse HTML to extract `<div class="result__body">` blocks
-  - Extract title, URL (decode `uddg` parameter), and snippet from each result
-  - Reference: <https://github.com/deedy5/duckduckgo_search>
-- **Status**: Researched via Context7, implementation pending
 
 **Bug Fix: Google Search API Key** (IMMEDIATE)
 
