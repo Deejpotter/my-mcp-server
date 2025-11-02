@@ -55,6 +55,24 @@
 
 ### 🔄 Next Priorities (for laptop continuation)
 
+**Bug Fix: DuckDuckGo Search** (IMMEDIATE)
+
+- **Root Cause**: Currently using DuckDuckGo Instant Answer API (`api.duckduckgo.com`)
+  - This API only returns Wikipedia abstracts and related topics, NOT web search results
+  - Need to switch to HTML search endpoint (`html.duckduckgo.com/html/`) used by Python library
+- **Solution**: Implement HTML parsing like `duckduckgo_search` Python library
+  - Use POST request to `https://html.duckduckgo.com/html/`
+  - Parse HTML to extract `<div class="result__body">` blocks
+  - Extract title, URL (decode `uddg` parameter), and snippet from each result
+  - Reference: <https://github.com/deedy5/duckduckgo_search>
+- **Status**: Researched via Context7, implementation pending
+
+**Bug Fix: Google Search API Key** (IMMEDIATE)
+
+- SERPAPI_API_KEY not being picked up by MCP server
+- Need to restart MCP connection in VS Code to load new .env variables
+- Command: "MCP: Restart Connection" or "Developer: Reload Window"
+
 **Phase 5: Implement BookStack Tool** (NEXT)
 
 - Create `src/tools/bookstackTools.ts`
