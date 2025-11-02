@@ -70,6 +70,24 @@ interface BookContent {
 }
 
 /**
+ * BookStack shelf content response
+ */
+interface ShelfContent {
+	id: number;
+	name: string;
+	slug: string;
+	description: string;
+	books: Array<{
+		id: number;
+		name: string;
+		slug: string;
+	}>;
+	created_at: string;
+	updated_at: string;
+	url: string;
+}
+
+/**
  * Make authenticated request to BookStack API
  */
 async function bookstackRequest(
@@ -500,7 +518,10 @@ Common issues:
 				"Create a new book in the system. Books are top-level containers for organizing " +
 				"chapters and pages. Returns the created book with ID and URL.",
 			inputSchema: {
-				name: z.string().min(1).describe("The name/title of the book (required)"),
+				name: z
+					.string()
+					.min(1)
+					.describe("The name/title of the book (required)"),
 				description: z
 					.string()
 					.optional()
@@ -611,7 +632,10 @@ Common issues:
 				"Create a new chapter within a book. Chapters are containers for organizing " +
 				"pages within a book. Returns the created chapter with ID and URL.",
 			inputSchema: {
-				name: z.string().min(1).describe("The name/title of the chapter (required)"),
+				name: z
+					.string()
+					.min(1)
+					.describe("The name/title of the chapter (required)"),
 				book_id: z
 					.number()
 					.positive()
@@ -739,12 +763,17 @@ Common issues:
 				"You must provide either book_id (for top-level page) or chapter_id (for page in chapter). " +
 				"Content can be provided as HTML or Markdown. Returns the created page with ID and URL.",
 			inputSchema: {
-				name: z.string().min(1).describe("The name/title of the page (required)"),
+				name: z
+					.string()
+					.min(1)
+					.describe("The name/title of the page (required)"),
 				book_id: z
 					.number()
 					.positive()
 					.optional()
-					.describe("The ID of the parent book (required if chapter_id not provided)"),
+					.describe(
+						"The ID of the parent book (required if chapter_id not provided)"
+					),
 				chapter_id: z
 					.number()
 					.positive()
@@ -1150,6 +1179,131 @@ Common issues:
 1. Check that the page_id exists and you have permission to edit it
 2. Ensure at least one field is provided to update
 3. If moving to different book/chapter, verify those IDs exist
+4. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// BOOKSTACK CREATE SHELF TOOL
+	server.registerTool(
+		"bookstack_create_shelf",
+		{
+			title: "BookStack Create Shelf",
+			description:
+				"Create a new shelf in the system. Shelves are top-level containers for organizing " +
+				"multiple books. Can optionally add books to the shelf during creation. " +
+				"Returns the created shelf with ID and URL.",
+			inputSchema: {
+				name: z.string().min(1).describe("The name/title of the shelf (required)"),
+				description: z
+					.string()
+					.optional()
+					.describe("Description text for the shelf"),
+				books: z
+					.array(z.number().positive())
+					.optional()
+					.describe(
+						"Array of book IDs to add to the shelf in order. Books will be displayed in this order."
+					),
+				tags: z
+					.array(
+						z.object({
+							name: z.string(),
+							value: z.string().optional(),
+						})
+					)
+					.optional()
+					.describe(
+						"Array of tags to apply to the shelf. Each tag has a name and optional value."
+					),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				description: z.string(),
+				url: z.string(),
+				created_at: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ name, description, books, tags }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Build request body
+				const requestBody: Record<string, unknown> = {
+					name,
+				};
+
+				if (description) {
+					requestBody.description = description;
+				}
+
+				if (books) {
+					requestBody.books = books;
+				}
+
+				if (tags) {
+					requestBody.tags = tags;
+				}
+
+				// Create the shelf
+				const shelf = (await bookstackRequest(
+					"shelves",
+					"POST",
+					requestBody
+				)) as ShelfContent;
+
+				const output = {
+					id: shelf.id,
+					name: shelf.name,
+					slug: shelf.slug,
+					description: shelf.description,
+					url: shelf.url,
+					created_at: shelf.created_at,
+					updated_at: shelf.updated_at,
+				};
+
+				const bookInfo = books ? `\nBooks added: ${books.length}` : "";
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully created shelf: "${shelf.name}"\n\nID: ${shelf.id}\nURL: ${shelf.url}\nSlug: ${shelf.slug}${bookInfo}\n\nYou can now add books to this shelf.`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error creating BookStack shelf: ${err.message}
+
+Common issues:
+1. Check that you have permission to create shelves
+2. Ensure the shelf name is not empty
+3. If adding books, verify those book IDs exist
 4. Verify your API credentials are correct`,
 						},
 					],
