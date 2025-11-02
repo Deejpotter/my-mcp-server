@@ -33,6 +33,13 @@ Visit your BookStack instance and navigate to:
 - **Shelf**: <http://bookstack.deejpotter.com/shelves/server-info>
 - **Book**: <http://bookstack.deejpotter.com/books/mcp-server-XGf>
 
+**Recent Updates**:
+
+- ✅ Removed duplicate .env commands between Installation and Configuration pages
+- ✅ Consolidated security content in Features & Capabilities page
+- ✅ Streamlined Architecture page (removed redundant security section)
+- ✅ Updated First Steps with modern npm-based VS Code integration
+
 ## Configuration
 
 Ensure these are in your `.env` file:
