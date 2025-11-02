@@ -12,40 +12,7 @@ import { z } from "zod";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { glob } from "glob";
-
-/**
- * Validate file path for security (prevent path traversal)
- */
-function validatePath(
-	filePath: string,
-	_operation: "read" | "write" | "list"
-): { valid: boolean; error?: string } {
-	const resolved = path.resolve(filePath);
-	const cwd = process.cwd();
-
-	// Ensure path is within working directory (prevent path traversal)
-	if (!resolved.startsWith(cwd)) {
-		return {
-			valid: false,
-			error: "Path traversal detected - path must be within working directory",
-		};
-	}
-
-	// Block access to sensitive directories
-	const forbiddenPaths = [".git", "node_modules", ".env"];
-	const relativePath = path.relative(cwd, resolved);
-
-	for (const forbidden of forbiddenPaths) {
-		if (
-			relativePath.startsWith(forbidden) ||
-			relativePath.includes(`${path.sep}${forbidden}${path.sep}`)
-		) {
-			return { valid: false, error: `Access to ${forbidden} is forbidden` };
-		}
-	}
-
-	return { valid: true };
-}
+import { validatePath } from "../utils/security.js";
 
 /**
  * Register file operation tools with the MCP server
@@ -78,7 +45,10 @@ export function registerFileTools(server: McpServer) {
 				if (!validation.valid) {
 					return {
 						content: [
-							{ type: "text", text: `🔒 Security Error: ${validation.error}` },
+							{
+								type: "text",
+								text: `🔒 Security Error: ${validation.checks.join(", ")}`,
+							},
 						],
 						isError: true,
 					};
@@ -159,7 +129,10 @@ export function registerFileTools(server: McpServer) {
 				if (!validation.valid) {
 					return {
 						content: [
-							{ type: "text", text: `🔒 Security Error: ${validation.error}` },
+							{
+								type: "text",
+								text: `🔒 Security Error: ${validation.checks.join(", ")}`,
+							},
 						],
 						isError: true,
 					};
@@ -237,7 +210,10 @@ export function registerFileTools(server: McpServer) {
 				if (!validation.valid) {
 					return {
 						content: [
-							{ type: "text", text: `🔒 Security Error: ${validation.error}` },
+							{
+								type: "text",
+								text: `🔒 Security Error: ${validation.checks.join(", ")}`,
+							},
 						],
 						isError: true,
 					};

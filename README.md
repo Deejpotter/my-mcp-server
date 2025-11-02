@@ -184,14 +184,6 @@ All tools include comprehensive security validation and error handling.
   - Modify task properties (name, description, status, priority)
   - Add or remove assignees
   - Update due dates and other fields
-  - Get up-to-date, version-specific documentation
-  - Optional topic filtering for focused documentation
-  - Configurable token limits for documentation length
-
-- **search_documentation** - Search across multiple libraries in Context7
-  - Full-text search across documentation
-  - Filter by category/technology
-  - Get relevance-ranked results with snippets
 
 ### **Command Execution**
 
