@@ -44,11 +44,11 @@
 
 **Phase 4.5: Implement MCP Prompts** ✅
 
-- Created `src/prompts/prompts.ts` with 5 high-quality workflow prompts
-- Prompts: `code_review_guide`, `commit_message_composer`, `library_research_workflow`, `bug_investigation_guide`, `feature_implementation_plan`
+- Created `src/prompts/prompts.ts` with 6 high-quality workflow prompts
+- Prompts: `code_review_guide`, `commit_message_composer`, `library_research_workflow`, `bug_investigation_guide`, `feature_implementation_plan`, `search_strategy_guide`
 - Quality over quantity approach - each prompt guides real workflows
 - System messages set expert context, user templates provide step-by-step guidance
-- Integrated with existing tools (git_command, Context7, file operations)
+- Integrated with existing tools (git_command, Context7, file operations, search tools)
 - Added "Available Prompts" section to README.md
 - Updated AI-PROMPT.md with prompt development patterns
 - Successfully registered in `src/server.ts` and built
@@ -126,6 +126,7 @@ src/resources/systemResources.ts      ❌ DELETED
 3. **library_research_workflow**: Library evaluation process
 4. **bug_investigation_guide**: Structured debugging methodology
 5. **feature_implementation_plan**: Feature breakdown and planning
+6. **search_strategy_guide**: Meta-prompt for effective search across tools
 
 ## Development Notes for Next Session
 

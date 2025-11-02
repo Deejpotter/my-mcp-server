@@ -139,6 +139,7 @@ These are high-quality, workflow-focused prompts exposed by the MCP server. Each
 - **library_research_workflow** — Systematic library/framework research workflow using Context7 and web search to evaluate fit and alternatives.
 - **bug_investigation_guide** — Structured debugging methodology: reproduce, gather data, form hypotheses, test, fix, and document.
 - **feature_implementation_plan** — Break a feature into requirements, architecture, file changes, tests, rollout, and success metrics.
+- **search_strategy_guide** — Meta-prompt for effective search strategy across Google, DuckDuckGo, and Context7; teaches query formulation, tool selection, and source evaluation.
 
 ## **Security Features**
 
