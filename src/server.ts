@@ -24,6 +24,7 @@ import { registerGoogleSearchTools } from "./tools/googleSearchTools.js";
 import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js";
 import { registerContext7Tools } from "./tools/context7Tools.js";
 import { registerGitResources } from "./resources/gitResources.js";
+import { registerPrompts } from "./prompts/prompts.js";
 
 // CRITICAL: Never use console.log in MCP servers - it corrupts stdio transport
 // Use console.error for debugging (writes to stderr)
@@ -43,6 +44,9 @@ registerContext7Tools(server);
 
 // Register all resources
 registerGitResources(server);
+
+// Register prompts (quality-focused workflows)
+registerPrompts(server);
 
 // Connect via stdio (for VS Code/Copilot integration)
 async function main() {

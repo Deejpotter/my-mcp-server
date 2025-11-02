@@ -130,7 +130,15 @@ All tools include comprehensive security validation and error handling.
 
 Resources provide read-only context information to AI assistants.
 
-- **git://status** - Current git repository status
+## **Available Prompts**
+
+These are high-quality, workflow-focused prompts exposed by the MCP server. Each prompt is designed to guide a real developer workflow (quality over quantity).
+
+- **code_review_guide** — Step-by-step code review workflow covering readability, security, performance, testing, and actionable recommendations.
+- **commit_message_composer** — Compose meaningful commit messages following Conventional Commits; integrates with git tools to analyze diffs.
+- **library_research_workflow** — Systematic library/framework research workflow using Context7 and web search to evaluate fit and alternatives.
+- **bug_investigation_guide** — Structured debugging methodology: reproduce, gather data, form hypotheses, test, fix, and document.
+- **feature_implementation_plan** — Break a feature into requirements, architecture, file changes, tests, rollout, and success metrics.
 
 ## **Security Features**
 

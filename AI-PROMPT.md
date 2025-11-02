@@ -183,6 +183,17 @@ const schema = z.object({
 10. **HTTP Requests**: Use Node.js built-in `fetch` (available in Node 18+)
 11. **File Headers**: Include date (dd/mm/yy), author, description, and reference URLs
 
+### **Prompt Development**
+
+- Prompts should be high-quality, workflow-oriented, and limited in number (quality over quantity).
+- Register prompts in a single, maintainable file (recommended: `src/prompts/prompts.ts`) using `server.prompt()` / `server.registerPrompt()` as supported by the MCP SDK.
+- Each prompt must include:
+  - A concise system message that sets an expert persona and execution constraints.
+  - A structured user message template with step-by-step workflow guidance and example invocations.
+  - Optional typed arguments (use Zod) for customization.
+  - References to related tools/resources (Context7, git tools, file tools) when orchestration is intended.
+- Document prompt names, descriptions, and arguments in `README.md` under an "Available Prompts" section so clients can discover them easily.
+
 ### **Tool Implementation Standards**
 
 - **Descriptive names**: `github_search_code` not `gh_search`
