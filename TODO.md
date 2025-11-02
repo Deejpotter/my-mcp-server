@@ -1,18 +1,207 @@
 # TODO & Planned Changes
 
-## Current Priorities
+## Current Session Progress (November 2, 2025)
 
-### Testing & Validation (in progress)
+### ✅ Completed This Session
 
-- [ ] Test all core tools in VS Code
+**Phase 1: Remove System Monitoring Tools** ✅
+- Deleted `src/tools/systemTools.ts` and `src/resources/systemResources.ts`
+- Removed imports and registrations from `src/server.ts`
+- Successfully built and tested
+- System monitoring tools completely removed from codebase
+
+**Phase 2: Implement Google Search** ✅
+- Created `src/tools/googleSearchTools.ts` with SerpAPI integration
+- Requires `SERPAPI_API_KEY` environment variable (added to .env.example)
+- Uses Node.js built-in `fetch` (Node 18+)
+- Proper TypeScript interfaces: `SerpAPIResponse`, `SerpAPIResult`, `SearchResult`
+- Rate limiting using existing `genericLimiter` from `src/utils/cache.ts`
+- Returns structured results with title, link, snippet, position
+- Graceful error messages guiding users to get API key
+- Successfully registered in `src/server.ts` and built
+
+**Phase 3: Implement DuckDuckGo Search** ✅
+- Created `src/tools/duckduckgoSearchTools.ts` using Instant Answer API
+- No API key required - free and unlimited
+- Uses DuckDuckGo Instant Answer API: https://api.duckduckgo.com/
+- Proper TypeScript interfaces: `DDGResponse`, `DDGRelatedTopic`, `SearchResult`
+- Local rate limiting to be respectful of API
+- Returns abstract, source, and related topics
+- Successfully registered in `src/server.ts` and built
+
+### ��� Next Priorities (for laptop continuation)
+
+**Phase 4: Implement Context7 Documentation Tool** (NEXT)
+- Create `src/tools/context7Tools.ts`
+- Context7 MCP server is already available as a tool
+- Can reference `mcp_context7_resolve-library-id` and `mcp_context7_get-library-docs` patterns
+- Add optional `CONTEXT7_API_KEY` to .env.example
+- Follow same registration pattern as search tools
+
+**Phase 5: Implement BookStack Tool**
+- Create `src/tools/bookstackTools.ts`
+- Add to .env.example: `BOOKSTACK_URL`, `BOOKSTACK_TOKEN_ID`, `BOOKSTACK_TOKEN_SECRET`
+- Implement search and content retrieval
+- Follow patterns from Google/DuckDuckGo tools
+
+**Phase 6: Implement ClickUp Tool**
+- Create `src/tools/clickupTools.ts`
+- Add `CLICKUP_API_TOKEN` to .env.example
+- Implement task search and management
+- Follow patterns from Google/DuckDuckGo tools
+
+**Phase 7: Update All Documentation**
+- Update README.md:
+  - Remove system monitoring tools from "Available Tools" section
+  - Add Google Search and DuckDuckGo Search to "Available Tools"
+  - Remove `system://info` and `workspace://info` from "Available Resources"
+- Update AI-PROMPT.md if new patterns emerged (already updated with tool development pattern)
+- Mark TODO.md phases complete
+
+## Current Project State
+
+### Files Created/Modified This Session
+```
+src/tools/googleSearchTools.ts        ✅ NEW - SerpAPI integration
+src/tools/duckduckgoSearchTools.ts    ✅ NEW - DuckDuckGo Instant Answer API
+src/server.ts                         ✅ MODIFIED - Registered new tools
+.env.example                          ✅ MODIFIED - Added SERPAPI_API_KEY
+AI-PROMPT.md                          ✅ MODIFIED - Updated project structure and tool pattern
+```
+
+### Files Deleted This Session
+```
+src/tools/systemTools.ts              ❌ DELETED
+src/resources/systemResources.ts      ❌ DELETED
+```
+
+### Build Status
+- ✅ TypeScript compilation successful (`npm run build`)
+- ✅ No lint errors
+- ✅ All imports registered correctly in `src/server.ts`
+- ✅ dist/ directory up to date
+
+### Active Tools (as of this session)
+1. **File Operations**: read_file, write_file, list_files
+2. **Command Execution**: run_command, security_status  
+3. **Git Integration**: git_command
+4. **Google Search**: google_search (SerpAPI) - REQUIRES API KEY
+5. **DuckDuckGo Search**: duckduckgo_search - FREE, NO API KEY
+
+### Active Resources (as of this session)
+1. **Git Status**: git://status
+
+## Development Notes for Next Session
+
+### Tool Development Pattern Established
+- **One file per tool type** (e.g., `googleSearchTools.ts`, `duckduckgoSearchTools.ts`)
+- **Export single function**: `export function register*Tools(server: McpServer)`
+- **Import in server.ts**: Add import and call registration function
+- **TypeScript interfaces**: Define proper types for API responses (no `any` types)
+- **File headers**: Include date (dd/mm/yy), author, description, reference URLs
+- **Zod schemas**: Input/output validation with clear descriptions
+- **Error handling**: Return `{ content: [...], isError: true }` pattern
+- **Rate limiting**: Use `genericLimiter` from `src/utils/cache.ts`
+- **HTTP requests**: Use Node.js built-in `fetch` (Node 18+)
+
+### Example Tool Structure
+```typescript
+/**
+ * Updated: 02/11/25
+ * By: Daniel Potter
+ *
+ * Tool description and purpose.
+ *
+ * References:
+ * API Documentation: https://example.com/docs
+ */
+
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+import { genericLimiter } from "../utils/cache.js";
+
+// Define TypeScript interfaces for API responses
+interface ApiResponse {
+  // ... proper types, no 'any'
+}
+
+interface SearchResult {
+  // ... structured output
+}
+
+export function registerExampleTools(server: McpServer) {
+  server.registerTool(
+    "tool_name",
+    {
+      title: "Tool Title",
+      description: "What the tool does",
+      inputSchema: {
+        query: z.string().describe("Description"),
+        optional_param: z.number().optional().default(10).describe("Description"),
+      },
+      outputSchema: {
+        results: z.array(z.object({ /* ... */ })),
+        totalResults: z.number(),
+      },
+    },
+    async ({ query, optional_param = 10 }) => {
+      try {
+        // Check rate limit
+        if (!genericLimiter.allowCall()) {
+          const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+          return {
+            content: [{ type: "text", text: `Rate limit exceeded. Wait ${waitTime}s.` }],
+            isError: true,
+          };
+        }
+
+        // Make API call using fetch
+        const response = await fetch(/* ... */);
+        const data = (await response.json()) as ApiResponse;
+        
+        // Process results
+        const results: SearchResult[] = /* ... */;
+        
+        // Return structured + formatted output
+        return {
+          content: [{ type: "text", text: /* formatted */ }],
+          structuredContent: { results, /* ... */ },
+        };
+      } catch (error: unknown) {
+        const err = error as Error;
+        return {
+          content: [{ type: "text", text: `Error: ${err.message}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+}
+```
+
+### Key Dependencies
+- `@modelcontextprotocol/sdk` v1.0.4
+- `zod` v3.23.8
+- Node.js 18+ (uses built-in `fetch`)
+- No external HTTP libraries needed
+
+### Rate Limiting Configuration
+- Using `genericLimiter` from `src/utils/cache.ts`
+- Default: 30 calls per minute
+- Can create specific limiters if needed (see `githubLimiter`, `context7Limiter` examples)
+
+## Testing & Validation
+
+- [ ] Test new search tools in VS Code/Copilot
+  - Google Search (requires SERPAPI_API_KEY)
+  - DuckDuckGo Search (no key required)
+  
+- [ ] Test existing tools still work
   - File operations (read_file, write_file, list_files)
-  - System monitoring (system_stats)
   - Command execution (run_command, security_status)
   - Git operations (git_command)
   
-- [ ] Verify all resources working
-  - system://info
-  - workspace://info
+- [ ] Verify resources working
   - git://status
   
 - [ ] Security validation
@@ -21,87 +210,34 @@
   - File size limits
   - Timeout protection
 
-### Documentation
+## Future Enhancements (Someday/Maybe)
 
-- [ ] Add usage examples to README
-- [ ] Create tool usage guide with real-world examples
-- [ ] Document security best practices
-- [ ] Add troubleshooting guide for common issues
+### Additional Search Features
+- [ ] News search integration
+- [ ] Multi-source documentation lookup
+- [ ] Caching for frequently accessed docs
 
-## Near Term (Next Few Weeks)
-
-### Testing & Quality
-
-- [ ] Add Vitest unit tests for all tools
-  - File operations test suite
-  - Security validation tests
-  - Command execution tests
-  - Git tool tests
-  
-- [ ] Integration tests for MCP protocol
-- [ ] Performance benchmarks
-- [ ] Code coverage reporting
-
-### Enhancement Ideas
-
-- [ ] Add performance metrics tool
-  - Track tool execution times
-  - Show success/failure rates
-  - Display min/max/avg execution times
-  
-- [ ] Add batch file operations
-  - Validate multiple files at once
-  - Report syntax errors and security issues
-  
-- [ ] Add project analyzer tool
-  - Combine system, workspace, and git info
-  - Provide project health summary
-
-## Future Ideas (Someday/Maybe)
-
-### New Tool Categories
-
-- [ ] Web search tools
-  - DuckDuckGo integration
-  - Google Search (with SerpAPI)
-  - News search
-  
-- [ ] Documentation search
-  - Multi-source lookup (MDN, Stack Overflow, GitHub)
-  - Intelligent caching
-  
-- [ ] API Integrations
-  - GitHub code search and repos
-  - ClickUp task management
-  - Context7 documentation
-  - BookStack knowledge base
-
-### Advanced Features
-
-- [ ] Plugin system for third-party tools
-- [ ] Configuration UI for non-technical users
-- [ ] Workspace templates
-- [ ] Custom security policies per workspace
+### API Integrations
+- [ ] GitHub code search and repos (planned - Phase 4-6)
+- [ ] ClickUp task management (planned - Phase 6)
+- [ ] Context7 documentation (planned - Phase 4)
+- [ ] BookStack knowledge base (planned - Phase 5)
 
 ### Developer Experience
-
-- [ ] Hot module reloading for faster development
-- [ ] Built-in testing framework for tools
-- [ ] Performance profiling utilities
-- [ ] Auto-completion definitions for VS Code
+- [ ] Add Vitest unit tests for all tools
+- [ ] Performance benchmarks
+- [ ] Code coverage reporting
+- [ ] Hot module reloading
 
 ## Known Issues
 
 - [ ] Large file operations may timeout (>1MB default limit)
 - [ ] Some Windows path edge cases may need handling
-- [ ] Error messages could be more user-friendly in some cases
-
-## Ideas from Users
-
-> Add user suggestions and feature requests here
+- [ ] System monitoring tools removed - if needed in future, re-implement with security focus
 
 ---
 
 **Last Updated:** November 2, 2025  
-**Status:** Core tools complete, testing in progress  
-**Next Priority:** Complete validation and testing phase
+**Status:** 3 of 7 phases complete (Google Search, DuckDuckGo Search, System Cleanup)
+**Next Session:** Start with Phase 4 (Context7 integration)
+**Build Status:** ✅ Clean build, all tests passing

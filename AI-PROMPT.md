@@ -36,24 +36,27 @@ You are working on **my-mcp-server**, a Model Context Protocol (MCP) server that
 ```text
 my-mcp-server/
 ├── src/
-│   ├── server.ts             # MCP server entry point (TypeScript)
-│   ├── tools/                # MCP tools (modular TypeScript)
-│   │   ├── fileTools.ts      # File operations (read, write, list)
-│   │   ├── systemTools.ts    # System stats and monitoring
-│   │   ├── commandTools.ts   # Command execution with security
-│   │   └── gitTools.ts       # Git command operations
-│   ├── resources/            # MCP resources
-│   │   ├── systemResources.ts  # System and workspace info
-│   │   └── gitResources.ts     # Git repository status
-│   └── utils/                # Shared utilities
-│       ├── security.ts       # Security & path validation
-│       ├── cache.ts          # Caching & rate limiting
-│       └── performance.ts    # Performance tracking
-├── dist/                     # Compiled JavaScript (generated)
-├── package.json              # Node.js dependencies
-├── tsconfig.json             # TypeScript configuration
-└── TODO.md                   # Track planned features and improvements
+│   ├── server.ts                  # MCP server entry point (TypeScript)
+│   ├── tools/                     # MCP tools (modular TypeScript)
+│   │   ├── fileTools.ts           # File operations (read, write, list)
+│   │   ├── commandTools.ts        # Command execution with security
+│   │   ├── gitTools.ts            # Git command operations
+│   │   ├── googleSearchTools.ts   # Google Search via SerpAPI
+│   │   └── duckduckgoSearchTools.ts # DuckDuckGo Search (no API key)
+│   ├── resources/                 # MCP resources
+│   │   └── gitResources.ts        # Git repository status
+│   └── utils/                     # Shared utilities
+│       ├── security.ts            # Security & path validation
+│       ├── cache.ts               # Caching & rate limiting
+│       └── performance.ts         # Performance tracking
+├── dist/                          # Compiled JavaScript (generated)
+├── package.json                   # Node.js dependencies
+├── tsconfig.json                  # TypeScript configuration
+├── .env.example                   # Environment variable template
+└── TODO.md                        # Track planned features and improvements
 ```
+
+**Note:** System monitoring tools (systemTools.ts, systemResources.ts) were removed as they were not needed.
 
 ### **Architecture Philosophy**
 
@@ -168,11 +171,17 @@ const schema = z.object({
 
 ### **Tool Development Pattern**
 
-1. **Schema Definition**: Use Zod schemas with clear descriptions, required vs optional parameters
-2. **Error Handling**: Return content with isError flag, never throw unhandled exceptions
-3. **Input Validation**: Zod handles schema validation automatically
-4. **Security**: Use validatePath() from utils/security.ts, enforce timeouts and size limits
-5. **Registration**: Use server.registerTool() with tool name, schema, and async handler
+1. **File Organization**: One file per tool type (e.g., googleSearchTools.ts, duckduckgoSearchTools.ts)
+2. **Export Pattern**: Export single `register*Tools(server: McpServer)` function that registers all related tools
+3. **Registration in server.ts**: Import and call the register function in src/server.ts
+4. **Schema Definition**: Use Zod schemas with clear descriptions, required vs optional parameters
+5. **TypeScript Interfaces**: Define proper interfaces for API responses (no `any` types)
+6. **Error Handling**: Return content with isError flag, never throw unhandled exceptions
+7. **Input Validation**: Zod handles schema validation automatically
+8. **Security**: Use validatePath() from utils/security.ts, enforce timeouts and size limits
+9. **Rate Limiting**: Use existing rate limiters from utils/cache.ts (genericLimiter, etc.)
+10. **HTTP Requests**: Use Node.js built-in `fetch` (available in Node 18+)
+11. **File Headers**: Include date (dd/mm/yy), author, description, and reference URLs
 
 ### **Tool Implementation Standards**
 

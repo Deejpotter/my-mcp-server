@@ -18,10 +18,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerFileTools } from "./tools/fileTools.js";
-import { registerSystemTools } from "./tools/systemTools.js";
 import { registerCommandTools } from "./tools/commandTools.js";
 import { registerGitTools } from "./tools/gitTools.js";
-import { registerSystemResources } from "./resources/systemResources.js";
+import { registerGoogleSearchTools } from "./tools/googleSearchTools.js";
+import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
 
 // CRITICAL: Never use console.log in MCP servers - it corrupts stdio transport
@@ -34,12 +34,12 @@ const server = new McpServer({
 
 // Register all tools
 registerFileTools(server);
-registerSystemTools(server);
 registerCommandTools(server);
 registerGitTools(server);
+registerGoogleSearchTools(server);
+registerDuckDuckGoSearchTools(server);
 
 // Register all resources
-registerSystemResources(server);
 registerGitResources(server);
 
 // Connect via stdio (for VS Code/Copilot integration)
