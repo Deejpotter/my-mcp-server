@@ -584,17 +584,17 @@ Start by exploring the codebase to understand the current implementation, then w
 		}
 	);
 
-	// PROMPT 6: SEARCH STRATEGY GUIDE
+	// PROMPT 6: SEARCH OPTIMIZER
 	server.prompt(
 		"search_strategy_guide",
-		"Strategic guide for effective web searches using Google, DuckDuckGo, and Context7 tools",
+		"Transforms user's rough search intent into optimized queries for Google, DuckDuckGo, and Context7 tools",
 		{
-			search_goal: z.string().optional().describe("What you're trying to find (e.g., 'API documentation', 'error solution', 'tutorial')"),
-			topic: z.string().optional().describe("The topic or technology you're searching for"),
+			user_query: z.string().describe("The user's original search query or intent"),
+			context: z.string().optional().describe("Additional context about what they're working on"),
 		},
 		async (args) => {
-			const searchGoal = args?.search_goal || "[what you're trying to find]";
-			const topic = args?.topic || "[your topic]";
+			const userQuery = args?.user_query || "[user's search query]";
+			const context = args?.context || "";
 
 			return {
 				messages: [
@@ -602,232 +602,161 @@ Start by exploring the codebase to understand the current implementation, then w
 						role: "assistant" as const,
 						content: {
 							type: "text" as const,
-							text: `You are a research expert who helps developers find information effectively. You understand how different search tools work, how to formulate queries, and how to evaluate source quality. You guide systematic research that saves time and finds authoritative answers.`,
+							text: `You are a search optimization expert. Your job is to take a user's rough search query and transform it into highly effective searches across multiple tools. You understand:
+
+- How to extract intent from vague queries
+- Which search tool is best for different information needs
+- How to formulate queries that get precise results
+- What search operators and filters to use
+- How to structure multi-step search strategies
+
+You provide actionable search plans with specific queries ready to execute.`,
 						},
 					},
 					{
 						role: "user" as const,
 						content: {
 							type: "text" as const,
-							text: `# Search Strategy Guide
+							text: `# Optimize This Search
 
-## Search Goal
-Finding: ${searchGoal}
-Topic: ${topic}
+## User's Original Query
+"${userQuery}"
 
-## Step 1: Define Your Information Need
-Be specific about what you're looking for:
+${context ? `## Additional Context\n${context}\n` : ''}
+${context ? `## Additional Context\n${context}\n` : ''}
+## Your Task
+Analyze the user's query and create an optimized search strategy. Provide:
 
-**Type of Information:**
-- 📚 **Official Documentation**: API references, configuration guides
-- 🐛 **Troubleshooting**: Error messages, bug fixes, workarounds
-- 📖 **Learning**: Tutorials, explanations, best practices
-- 💻 **Code Examples**: Implementation patterns, sample code
-- 🔍 **Comparison**: Tool/library comparisons, alternatives
-- 📰 **News/Updates**: Latest features, version changes, roadmaps
+1. **Intent Analysis**: What is the user really trying to find?
+2. **Recommended Tool**: Which tool(s) to use first and why
+3. **Optimized Queries**: Specific, ready-to-execute search queries
+4. **Search Strategy**: Step-by-step approach if multiple searches needed
 
-**Specificity Level:**
-- **Broad**: Understanding a concept or technology
-- **Narrow**: Specific API method, error code, configuration option
-- **Deep**: Advanced usage, edge cases, performance tuning
+---
 
-## Step 2: Choose the Right Search Tool
+## Step 1: Understand the Intent
 
-### When to Use Context7 (\`resolve_library_id\` + \`get_documentation\`)
-✅ **Best for:**
-- Official API documentation
-- Up-to-date library references
-- Version-specific information
-- Code examples from official sources
-- Getting started guides
+Classify the search type:
+- 📚 **Official Documentation** → Use Context7 (resolve_library_id + get_documentation)
+- 🐛 **Error/Bug** → Use Google with exact error message in quotes
+- 📖 **Tutorial/Learning** → Use Google or DuckDuckGo for community content
+- 💻 **Code Examples** → Context7 first, then Google "site:github.com"
+- 🔍 **Comparison** → DuckDuckGo for unbiased results, then Context7 for official docs
+- 📰 **Latest News** → Google with recent date filter
 
-❌ **Not ideal for:**
-- Blog posts or tutorials
-- Community discussions
-- Troubleshooting user-reported issues
-- Comparing multiple libraries
+## Step 2: Extract Key Information
 
-**How to use:**
-1. First: \`resolve_library_id\` to find the correct library
-2. Then: \`get_documentation\` with optional topic filter
-3. Examples: "Next.js routing", "React hooks", "TypeScript generics"
+From the user's query, identify:
+- **Technology/Library**: What specific tool or framework?
+- **Version**: Is a specific version mentioned or implied?
+- **Problem**: Error message, concept, or feature?
+- **Context**: Language, framework, environment?
 
-### When to Use Google Search (\`google_search\`)
-✅ **Best for:**
-- Stack Overflow solutions
-- Blog tutorials and guides
-- Error message searches
-- "How to" queries
-- Community best practices
-- Recent discussions
+## Step 3: Choose the Best Tool
 
-❌ **Not ideal for:**
-- Privacy-sensitive searches
-- When avoiding personalized results
-- Simple factual lookups
+### Use Context7 (\`resolve_library_id\` + \`get_documentation\`) when:
+✅ Looking for official API documentation
+✅ Need authoritative, version-specific information
+✅ Want code examples from official sources
+✅ Learning framework basics or getting started
 
-**How to use:**
-- Include specific error messages in quotes
-- Add context: language, framework, version
-- Use operators: \`site:\`, \`filetype:\`, \`-exclude\`
+**Example queries for Context7:**
+- For library docs: "Next.js", "React", "TypeScript"
+- With topic: library="Next.js", topic="routing"
+- With version: library="React 18", topic="hooks"
 
-### When to Use DuckDuckGo (\`duckduckgo_search\`)
-✅ **Best for:**
-- Privacy-focused searches
-- Unbiased results (no personalization)
-- Instant answers and facts
-- Alternative perspectives
-- Quick definitions
+### Use Google Search (\`google_search\`) when:
+✅ Searching for error messages
+✅ Need Stack Overflow solutions
+✅ Want blog tutorials or guides
+✅ Looking for community discussions
+✅ Recent news or updates
 
-❌ **Not ideal for:**
-- Very specific technical queries
-- Recent news (may be slightly behind)
-- Highly localized results
+**Example queries for Google:**
+- Error: \`"Error: ENOENT: no such file or directory" node.js\`
+- How-to: \`how to deploy Next.js to vercel 2025\`
+- GitHub: \`site:github.com react custom hooks examples\`
+- Stack Overflow: \`site:stackoverflow.com typescript generics\`
+- Version specific: \`Node.js 20 new features\`
 
-## Step 3: Formulate Effective Queries
+### Use DuckDuckGo (\`duckduckgo_search\`) when:
+✅ Want unbiased, non-personalized results
+✅ Privacy is important
+✅ Quick factual lookups
+✅ Comparing options without SEO bias
+✅ Alternative to Google for general queries
 
-### Query Formulation Techniques
+**Example queries for DuckDuckGo:**
+- Comparison: \`React vs Vue 2025 comparison\`
+- Definition: \`what is serverless computing\`
+- Unbiased review: \`best typescript ORM\`
+
+## Step 4: Formulate Optimized Queries
+
+### Query Optimization Techniques:
 
 **Be Specific:**
-❌ "react error"
-✅ "react useEffect cleanup function not called on unmount"
+❌ Bad: "react error"
+✅ Good: "react useEffect cleanup function not called"
 
-**Include Context:**
-❌ "api authentication"
-✅ "Next.js 14 API route authentication with JWT TypeScript"
+**Add Context:**
+❌ Bad: "authentication"
+✅ Good: "Next.js 14 API route JWT authentication TypeScript"
 
-**Use Version Numbers:**
-❌ "Node.js fetch"
-✅ "Node.js 18 native fetch API examples"
+**Use Exact Matches for Errors:**
+❌ Bad: database connection error
+✅ Good: "Error: connect ECONNREFUSED 127.0.0.1:5432" postgresql
 
-**Add Error Codes:**
-❌ "database error"
-✅ "PostgreSQL error 23505 duplicate key violation"
+**Include Version Numbers:**
+❌ Bad: "node fetch"
+✅ Good: "Node.js 18 native fetch API"
 
-### Search Operators (for Google)
+**Google Search Operators:**
+- \`"exact phrase"\` - Exact match
+- \`site:domain.com\` - Search specific site
+- \`-exclude\` - Remove term
+- \`OR\` - Either term
+- \`filetype:pdf\` - Specific file type
+- \`after:2024\` - Recent results
 
-**Exact Phrase:** \`"error message here"\`
-- Forces exact match for error messages
+## Step 5: Provide the Optimized Search Plan
 
-**Site Specific:** \`site:stackoverflow.com typescript generics\`
-- Search within a specific domain
+Format your response as:
 
-**Exclude Terms:** \`react hooks -class\`
-- Remove results containing "class"
+### 🎯 Intent
+[What the user is trying to accomplish]
 
-**File Type:** \`filetype:pdf typescript guide\`
-- Find specific file types
+### 🛠️ Recommended Tool
+**Primary**: [Tool name] - [Why this tool]
+**Fallback**: [Alternative tool] - [When to use]
 
-**OR Operator:** \`react OR vue state management\`
-- Search for either term
+### 📝 Optimized Queries
 
-**Related Sites:** \`related:stackoverflow.com\`
-- Find similar sites
+**Query 1 (Context7/Google/DuckDuckGo):**
+\`\`\`
+[Exact query to execute]
+\`\`\`
+**Why**: [Brief explanation]
 
-## Step 4: Execute Multi-Tool Search Strategy
+**Query 2 (if needed):**
+\`\`\`
+[Exact query to execute]
+\`\`\`
+**Why**: [Brief explanation]
 
-### Strategy 1: Official Docs First
-For learning or API reference:
-1. **Context7**: Get official documentation
-2. **Google**: Find community tutorials if docs unclear
-3. **DuckDuckGo**: Check for alternative explanations
+### 📋 Search Strategy
+1. [First step with tool]
+2. [If that doesn't work, try this]
+3. [How to evaluate results]
 
-### Strategy 2: Error Resolution
-For troubleshooting:
-1. **Google**: Search exact error message in quotes
-2. **Context7**: Check if it's a documented limitation
-3. **Google**: Search for GitHub issues with error
+---
 
-### Strategy 3: Library Evaluation
-For choosing dependencies:
-1. **Context7**: Get official docs for each option
-2. **Google**: Search "\`library1\` vs \`library2\` 2025"
-3. **DuckDuckGo**: Get unbiased comparison articles
-4. **Google**: Check "\`library\` issues" on GitHub
+**Available Tools:**
+- \`resolve_library_id\` + \`get_documentation\` - Context7 official docs
+- \`google_search\` - Web search via SerpAPI
+- \`duckduckgo_search\` - Privacy-focused web search
 
-### Strategy 4: Learning Path
-For understanding concepts:
-1. **Context7**: Official getting started guide
-2. **Google**: Search "best \`topic\` tutorial 2025"
-3. **DuckDuckGo**: Quick facts and definitions
-4. **Google**: Search "advanced \`topic\` patterns"
-
-## Step 5: Evaluate Source Quality
-
-### Red Flags
-🚩 Outdated content (check publish date)
-🚩 No code examples or incorrect syntax
-🚩 Clickbait titles ("You won't believe...")
-🚩 No author credentials
-🚩 Content farm sites
-🚩 Lots of ads, poor formatting
-
-### Green Flags
-✅ Official documentation
-✅ Recognized authors/companies
-✅ Recent publication date
-✅ Working code examples
-✅ Clear explanations
-✅ Referenced sources
-✅ Community upvotes/validation
-
-### Authority Hierarchy
-1. **Official Docs** (Context7, vendor sites)
-2. **GitHub Issues** (from official repo)
-3. **Stack Overflow** (high-voted answers)
-4. **Dev.to / Medium** (by recognized authors)
-5. **Personal Blogs** (with credentials)
-6. **Forum Posts** (verify information)
-
-## Step 6: Cross-Reference Information
-
-When you find information:
-- ✅ Verify with official docs (Context7)
-- ✅ Check publication/update date
-- ✅ Look for multiple sources confirming
-- ✅ Test code examples yourself
-- ❌ Don't trust single source for critical decisions
-
-## Step 7: Refine and Iterate
-
-If not finding what you need:
-1. **Broader Search**: Remove specific terms
-2. **Different Terminology**: Try synonyms
-3. **Different Tool**: Switch search engine
-4. **Different Angle**: Search for related concepts
-5. **Ask Community**: Stack Overflow, GitHub Discussions
-
-## Common Search Patterns
-
-### Pattern: "How do I...?"
-1. Context7: Check official docs
-2. Google: "how to \`task\` in \`framework\` 2025"
-3. Look for official examples first
-
-### Pattern: "Error: ..."
-1. Google: "\`exact error message\`" in quotes
-2. Google: "\`error message\` \`framework\` \`version\`"
-3. Check GitHub issues
-
-### Pattern: "What's the best...?"
-1. Google: "best \`category\` 2025"
-2. Context7: Get docs for top 3 options
-3. DuckDuckGo: Unbiased comparisons
-
-### Pattern: "Why is...?"
-1. Google: Likely has discussions explaining
-2. Context7: Check if it's documented behavior
-3. Look for GitHub issues with explanation
-
-## Available Tools to Use
-
-- \`resolve_library_id\`: Find Context7 library IDs
-- \`get_documentation\`: Fetch official documentation
-- \`search_documentation\`: Search across Context7 libraries
-- \`google_search\`: Web search via SerpAPI
-- \`duckduckgo_search\`: Privacy-focused web search
-
-Start by clarifying exactly what you need to find, then choose the right combination of tools and queries!`,
+Now analyze the user's query and provide the optimized search plan!`,
 						},
 					},
 				],
