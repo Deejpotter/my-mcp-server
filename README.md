@@ -123,6 +123,31 @@ All tools include comprehensive security validation and error handling.
   - Retrieve book details and table of contents
   - View all chapters and pages in structured format
 
+- **bookstack_create_book** - Create new books
+  - Create top-level books with name, description, and tags
+  - Returns book ID and URL for adding chapters/pages
+  - Supports tagging for organization
+
+- **bookstack_create_chapter** - Create chapters within books
+  - Organize pages into logical chapters
+  - Requires parent book_id
+  - Supports descriptions and tags
+
+- **bookstack_create_page** - Create pages with content
+  - Create pages within books or chapters
+  - Supports both HTML and Markdown content
+  - Automatic base64 image extraction to gallery
+  - Requires either book_id or chapter_id
+
+- **bookstack_update_book** - Update book details
+  - Modify book name, description, and tags
+  - Partial updates supported (only provide fields to change)
+
+- **bookstack_update_page** - Update page content and metadata
+  - Update page name, HTML/Markdown content, and tags
+  - Move pages between books or chapters
+  - Partial updates supported
+
 ### **ClickUp Integration**
 
 - **clickup_get_task** - Retrieve task details

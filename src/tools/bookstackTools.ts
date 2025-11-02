@@ -490,4 +490,672 @@ Common issues:
 			}
 		}
 	);
+
+	// BOOKSTACK CREATE BOOK TOOL
+	server.registerTool(
+		"bookstack_create_book",
+		{
+			title: "BookStack Create Book",
+			description:
+				"Create a new book in the system. Books are top-level containers for organizing " +
+				"chapters and pages. Returns the created book with ID and URL.",
+			inputSchema: {
+				name: z.string().min(1).describe("The name/title of the book (required)"),
+				description: z
+					.string()
+					.optional()
+					.describe("Description text for the book"),
+				tags: z
+					.array(
+						z.object({
+							name: z.string(),
+							value: z.string().optional(),
+						})
+					)
+					.optional()
+					.describe(
+						"Array of tags to apply to the book. Each tag has a name and optional value."
+					),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				description: z.string(),
+				url: z.string(),
+				created_at: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ name, description, tags }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Build request body
+				const requestBody: Record<string, unknown> = {
+					name,
+				};
+
+				if (description) {
+					requestBody.description = description;
+				}
+
+				if (tags) {
+					requestBody.tags = tags;
+				}
+
+				// Create the book
+				const book = (await bookstackRequest(
+					"books",
+					"POST",
+					requestBody
+				)) as BookContent;
+
+				const output = {
+					id: book.id,
+					name: book.name,
+					slug: book.slug,
+					description: book.description,
+					url: book.url,
+					created_at: book.created_at,
+					updated_at: book.updated_at,
+				};
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully created book: "${book.name}"\n\nID: ${book.id}\nURL: ${book.url}\nSlug: ${book.slug}\n\nYou can now add chapters and pages to this book.`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error creating BookStack book: ${err.message}
+
+Common issues:
+1. Check that you have permission to create books
+2. Ensure the book name is not empty
+3. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// BOOKSTACK CREATE CHAPTER TOOL
+	server.registerTool(
+		"bookstack_create_chapter",
+		{
+			title: "BookStack Create Chapter",
+			description:
+				"Create a new chapter within a book. Chapters are containers for organizing " +
+				"pages within a book. Returns the created chapter with ID and URL.",
+			inputSchema: {
+				name: z.string().min(1).describe("The name/title of the chapter (required)"),
+				book_id: z
+					.number()
+					.positive()
+					.describe("The ID of the parent book (required)"),
+				description: z
+					.string()
+					.optional()
+					.describe("Description text for the chapter"),
+				tags: z
+					.array(
+						z.object({
+							name: z.string(),
+							value: z.string().optional(),
+						})
+					)
+					.optional()
+					.describe(
+						"Array of tags to apply to the chapter. Each tag has a name and optional value."
+					),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				book_id: z.number(),
+				description: z.string(),
+				url: z.string(),
+				created_at: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ name, book_id, description, tags }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Build request body
+				const requestBody: Record<string, unknown> = {
+					name,
+					book_id,
+				};
+
+				if (description) {
+					requestBody.description = description;
+				}
+
+				if (tags) {
+					requestBody.tags = tags;
+				}
+
+				// Create the chapter
+				const chapter = (await bookstackRequest(
+					"chapters",
+					"POST",
+					requestBody
+				)) as {
+					id: number;
+					name: string;
+					slug: string;
+					book_id: number;
+					description: string;
+					url: string;
+					created_at: string;
+					updated_at: string;
+				};
+
+				const output = {
+					id: chapter.id,
+					name: chapter.name,
+					slug: chapter.slug,
+					book_id: chapter.book_id,
+					description: chapter.description,
+					url: chapter.url,
+					created_at: chapter.created_at,
+					updated_at: chapter.updated_at,
+				};
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully created chapter: "${chapter.name}"\n\nID: ${chapter.id}\nURL: ${chapter.url}\nBook ID: ${chapter.book_id}\n\nYou can now add pages to this chapter.`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error creating BookStack chapter: ${err.message}
+
+Common issues:
+1. Check that the book_id exists and you have permission to add to it
+2. Ensure the chapter name is not empty
+3. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// BOOKSTACK CREATE PAGE TOOL
+	server.registerTool(
+		"bookstack_create_page",
+		{
+			title: "BookStack Create Page",
+			description:
+				"Create a new page within a book or chapter. Pages contain the actual content. " +
+				"You must provide either book_id (for top-level page) or chapter_id (for page in chapter). " +
+				"Content can be provided as HTML or Markdown. Returns the created page with ID and URL.",
+			inputSchema: {
+				name: z.string().min(1).describe("The name/title of the page (required)"),
+				book_id: z
+					.number()
+					.positive()
+					.optional()
+					.describe("The ID of the parent book (required if chapter_id not provided)"),
+				chapter_id: z
+					.number()
+					.positive()
+					.optional()
+					.describe(
+						"The ID of the parent chapter (required if book_id not provided)"
+					),
+				html: z
+					.string()
+					.optional()
+					.describe(
+						"HTML content for the page. Use single-block depth HTML. Images via base64 data URIs will be extracted to gallery."
+					),
+				markdown: z
+					.string()
+					.optional()
+					.describe("Markdown content for the page (alternative to HTML)"),
+				tags: z
+					.array(
+						z.object({
+							name: z.string(),
+							value: z.string().optional(),
+						})
+					)
+					.optional()
+					.describe(
+						"Array of tags to apply to the page. Each tag has a name and optional value."
+					),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				book_id: z.number(),
+				chapter_id: z.number().optional(),
+				url: z.string(),
+				created_at: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ name, book_id, chapter_id, html, markdown, tags }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Validate that either book_id or chapter_id is provided
+				if (!book_id && !chapter_id) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: "Error: Either book_id or chapter_id must be provided to create a page.",
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Build request body
+				const requestBody: Record<string, unknown> = {
+					name,
+				};
+
+				if (book_id) {
+					requestBody.book_id = book_id;
+				}
+
+				if (chapter_id) {
+					requestBody.chapter_id = chapter_id;
+				}
+
+				if (html) {
+					requestBody.html = html;
+				}
+
+				if (markdown) {
+					requestBody.markdown = markdown;
+				}
+
+				if (tags) {
+					requestBody.tags = tags;
+				}
+
+				// Create the page
+				const page = (await bookstackRequest(
+					"pages",
+					"POST",
+					requestBody
+				)) as PageContent;
+
+				const output = {
+					id: page.id,
+					name: page.name,
+					slug: page.slug,
+					book_id: page.book_id,
+					chapter_id: page.chapter_id,
+					url: page.url,
+					created_at: page.created_at,
+					updated_at: page.updated_at,
+				};
+
+				const location = chapter_id
+					? `Chapter ID: ${chapter_id}`
+					: `Book ID: ${book_id}`;
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully created page: "${page.name}"\n\nID: ${page.id}\nURL: ${page.url}\nLocation: ${location}\n\nPage has been created with your content.`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error creating BookStack page: ${err.message}
+
+Common issues:
+1. Check that the book_id or chapter_id exists and you have permission to add to it
+2. Ensure the page name is not empty
+3. Provide either HTML or Markdown content
+4. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// BOOKSTACK UPDATE BOOK TOOL
+	server.registerTool(
+		"bookstack_update_book",
+		{
+			title: "BookStack Update Book",
+			description:
+				"Update an existing book's details including name, description, and tags. " +
+				"Only provide the fields you want to update. Returns the updated book.",
+			inputSchema: {
+				book_id: z
+					.number()
+					.positive()
+					.describe("The ID of the book to update (required)"),
+				name: z
+					.string()
+					.min(1)
+					.optional()
+					.describe("New name/title for the book"),
+				description: z
+					.string()
+					.optional()
+					.describe("New description text for the book"),
+				tags: z
+					.array(
+						z.object({
+							name: z.string(),
+							value: z.string().optional(),
+						})
+					)
+					.optional()
+					.describe(
+						"New array of tags for the book. Replaces existing tags completely."
+					),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				description: z.string(),
+				url: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ book_id, name, description, tags }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Build request body with only provided fields
+				const requestBody: Record<string, unknown> = {};
+
+				if (name) {
+					requestBody.name = name;
+				}
+
+				if (description !== undefined) {
+					requestBody.description = description;
+				}
+
+				if (tags) {
+					requestBody.tags = tags;
+				}
+
+				// Update the book
+				const book = (await bookstackRequest(
+					`books/${book_id}`,
+					"PUT",
+					requestBody
+				)) as BookContent;
+
+				const output = {
+					id: book.id,
+					name: book.name,
+					slug: book.slug,
+					description: book.description,
+					url: book.url,
+					updated_at: book.updated_at,
+				};
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully updated book: "${book.name}"\n\nID: ${book.id}\nURL: ${book.url}\nLast updated: ${book.updated_at}`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error updating BookStack book: ${err.message}
+
+Common issues:
+1. Check that the book_id exists and you have permission to edit it
+2. Ensure at least one field is provided to update
+3. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// BOOKSTACK UPDATE PAGE TOOL
+	server.registerTool(
+		"bookstack_update_page",
+		{
+			title: "BookStack Update Page",
+			description:
+				"Update an existing page's content and details. Can update name, HTML/Markdown content, " +
+				"and tags. Can also move page to different book or chapter. Only provide fields to update.",
+			inputSchema: {
+				page_id: z
+					.number()
+					.positive()
+					.describe("The ID of the page to update (required)"),
+				name: z
+					.string()
+					.min(1)
+					.optional()
+					.describe("New name/title for the page"),
+				html: z.string().optional().describe("New HTML content for the page"),
+				markdown: z
+					.string()
+					.optional()
+					.describe("New Markdown content for the page"),
+				book_id: z
+					.number()
+					.positive()
+					.optional()
+					.describe("Move page to this book (changes parent)"),
+				chapter_id: z
+					.number()
+					.positive()
+					.optional()
+					.describe("Move page to this chapter (changes parent)"),
+				tags: z
+					.array(
+						z.object({
+							name: z.string(),
+							value: z.string().optional(),
+						})
+					)
+					.optional()
+					.describe(
+						"New array of tags for the page. Replaces existing tags completely."
+					),
+			},
+			outputSchema: {
+				id: z.number(),
+				name: z.string(),
+				slug: z.string(),
+				book_id: z.number(),
+				chapter_id: z.number().optional(),
+				url: z.string(),
+				updated_at: z.string(),
+			},
+		},
+		async ({ page_id, name, html, markdown, book_id, chapter_id, tags }) => {
+			try {
+				// Apply rate limiting
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Build request body with only provided fields
+				const requestBody: Record<string, unknown> = {};
+
+				if (name) {
+					requestBody.name = name;
+				}
+
+				if (html) {
+					requestBody.html = html;
+				}
+
+				if (markdown) {
+					requestBody.markdown = markdown;
+				}
+
+				if (book_id) {
+					requestBody.book_id = book_id;
+				}
+
+				if (chapter_id) {
+					requestBody.chapter_id = chapter_id;
+				}
+
+				if (tags) {
+					requestBody.tags = tags;
+				}
+
+				// Update the page
+				const page = (await bookstackRequest(
+					`pages/${page_id}`,
+					"PUT",
+					requestBody
+				)) as PageContent;
+
+				const output = {
+					id: page.id,
+					name: page.name,
+					slug: page.slug,
+					book_id: page.book_id,
+					chapter_id: page.chapter_id,
+					url: page.url,
+					updated_at: page.updated_at,
+				};
+
+				const location = page.chapter_id
+					? `Chapter ID: ${page.chapter_id}`
+					: `Book ID: ${page.book_id}`;
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully updated page: "${page.name}"\n\nID: ${page.id}\nURL: ${page.url}\nLocation: ${location}\nLast updated: ${page.updated_at}`,
+						},
+					],
+					structuredContent: output,
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error updating BookStack page: ${err.message}
+
+Common issues:
+1. Check that the page_id exists and you have permission to edit it
+2. Ensure at least one field is provided to update
+3. If moving to different book/chapter, verify those IDs exist
+4. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
 }
