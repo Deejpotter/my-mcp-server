@@ -222,6 +222,33 @@ All tools include comprehensive security validation and error handling.
   - Repository directory validation
   - Timeout protection (default 60 seconds)
 
+### **Image Generation & Manipulation**
+
+- **image_generate** - Generate images from text prompts using AI
+  - Powered by Hugging Face FLUX.1 models (schnell and dev)
+  - Multiple size options (512x512 to 1024x1024)
+  - Supports negative prompts and guidance scale
+  - Requires `HUGGING_FACE_API_KEY` (free tier: ~50 images/day)
+  - [Detailed documentation](http://bookstack.deejpotter.com/books/mcp-server-XGf/page/image-generation-manipulation-tools)
+
+- **image_convert** - Convert images between formats
+  - Supports WEBP, PNG, JPEG, AVIF, GIF, TIFF
+  - Batch processing with directory support
+  - Quality control and folder structure preservation
+  - Perfect for optimizing images for web/BookStack
+
+- **image_resize** - Resize images with smart strategies
+  - 7 convenient presets (thumbnail to 4K)
+  - 5 fit strategies (cover, contain, fill, inside, outside)
+  - Maintains aspect ratio automatically
+  - Batch processing support
+
+- **image_optimize** - Optimize images to reduce file size
+  - Format-specific compression (mozjpeg, palette reduction)
+  - Typically 40-70% space savings
+  - Metadata preservation option
+  - Detailed statistics reporting
+
 ## **Available Resources**
 
 Resources provide read-only context information to AI assistants.

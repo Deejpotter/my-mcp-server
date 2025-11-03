@@ -63,12 +63,23 @@
 ### Documentation & Testing
 
 - [ ] Fix tool registration to match MCP SDK pattern
+- [x] **Create Comprehensive BookStack Documentation**
+  - ✅ Created "Image Generation & Manipulation Tools" page
+  - ✅ Documented all 4 tools with parameters, examples, use cases
+  - ✅ Added format comparison tables and preset guides
+  - ✅ Included technical details, dependencies, error handling
+  - ✅ Added best practices and common use cases
+  - ✅ Tagged with: images, ai-generation, conversion, optimization
+- [x] **Update README.md**
+  - ✅ Added Image Generation & Manipulation section
+  - ✅ Brief descriptions of all 4 tools
+  - ✅ Link to detailed BookStack documentation
+  - ✅ Noted requirements (HUGGING_FACE_API_KEY)
 - [ ] Build and test the updated server
-- [ ] Create comprehensive examples in BookStack
-- [ ] Update README.md with image tool documentation
-- [ ] Add usage examples and workflows
-- [ ] Test with real BookStack content
+- [ ] Test image generation with various prompts
+- [ ] Test batch conversion and optimization
 - [ ] Add unit tests for image operations
+- [ ] Create `bookstack_image_generator` workflow prompt
 
 ---
 

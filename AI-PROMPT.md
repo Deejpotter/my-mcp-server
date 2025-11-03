@@ -103,6 +103,33 @@ The TODO.md file serves to track current state of changes and progress:
 - **Check before/after**: Review TODO.md before starting and update after changes
 - **Track state accurately**: Reflect the real status of project development
 
+### **Documentation Requirements After Changes**
+
+**CRITICAL**: After implementing any new tools, features, or modifications:
+
+1. **Update BookStack**: Create or update pages in the MCP Server book (Book ID: 6) documenting the new functionality
+   - New tools → Create page in "Available Tools" chapter
+   - Modified behavior → Update existing tool documentation
+   - New features → Add to relevant existing pages or create new pages
+
+2. **Update README.md**: Add new tools to the Available Tools section with brief descriptions
+
+3. **Update TODO.md**: Mark completed tasks, update progress status
+
+4. **Use Context7**: Always lookup official documentation before documenting new tools/features
+
+5. **Keep it practical**: Document what users need to know, avoid redundant information
+
+**Tool Documentation Template** (for BookStack pages):
+
+- Tool name and purpose (clear, concise)
+- Input parameters (what it accepts)
+- Output format (what it returns)
+- Usage examples (practical scenarios)
+- Common use cases
+- Error handling notes
+- Dependencies/requirements (API keys, etc.)
+
 ## **BookStack Organization & Knowledge Management**
 
 BookStack is my primary knowledge base for documentation, project tracking, and development resources. Understanding the organizational structure is critical for AI assistants to maintain consistency and help with documentation.
