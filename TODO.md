@@ -1,8 +1,130 @@
 # TODO & Planned Changes
 
-## Current Session Progress (November 2, 2025)
+## Current Session Progress (November 3, 2025)
 
 ### ✅ Completed This Session
+
+**Phase 11: Create Maker Store Documentation in BookStack** ✅
+
+- Created "Maker Store" shelf (ID: 3) to organize Maker Store business documentation
+- Created "Custom CNC Projects" book (ID: 5) with comprehensive custom project guidelines
+- Created 2 chapters:
+  - "Custom Project Guidelines" (ID: 3) - General guidance for custom builds
+  - "Customer Examples" (ID: 4) - Real-world case studies
+- Created 3 comprehensive pages:
+  - "Custom Modification Overview" - What's easy vs. tricky to modify, pricing structure
+  - "FORTIS Router Scalability Guide" - Technical limitations, component constraints, scaling strategies
+  - "FORTIS Router 3200x3200mm Custom Build" - Detailed customer example with full pricing breakdown
+- Successfully organized content with relevant tags for easy searching
+- Documentation enables consistent responses to custom project inquiries
+
+**Phase 11.5: Update Maker Store Documentation with Technical Details** ✅
+
+- Updated "FORTIS Router Scalability Guide" with:
+  - Product link: [FORTIS Router 1530 Kit](https://www.makerstore.com.au/product/kit-fortis-router-s-1530-rc/)
+  - HGR15 Linear Rail specifications (chamfered ends, cannot be butt-joined)
+  - Gear rack details (500mm sections, can be butt-joined, hard to cut)
+  - Optimal sizing recommendation (3500mm for component alignment)
+  - MakerBee vs FORTIS comparison (rigidity for large builds)
+  - Extrusion joining details (can be butt-joined, rail covers join bump)
+  - Design risk explanation (FEA may reveal need for modifications/redesign)
+  - In-store assembly requirements ($110/hr labor)
+  
+- Updated "FORTIS Router 3200x3200mm Custom Build" with:
+  - Corrected optimal sizing (3500mm recommended vs 3200mm requested)
+  - Product link integration throughout
+  - Complete technical reasoning (gear racks, extrusions, HGR15 rails)
+  - MakerBee rigidity comparison
+  - Design risk and FEA requirements
+  - In-store assembly explanation
+  - Revised customer response with all technical details
+
+- Documentation now includes:
+  - Complete component specifications (HGR15, 500mm gear racks, 3050mm extrusions)
+  - Clear sourcing guidance (what customer must source vs what we provide)
+  - Technical reasoning for recommendations (why 3500mm, why FORTIS, etc.)
+  - Risk transparency (design may need modifications after FEA)
+
+**Phase 12: Restructure Book & Add Standard Product Documentation** ✅
+
+- **Renamed book**: "Custom CNC Projects" → **"FORTIS Router Projects & Guidance"**
+  - Updated description to reflect both standard products and custom projects
+  - Book now covers complete FORTIS Router guidance spectrum
+
+- **Flattened structure**: Removed chapter organization, all pages now direct in book
+  - Simpler navigation
+  - Easier to find content
+  - More flexible organization
+
+- **Created 3 new pages**:
+  
+  1. **Quick Reference: Product Links & Resources** (Page 11)
+     - All FORTIS product links (1010, 1015, 1515, 1530) with prices
+     - Laser mounting plate link
+     - Email templates for standard and custom inquiries
+     - Copy-paste snippets (product lists, pricing, benefits)
+     - Quick reference for composing customer emails
+     - Common applications guide
+     - Technical specs quick reference
+  
+  2. **Product Selection & Applications** (Page 12)
+     - Why choose FORTIS Router (rigidity, metal work, laser compatibility)
+     - Size comparison table with links
+     - Application-specific guidance (metal, laser, hardwood, large format)
+     - Decision tree for product selection
+     - Email reply structure guidelines
+     - Common Q&A section
+  
+  3. **Customer Example: Metal Engraving & Laser Setup** (Page 13)
+     - Trent's inquiry documentation
+     - Standard product selection example
+     - Email reply structure analysis (full sentences, full URLs)
+     - Communication best practices
+     - Reply template for similar inquiries
+     - Links reference section
+
+- **Renamed existing page**: 
+  - "FORTIS Router 3200x3200mm Custom Build" → "Customer Example: Large Custom Build"
+
+- **Final book structure** (6 pages, no chapters):
+  1. Quick Reference: Product Links & Resources
+  2. Product Selection & Applications
+  3. Custom Modification Overview
+  4. FORTIS Router Scalability Guide
+  5. Customer Example: Large Custom Build (Jay - 3200x3200mm)
+  6. Customer Example: Metal Engraving & Laser Setup (Trent)
+
+**Key Improvements**:
+- ✅ One-stop quick reference for email composition
+- ✅ Complete product catalog with links
+- ✅ Email templates and reply structures documented
+- ✅ Both standard and custom project guidance in one book
+- ✅ Real customer examples for both scenarios
+- ✅ Simplified navigation (no chapters)
+- ✅ Easy to search and cross-reference
+
+**Phase 13: Add BookStack Delete Tools** ✅
+
+- Added four new delete tools to complete BookStack CRUD operations:
+  - `bookstack_delete_chapter` - Delete chapters (WARNING: Deletes all pages within)
+  - `bookstack_delete_page` - Delete individual pages
+  - `bookstack_delete_book` - Delete books (WARNING: Deletes all chapters and pages within)
+  - `bookstack_delete_shelf` - Delete shelves (books are preserved)
+- All delete tools include:
+  - Rate limiting protection
+  - Clear warning messages about permanent deletion
+  - Comprehensive error handling
+  - Troubleshooting guidance
+- Updated README.md with new tool documentation
+- Successfully built (npm run build)
+- Fixed API endpoint paths (removed duplicate `/api/` prefix)
+- **Status**: Ready to use after server restart
+
+**Next Action**: Restart VS Code, then delete empty chapters (ID 3 and 4)
+
+## Previous Session Progress (November 2, 2025)
+
+### ✅ Completed Previous Session
 
 **Phase 1: Remove System Monitoring Tools** ✅
 

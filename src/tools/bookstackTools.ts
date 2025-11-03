@@ -152,6 +152,11 @@ async function bookstackRequest(
 		throw new Error(errorMessage);
 	}
 
+	// DELETE requests often return empty responses (204 No Content)
+	if (method === "DELETE" || response.status === 204) {
+		return { success: true };
+	}
+
 	return await response.json();
 }
 
@@ -1548,7 +1553,254 @@ Common issues:
 Common issues:
 1. Check that the shelf ID is correct
 2. Ensure you have permission to update shelves
-3. If updating books, verify those book IDs exist
+				3. If updating books, verify those book IDs exist
+4. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// Delete Chapter
+	server.registerTool(
+		"bookstack_delete_chapter",
+		{
+			title: "Delete BookStack Chapter",
+			description:
+				"Delete a chapter from BookStack. WARNING: This permanently deletes the chapter and all its pages. Cannot be undone.",
+			inputSchema: {
+				chapter_id: z
+					.number()
+					.positive()
+					.describe("The ID of the chapter to delete (required)"),
+			},
+		},
+		async ({ chapter_id }) => {
+			try {
+				// Check rate limit
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before trying again.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Delete the chapter
+				await bookstackRequest(`chapters/${chapter_id}`, "DELETE");
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully deleted chapter ${chapter_id}`,
+						},
+					],
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error deleting chapter: ${err.message}
+
+Troubleshooting:
+1. Verify the chapter ID exists
+2. Ensure you have permission to delete chapters
+3. Note: Deleting a chapter also deletes all pages within it
+4. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// Delete Page
+	server.registerTool(
+		"bookstack_delete_page",
+		{
+			title: "Delete BookStack Page",
+			description:
+				"Delete a page from BookStack. WARNING: This permanently deletes the page. Cannot be undone.",
+			inputSchema: {
+				page_id: z
+					.number()
+					.positive()
+					.describe("The ID of the page to delete (required)"),
+			},
+		},
+		async ({ page_id }) => {
+			try {
+				// Check rate limit
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before trying again.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Delete the page
+				await bookstackRequest(`pages/${page_id}`, "DELETE");
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully deleted page ${page_id}`,
+						},
+					],
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error deleting page: ${err.message}
+
+Troubleshooting:
+1. Verify the page ID exists
+2. Ensure you have permission to delete pages
+3. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// Delete Book
+	server.registerTool(
+		"bookstack_delete_book",
+		{
+			title: "Delete BookStack Book",
+			description:
+				"Delete a book from BookStack. WARNING: This permanently deletes the book and all its chapters and pages. Cannot be undone.",
+			inputSchema: {
+				book_id: z
+					.number()
+					.positive()
+					.describe("The ID of the book to delete (required)"),
+			},
+		},
+		async ({ book_id }) => {
+			try {
+				// Check rate limit
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before trying again.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Delete the book
+				await bookstackRequest(`books/${book_id}`, "DELETE");
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully deleted book ${book_id}`,
+						},
+					],
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error deleting book: ${err.message}
+
+Troubleshooting:
+1. Verify the book ID exists
+2. Ensure you have permission to delete books
+3. Note: Deleting a book also deletes all chapters and pages within it
+4. Verify your API credentials are correct`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// Delete Shelf
+	server.registerTool(
+		"bookstack_delete_shelf",
+		{
+			title: "Delete BookStack Shelf",
+			description:
+				"Delete a shelf from BookStack. WARNING: This permanently deletes the shelf but NOT the books within it (books are preserved). Cannot be undone.",
+			inputSchema: {
+				shelf_id: z
+					.number()
+					.positive()
+					.describe("The ID of the shelf to delete (required)"),
+			},
+		},
+		async ({ shelf_id }) => {
+			try {
+				// Check rate limit
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before trying again.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				// Delete the shelf
+				await bookstackRequest(`shelves/${shelf_id}`, "DELETE");
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Successfully deleted shelf ${shelf_id}. Note: Books within the shelf are preserved.`,
+						},
+					],
+				};
+			} catch (error: unknown) {
+				const err = error as Error;
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error deleting shelf: ${err.message}
+
+Troubleshooting:
+1. Verify the shelf ID exists
+2. Ensure you have permission to delete shelves
+3. Note: Books within the shelf are preserved, only the shelf container is deleted
 4. Verify your API credentials are correct`,
 						},
 					],

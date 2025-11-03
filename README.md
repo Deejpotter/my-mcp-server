@@ -169,6 +169,23 @@ All tools include comprehensive security validation and error handling.
   - Move pages between books or chapters
   - Partial updates supported
 
+- **bookstack_delete_shelf** - Delete a shelf
+  - WARNING: Permanently deletes the shelf (cannot be undone)
+  - Books within the shelf are preserved
+  - Requires shelf_id
+
+- **bookstack_delete_book** - Delete a book
+  - WARNING: Permanently deletes the book and all its chapters and pages (cannot be undone)
+  - Requires book_id
+
+- **bookstack_delete_chapter** - Delete a chapter
+  - WARNING: Permanently deletes the chapter and all its pages (cannot be undone)
+  - Requires chapter_id
+
+- **bookstack_delete_page** - Delete a page
+  - WARNING: Permanently deletes the page (cannot be undone)
+  - Requires page_id
+
 ### **ClickUp Integration**
 
 - **clickup_get_task** - Retrieve task details
