@@ -18,7 +18,9 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 // =============================================================================
 // Image Generation Tool
-// =============================================================================export const imageGenerateTool = {
+// =============================================================================
+
+export const imageGenerateTool = {
 	name: "image_generate",
 	description: `Generate images from text prompts using AI models. 
   
