@@ -9,7 +9,7 @@
     "moduleResolution": "NodeNext",
     /* Emit */
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -34,11 +34,11 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "**/*.test.ts"
+    "dist"
   ]
 }
