@@ -39,13 +39,16 @@ npx vitest run --coverage
 
 1. Create a new file in `tests/` with the pattern `*.test.ts`
 2. Import test functions from Vitest:
+
    ```typescript
    import { describe, it, expect, beforeEach, afterEach } from 'vitest';
    ```
+
 3. Import the code you want to test from `../src/`
 4. Write descriptive test cases
 
 Example:
+
 ```typescript
 import { describe, it, expect } from 'vitest';
 import { myFunction } from '../src/utils/myModule.js';
@@ -75,6 +78,7 @@ describe('myFunction', () => {
 ## CI/CD Integration
 
 Tests can be run in CI pipelines:
+
 ```bash
 npm test
 ```

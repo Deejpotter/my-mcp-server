@@ -16,17 +16,21 @@ This guide documents integration testing for the MCP server, including manual te
 ### Phase 1: Build & Startup Tests
 
 - [x] **Build Verification**
+
   ```bash
   npm run build
   ```
+
   - ✅ TypeScript compiles without errors
   - ✅ dist/ directory generated with server.js
   - ✅ server.js has executable permissions
 
 - [ ] **Server Startup**
+
   ```bash
   npm start
   ```
+
   - Server connects via stdio transport
   - No console.log pollution (only stderr messages)
   - Process remains stable
@@ -235,24 +239,28 @@ This guide documents integration testing for the MCP server, including manual te
 ### Example Test Conversations
 
 **Testing File Operations:**
+
 ```
 User: "Read the package.json file and show me the dependencies"
 Expected: Claude uses read_file tool, returns parsed dependencies
 ```
 
 **Testing Git Integration:**
+
 ```
 User: "What's the current git status of this repository?"
 Expected: Claude uses git_command tool, shows branch and changes
 ```
 
 **Testing Documentation Lookup:**
+
 ```
 User: "Find documentation for the React useState hook"
 Expected: Claude uses resolve_library_id + get_documentation
 ```
 
 **Testing Web Search:**
+
 ```
 User: "Search for TypeScript best practices"
 Expected: Claude uses duckduckgo_search or google_search
@@ -278,16 +286,21 @@ Expected: Claude uses duckduckgo_search or google_search
 ### Detailed Test Results
 
 #### ✅ File Operations - read_file
+
 **Test:** Read package.json
+
 - **Input:** `/home/deejpotter/Repos/my-mcp-server/package.json`
 - **Result:** SUCCESS - Returned first 30 lines correctly
 - **Validation:** JSON parsed correctly, dependencies visible
 
 #### ✅ Git Operations - git_status (GitKraken MCP)
+
 **Test:** Get repository status
+
 - **Input:** `/home/deejpotter/Repos/my-mcp-server`
 - **Result:** SUCCESS
 - **Output:**
+
   ```
   On branch main
   Your branch is up to date with 'origin/main'.
@@ -303,7 +316,9 @@ Expected: Claude uses duckduckgo_search or google_search
   ```
 
 #### ✅ Web Search - duckduckgo_search
+
 **Test:** Search for MCP documentation
+
 - **Query:** "MCP Model Context Protocol TypeScript SDK documentation"
 - **Result:** SUCCESS - 5 results returned
 - **Top Results:**
@@ -313,7 +328,9 @@ Expected: Claude uses duckduckgo_search or google_search
   4. DeepWiki documentation
 
 #### ✅ File Listing - list_files
+
 **Test:** List TypeScript tool files
+
 - **Directory:** `/home/deejpotter/Repos/my-mcp-server/src/tools`
 - **Pattern:** `*.ts`
 - **Result:** SUCCESS - 8 files found
@@ -327,7 +344,9 @@ Expected: Claude uses duckduckgo_search or google_search
   - googleSearchTools.ts
 
 #### ✅ Security Status - security_status
+
 **Test:** Get security configuration
+
 - **Result:** SUCCESS
 - **Key Findings:**
   - Hardening enabled: ✅
@@ -337,7 +356,9 @@ Expected: Claude uses duckduckgo_search or google_search
   - 6 forbidden directories (.git, node_modules, etc.)
 
 #### ✅ BookStack Search - bookstack_search
+
 **Test:** Search for MCP server documentation
+
 - **Query:** "MCP server documentation"
 - **Result:** SUCCESS - 17 results (34 total available)
 - **Relevant Results:**
