@@ -17,11 +17,12 @@ This document provides comprehensive guidance for AI assistants working on **my-
 
 1. [Project Context](#project-context) - Project overview, structure, and architecture philosophy
 2. [Development Workflow & File Management](#development-workflow--file-management) - Pre-work analysis, file management, planning, and TODO tracking
-3. [Code Standards & Documentation](#code-standards--documentation) - File headers, documentation philosophy, research requirements, and comment examples
-4. [Technical Implementation](#technical-implementation) - Tool development patterns, implementation standards, error handling, and API integration
-5. [Communication & Documentation Style](#communication--documentation-style) - Tone, voice, and documentation standards
-6. [Expected AI Assistance Style](#expected-ai-assistance-style) - Before starting work, when helping with code, discussing architecture, and after making changes
-7. [Current Project Priorities](#current-project-priorities) - Immediate focus, quality standards, and avoiding over-engineering
+3. [BookStack Organization & Knowledge Management](#bookstack-organization--knowledge-management) - Documentation structure, shelf organization, and content placement guidelines
+4. [Code Standards & Documentation](#code-standards--documentation) - File headers, documentation philosophy, research requirements, and comment examples
+5. [Technical Implementation](#technical-implementation) - Tool development patterns, implementation standards, error handling, and API integration
+6. [Communication & Documentation Style](#communication--documentation-style) - Tone, voice, and documentation standards
+7. [Expected AI Assistance Style](#expected-ai-assistance-style) - Before starting work, when helping with code, discussing architecture, and after making changes
+8. [Current Project Priorities](#current-project-priorities) - Immediate focus, quality standards, and avoiding over-engineering
 
 **Key Principle**: This is a **TypeScript modular architecture** with tools organized by category. Preserve existing code, add detailed comments from the author's perspective, and always reference official documentation.
 
@@ -101,6 +102,107 @@ The TODO.md file serves to track current state of changes and progress:
 - **Mark completion**: Use "(completed)" for finished tasks  
 - **Check before/after**: Review TODO.md before starting and update after changes
 - **Track state accurately**: Reflect the real status of project development
+
+## **BookStack Organization & Knowledge Management**
+
+BookStack is my primary knowledge base for documentation, project tracking, and development resources. Understanding the organizational structure is critical for AI assistants to maintain consistency and help with documentation.
+
+### **Organizational Structure**
+
+BookStack uses a hierarchy: **Shelves** → **Books** → **Pages**
+
+My BookStack instance (<https://bookstack.deejpotter.com>) has 5 shelves organized by purpose:
+
+1. **Projects** (Shelf ID: 4) - Personal software, web, and engineering projects
+   - MCP Server (Book ID: 6) - This TypeScript MCP server project
+   - deejpotter.com (Book ID: 7) - Personal portfolio website (Next.js 13 App Router)
+   - Future: 3D printing projects, hardware/engineering hobby projects
+
+2. **Servers & Infrastructure** (Shelf ID: 1) - Server administration and self-hosted services
+   - My Pi Server (Book ID: 1) - Orange Pi Zero 3 setup, Coolify, Docker, networking
+   - Future: Security hardening, backup strategies, service configurations
+
+3. **Development** (Shelf ID: 2) - Personal development preferences and workflows
+   - Prompts & AI Guides (Book ID: 4) - AI assistant workflows, prompt engineering
+   - Future: Coding standards, lessons learned, development processes, tool configurations
+
+4. **Maker Store** (Shelf ID: 3) - Work-related CNC documentation
+   - CNC Projects & Product Guidance (Book ID: 5) - FORTIS Router machines, customer projects
+   - Future: Machine specifications, troubleshooting guides, customer solutions
+
+5. **Clients** (Shelf ID: 5) - Future professional services and contract work
+   - Currently empty, reserved for client project documentation
+   - Future: Client-specific projects, proposals, technical documentation
+
+### **Content Placement Guidelines**
+
+When helping with documentation or suggesting new content:
+
+- **Projects Shelf**: Place documentation for personal projects (software development, web apps, hardware/engineering hobbies)
+  - Example: New 3D printer project → Create book in Projects shelf
+  - Example: Home automation system → Projects shelf
+  
+- **Servers & Infrastructure Shelf**: Server administration, security, self-hosted services, networking
+  - Example: Vaultwarden configuration → Page in "My Pi Server" book
+  - Example: Backup strategy → New page or chapter in "My Pi Server"
+  
+- **Development Shelf**: Personal coding preferences, workflows, AI prompts, development standards
+  - Example: New VS Code configuration → Page in Development shelf
+  - Example: Git workflow preferences → New page in Development shelf
+  
+- **Maker Store Shelf**: Work-related CNC content only
+  - Example: FORTIS Router troubleshooting → Page in CNC Projects book
+  - Do NOT mix personal projects here
+  
+- **Clients Shelf**: Professional services, contract work, client projects
+  - Example: Web development client → Create book in Clients shelf
+  - Keep client work separate from personal projects
+
+### **Key Organizational Principles**
+
+1. **Contextual Storage**: Knowledge should be stored where it's most relevant, not in a separate "reference" shelf
+2. **Optimization Without Clutter**: Keep structure clean, don't create unnecessary subdivisions
+3. **No Duplication**: Books should only exist in ONE shelf (BookStack allows multi-shelf books, but avoid this)
+4. **Clear Purposes**: Each shelf has a distinct purpose - respect these boundaries
+5. **Book vs Page Decision**:
+   - Create a **Book** for substantial topics that need multiple pages/chapters
+   - Create a **Page** for single-topic documentation within existing books
+6. **Future Planning**: Shelves are designed to accommodate future content (noted in "Future:" bullets above)
+
+### **BookStack Tool Usage**
+
+When using BookStack MCP tools:
+
+- **bookstack_search**: First step to find existing content before creating duplicates
+- **bookstack_get_shelf**: Check shelf contents before adding books
+- **bookstack_get_book**: Review book structure before adding pages
+- **bookstack_create_book**: Use appropriate shelf_id, provide clear descriptions
+- **bookstack_create_page**: Specify book_id or chapter_id, use markdown or HTML
+- **bookstack_update_***: Verify no duplicate linking when moving/updating content
+
+### **Common Documentation Tasks**
+
+- **New project documentation**: Create book in Projects shelf with clear description
+- **Server configuration**: Add pages to "My Pi Server" book in Servers & Infrastructure
+- **Development preferences**: Add pages to Development shelf (create new book if topic is substantial)
+- **Work CNC content**: Add to Maker Store shelf only
+- **AI prompts and workflows**: Add to "Prompts & AI Guides" book in Development shelf
+
+### **What NOT to Do**
+
+- Don't create books in multiple shelves (avoid duplication)
+- Don't mix personal projects with work content (Maker Store)
+- Don't create a separate "Reference" or "Resources" shelf
+- Don't create excessive subdivisions (chapters) unless truly needed
+- Don't suggest reorganizing shelves without clear justification
+- Don't assume content location - always search first
+
+### **BookStack References**
+
+- Instance URL: <https://bookstack.deejpotter.com>
+- Self-hosted on Orange Pi Zero 3 via Coolify
+- API access via MCP server tools (bookstack_*)
+- Documentation: Use Context7 to lookup BookStack API docs when needed
 
 ## **Code Standards & Documentation**
 
