@@ -9,20 +9,22 @@
 
 ### Image Generation Tool
 
-- [ ] **Research & Select AI Model**
-  - Evaluate Hugging Face Inference API options
-  - Consider: FLUX.1-schnell (fast), Stable Diffusion XL, or similar
-  - Check free tier limits and rate limiting
-  - Document model selection rationale
+- [x] **Research & Select AI Model**
+  - ✅ Evaluated Hugging Face Inference API options
+  - ✅ Selected FLUX.1-schnell (fast) and FLUX.1-dev (detailed)
+  - ✅ Documented free tier limits (~50 images/day)
+  - ✅ Retrieved comprehensive documentation via Context7
   
-- [ ] **Implement `image_generate` Tool**
-  - Create `src/tools/imageTools.ts`
-  - Hugging Face Inference API integration
-  - Input: text prompt, optional parameters (size, quality, style)
-  - Output: Save to file, return path and base64 preview
-  - Rate limiting (respect API limits)
-  - Error handling and helpful messages
-  - Support for different output formats (PNG, JPEG, WEBP)
+- [x] **Implement `image_generate` Tool**
+  - ✅ Created `src/tools/imageTools.ts`
+  - ✅ Hugging Face Inference API integration
+  - ✅ Input: text prompt, optional parameters (size, quality, style)
+  - ✅ Output: Save to file, return path and metadata
+  - ✅ Rate limiting awareness (free tier handling)
+  - ✅ Error handling and helpful messages
+  - ✅ Support for different output formats (PNG, JPEG, WEBP)
+  - ✅ Multiple image sizes (512x512, 768x768, 1024x1024, etc.)
+  - ⚠️ Need to fix registration method to match SDK pattern
 
 - [ ] **Create BookStack Image Generation Prompt**
   - Workflow prompt: `bookstack_image_generator`
@@ -33,28 +35,35 @@
 
 ### Image Conversion & Optimization Tool
 
-- [ ] **Implement `image_convert` Tool**
-  - Use Sharp library (fast, Node.js native)
-  - Batch conversion support (directory input)
-  - Convert to WEBP, PNG, JPEG, etc.
-  - Output to specified directory (default: parent/converted/)
-  - Preserve folder structure option
-  - Progress reporting for large batches
+- [x] **Implement `image_convert` Tool**
+  - ✅ Using Sharp library (fast, Node.js native)
+  - ✅ Batch conversion support (directory input)
+  - ✅ Convert to WEBP, PNG, JPEG, AVIF, GIF, TIFF
+  - ✅ Output to specified directory (default: parent/converted/)
+  - ✅ Preserve folder structure option
+  - ✅ Progress reporting for large batches
+  - ⚠️ Need to fix registration method
   
-- [ ] **Implement `image_resize` Tool**
-  - Resize by width, height, or percentage
-  - Maintain aspect ratio option
-  - Multiple resize presets (thumbnail, medium, large)
-  - Batch processing support
+- [x] **Implement `image_resize` Tool**
+  - ✅ Resize by width, height, or percentage
+  - ✅ Maintain aspect ratio option
+  - ✅ Multiple resize presets (thumbnail, medium, large, HD, 4K)
+  - ✅ Batch processing support
+  - ✅ Various fit strategies (cover, contain, fill, inside, outside)
+  - ⚠️ Need to fix registration method
   
-- [ ] **Implement `image_optimize` Tool**
-  - Reduce file size without quality loss
-  - Smart compression based on format
-  - Batch optimization for directories
-  - Report space savings
+- [x] **Implement `image_optimize` Tool**
+  - ✅ Reduce file size without quality loss
+  - ✅ Smart compression based on format (mozjpeg, palette, etc.)
+  - ✅ Batch optimization for directories
+  - ✅ Report space savings
+  - ✅ Preserve metadata option
+  - ⚠️ Need to fix registration method
 
 ### Documentation & Testing
 
+- [ ] Fix tool registration to match MCP SDK pattern
+- [ ] Build and test the updated server
 - [ ] Create comprehensive examples in BookStack
 - [ ] Update README.md with image tool documentation
 - [ ] Add usage examples and workflows

@@ -26,9 +26,11 @@
   "author": "Daniel Potter",
   "license": "MIT",
   "dependencies": {
+    "@huggingface/inference": "^4.13.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "dotenv": "^17.2.3",
     "glob": "^11.0.0",
+    "sharp": "^0.34.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {

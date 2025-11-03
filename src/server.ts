@@ -38,6 +38,7 @@ import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js"
 import { registerContext7Tools } from "./tools/context7Tools.js";
 import { registerBookStackTools } from "./tools/bookstackTools.js";
 import { registerClickUpTools } from "./tools/clickupTools.js";
+import { registerImageTools } from "./tools/imageTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
 import { registerPrompts } from "./prompts/prompts.js";
 
@@ -58,6 +59,7 @@ registerDuckDuckGoSearchTools(server);
 registerContext7Tools(server);
 registerBookStackTools(server);
 registerClickUpTools(server);
+registerImageTools(server);
 
 // Register all resources
 registerGitResources(server);
