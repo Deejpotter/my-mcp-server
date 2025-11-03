@@ -1,8 +1,327 @@
-# TODO & Planned Changes
+# TODO & Roadmap
 
-## Current Session Progress (November 3, 2025)
+**Last Updated:** November 3, 2025  
+**Status:** Core functionality complete, expanding with practical tools
 
-### ✅ Completed This Session
+---
+
+## 🎯 Phase 18: Image Generation & Manipulation Tools (In Progress)
+
+### Image Generation Tool
+
+- [ ] **Research & Select AI Model**
+  - Evaluate Hugging Face Inference API options
+  - Consider: FLUX.1-schnell (fast), Stable Diffusion XL, or similar
+  - Check free tier limits and rate limiting
+  - Document model selection rationale
+  
+- [ ] **Implement `image_generate` Tool**
+  - Create `src/tools/imageTools.ts`
+  - Hugging Face Inference API integration
+  - Input: text prompt, optional parameters (size, quality, style)
+  - Output: Save to file, return path and base64 preview
+  - Rate limiting (respect API limits)
+  - Error handling and helpful messages
+  - Support for different output formats (PNG, JPEG, WEBP)
+
+- [ ] **Create BookStack Image Generation Prompt**
+  - Workflow prompt: `bookstack_image_generator`
+  - Guide AI to generate appropriate images for shelves/books
+  - Include best practices for prompts (professional, clear, simple)
+  - Integration with bookstack_update_* tools
+  - Examples for different content types
+
+### Image Conversion & Optimization Tool
+
+- [ ] **Implement `image_convert` Tool**
+  - Use Sharp library (fast, Node.js native)
+  - Batch conversion support (directory input)
+  - Convert to WEBP, PNG, JPEG, etc.
+  - Output to specified directory (default: parent/converted/)
+  - Preserve folder structure option
+  - Progress reporting for large batches
+  
+- [ ] **Implement `image_resize` Tool**
+  - Resize by width, height, or percentage
+  - Maintain aspect ratio option
+  - Multiple resize presets (thumbnail, medium, large)
+  - Batch processing support
+  
+- [ ] **Implement `image_optimize` Tool**
+  - Reduce file size without quality loss
+  - Smart compression based on format
+  - Batch optimization for directories
+  - Report space savings
+
+### Documentation & Testing
+
+- [ ] Create comprehensive examples in BookStack
+- [ ] Update README.md with image tool documentation
+- [ ] Add usage examples and workflows
+- [ ] Test with real BookStack content
+- [ ] Add unit tests for image operations
+
+---
+
+## 🚀 Phase 19: Enhanced Workflow Prompts
+
+### Additional Workflow Prompts
+
+- [ ] **`documentation_writer`**
+  - Guide for writing clear technical documentation
+  - Structure: Overview → Details → Examples → Troubleshooting
+  - Integration with BookStack tools
+  
+- [ ] **`api_integration_planner`**
+  - Research new API integrations
+  - Evaluate authentication, rate limits, costs
+  - Plan implementation with security considerations
+  
+- [ ] **`refactoring_guide`**
+  - Systematic approach to code refactoring
+  - Identify code smells and improvements
+  - Safe refactoring patterns
+  
+- [ ] **`security_audit_checklist`**
+  - Security review workflow
+  - Input validation, authentication, authorization
+  - Common vulnerability checks
+  
+- [ ] **`performance_optimization_workflow`**
+  - Identify performance bottlenecks
+  - Profiling and benchmarking approach
+  - Optimization strategies
+
+### Prompt Documentation
+
+- [ ] Add prompts to BookStack Development shelf
+- [ ] Create prompt usage guide with examples
+- [ ] Update README.md prompts section
+
+---
+
+## 💡 Phase 20: Development Utility Tools
+
+### Environment & Dependency Management
+
+- [ ] **`env_validator` Tool**
+  - Compare .env with .env.example
+  - Identify missing/extra variables
+  - Suggest corrections
+  
+- [ ] **`dependency_checker` Tool**
+  - Check for outdated npm packages
+  - Security vulnerability scan
+  - Update recommendations with changelog links
+
+### Git Utilities
+
+- [ ] **`git_branch_cleaner` Tool**
+  - List merged branches (local and remote)
+  - Safe deletion with confirmation
+  - Preserve main/develop branches
+  
+- [ ] **`git_changelog_generator` Tool**
+  - Generate changelog from commits
+  - Group by conventional commit types
+  - Markdown output for releases
+
+### Code Quality Tools
+
+- [ ] **`code_formatter` Tool**
+  - Format code snippets for BookStack
+  - Syntax highlighting preparation
+  - Multiple language support
+  
+- [ ] **`log_analyzer` Tool**
+  - Parse log files for patterns
+  - Error frequency analysis
+  - Summary reports
+
+---
+
+## 📊 Phase 21: Data & Content Tools
+
+### Text Processing
+
+- [ ] **`text_summarizer` Tool**
+  - Summarize long documents
+  - Hugging Face model (BART, T5, or similar)
+  - Adjustable summary length
+  
+- [ ] **`markdown_table_generator` Tool**
+  - Convert CSV/JSON to markdown tables
+  - Column alignment options
+  - Header customization
+
+### Document Conversion
+
+- [ ] **`pdf_text_extractor` Tool**
+  - Extract text from PDF files
+  - Maintain formatting where possible
+  - Output to markdown or plain text
+  
+- [ ] **`screenshot_to_markdown` Tool**
+  - OCR text extraction from images
+  - Convert to markdown format
+  - Useful for documentation from screenshots
+
+---
+
+## 🔧 Phase 22: BookStack Enhancement Tools
+
+### Content Management
+
+- [ ] **`bookstack_bulk_tagger` Tool**
+  - Add/remove tags across multiple pages
+  - Filter by shelf, book, or search
+  - Preview changes before applying
+  
+- [ ] **`bookstack_content_duplicator` Tool**
+  - Duplicate page with modifications
+  - Template system for common structures
+  - Batch duplication support
+  
+- [ ] **`bookstack_export` Tool**
+  - Export shelf/book/page to markdown
+  - Export to JSON (for backup/migration)
+  - Include or exclude metadata
+  
+- [ ] **`bookstack_import` Tool**
+  - Import markdown files to BookStack
+  - Batch import with folder structure mapping
+  - Auto-generate table of contents
+
+### Analysis & Reporting
+
+- [ ] **`bookstack_analytics` Tool**
+  - Content statistics (pages, words, images)
+  - Tag usage analysis
+  - Link checking (find broken links)
+  - Orphaned page detection
+
+---
+
+## 🎨 Phase 23: AI-Powered Enhancement Tools
+
+### Hugging Face Integration
+
+- [ ] **`text_translator` Tool**
+  - Multi-language translation
+  - Hugging Face translation models
+  - Batch translation support
+  
+- [ ] **`content_improver` Tool**
+  - Grammar and style suggestions
+  - Readability analysis
+  - Tone adjustment recommendations
+
+### Creative Tools
+
+- [ ] **`prompt_optimizer` Tool**
+  - Improve AI image generation prompts
+  - Suggest enhancements and variations
+  - Style guide integration
+
+---
+
+## 📈 Phase 24: Testing & Quality Assurance
+
+### Test Coverage Expansion
+
+- [ ] Add tests for image tools
+- [ ] Add tests for new workflow prompts
+- [ ] Add tests for utility tools
+- [ ] Integration tests for AI services
+- [ ] Performance benchmarks for image operations
+
+### Code Quality
+
+- [ ] Set up code coverage reporting
+- [ ] ESLint configuration review
+- [ ] TypeScript strict mode evaluation
+- [ ] Documentation completeness check
+
+---
+
+## 🔮 Future Enhancements (Someday/Maybe)
+
+### Advanced Features
+
+- [ ] Real-time collaboration tools
+- [ ] Webhook integration for external events
+- [ ] Custom AI model training support
+- [ ] Video processing tools (extract frames, generate thumbnails)
+- [ ] Audio transcription tool (Whisper API)
+
+### Performance & Optimization
+
+- [ ] Implement caching for expensive operations
+- [ ] Background job queue for long-running tasks
+- [ ] Progress tracking for batch operations
+- [ ] Resource usage monitoring
+
+### Integration Expansions
+
+- [ ] Notion integration
+- [ ] Slack notifications
+- [ ] Email automation (SMTP tool)
+- [ ] Calendar integration (Google Calendar, Outlook)
+
+---
+
+## ✅ Completed Phases (Reference)
+
+<details>
+<summary>Click to expand completed work</summary>
+
+### Phase 1-16.5: Core Development (Complete)
+
+- ✅ System monitoring removal
+- ✅ Google Search (SerpAPI)
+- ✅ DuckDuckGo Search (free)
+- ✅ Context7 documentation lookup
+- ✅ MCP workflow prompts (6 prompts)
+- ✅ BookStack CRUD operations (complete API)
+- ✅ ClickUp task management
+- ✅ Git operations with security
+- ✅ File operations (read, write, list)
+- ✅ Command execution (security-first)
+- ✅ Comprehensive documentation (BookStack & local)
+- ✅ Unit testing (Vitest, 19/19 tests passing)
+- ✅ Integration testing (6 tool categories verified)
+- ✅ BookStack organization restructure
+- ✅ AI-PROMPT.md documentation (workflow guide)
+
+</details>
+
+---
+
+## 📋 Development Principles
+
+**Remember:**
+
+1. **Simple & Practical** - Focus on real-world utility
+2. **Security First** - Validate all inputs, safe defaults
+3. **Quality Over Quantity** - Well-tested, documented features
+4. **No Duplication** - Leverage existing patterns and code
+5. **Official Documentation** - Always reference official docs
+6. **Test Before Commit** - Verify functionality works
+
+**Before Starting New Work:**
+
+1. Read AI-PROMPT.md completely
+2. Check this TODO.md for priorities
+3. Review relevant documentation
+4. Search official docs with Context7
+5. Create detailed implementation plan
+6. Update documentation after changes
+
+---
+
+**Project Status:** Active Development  
+**Next Milestone:** Phase 18 - Image Tools  
+**Current Priority:** Image generation & conversion for BookStack content
 
 **Phase 11: Create Maker Store Documentation in BookStack** ✅
 
