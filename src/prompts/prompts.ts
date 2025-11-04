@@ -355,7 +355,7 @@ Start by clarifying requirements, then systematically work through discovery and
 				.optional()
 				.describe("Context about when/where the bug occurs"),
 		},
-		async (args) => {
+		(args) => {
 			const errorDescription = args?.error_description || "[describe the bug]";
 			const context = args?.context || "[provide context]";
 
@@ -476,7 +476,7 @@ Start by gathering information about the bug using available tools, then work th
 				.optional()
 				.describe("Any constraints or specific requirements"),
 		},
-		async (args) => {
+		(args) => {
 			const featureDescription =
 				args?.feature_description || "[describe the feature to implement]";
 			const constraints =
@@ -627,7 +627,7 @@ Start by exploring the codebase to understand the current implementation, then w
 				.optional()
 				.describe("Additional context about what they're working on"),
 		},
-		async (args) => {
+		(args) => {
 			const userQuery = args?.user_query || "[user's search query]";
 			const context = args?.context || "";
 
@@ -813,7 +813,9 @@ Now analyze the user's query and provide the optimized search plan!`,
 			topic: z
 				.string()
 				.optional()
-				.describe("Main topic or subject matter (e.g., 'MCP Server', 'CNC Routing')"),
+				.describe(
+					"Main topic or subject matter (e.g., 'MCP Server', 'CNC Routing')"
+				),
 		},
 		// eslint-disable-next-line @typescript-eslint/require-await
 		async (args) => {

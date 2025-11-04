@@ -436,7 +436,15 @@ export const imageResizeTool = {
 		width?: number | undefined;
 		height?: number | undefined;
 		output_dir?: string | undefined;
-		preset?: "thumbnail" | "small" | "medium" | "large" | "hd" | "fullhd" | "4k" | undefined;
+		preset?:
+			| "thumbnail"
+			| "small"
+			| "medium"
+			| "large"
+			| "hd"
+			| "fullhd"
+			| "4k"
+			| undefined;
 		fit?: "cover" | "contain" | "fill" | "inside" | "outside" | undefined;
 		maintain_aspect_ratio?: boolean | undefined;
 	}) => {
@@ -494,7 +502,14 @@ export const imageResizeTool = {
 				const image = sharp(file) as sharp.Sharp;
 
 				// Apply resize
-				const resizeOptions: ResizeOptions = { fit: (args.fit || "cover") as "cover" | "contain" | "fill" | "inside" | "outside" };
+				const resizeOptions: ResizeOptions = {
+					fit: (args.fit || "cover") as
+						| "cover"
+						| "contain"
+						| "fill"
+						| "inside"
+						| "outside",
+				};
 				if (targetWidth) resizeOptions.width = targetWidth;
 				if (targetHeight) resizeOptions.height = targetHeight;
 
