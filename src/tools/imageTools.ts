@@ -81,10 +81,10 @@ export const imageGenerateTool = {
 	handler: async (args: {
 		prompt: string;
 		output_path: string;
-		size?: string;
-		model?: string;
-		negative_prompt?: string;
-		guidance_scale?: number;
+		size: "512x512" | "768x768" | "1024x1024" | "1024x768" | "768x1024";
+		model: "flux-schnell" | "flux-dev";
+		negative_prompt?: string | undefined;
+		guidance_scale?: number | undefined;
 	}) => {
 		const HF_TOKEN = process.env.HUGGING_FACE_API_KEY;
 
@@ -103,15 +103,13 @@ export const imageGenerateTool = {
 		// Initialize Hugging Face Inference Client
 		const client = new InferenceClient(HF_TOKEN) as InferenceClient;
 
-		// Map model names to Hugging Face model IDs
-		const modelMap: Record<string, string> = {
-			"flux-schnell": "black-forest-labs/FLUX.1-schnell",
-			"flux-dev": "black-forest-labs/FLUX.1-dev",
-		};
-
-		const modelId = modelMap[args.model || "flux-schnell"];
-
 		try {
+			// Determine which model to use
+			const modelId: string =
+				args.model === "flux-dev"
+					? "black-forest-labs/FLUX.1-dev"
+					: "black-forest-labs/FLUX.1-schnell";
+
 			// Parse dimensions
 			const [width, height] = (args.size || "1024x1024").split("x").map(Number);
 
@@ -126,11 +124,14 @@ export const imageGenerateTool = {
 			parameters.width = width;
 			parameters.height = height;
 
-			const imageBlob = await client.textToImage({
-				model: modelId,
-				inputs: args.prompt,
-				parameters,
-			});
+			const imageBlob = await client.textToImage(
+				{
+					model: modelId,
+					inputs: args.prompt,
+					parameters,
+				},
+				{ outputType: "blob" }
+			);
 
 			// Convert Blob to Buffer
 			const arrayBuffer = await imageBlob.arrayBuffer();
@@ -146,7 +147,7 @@ export const imageGenerateTool = {
 			return {
 				content: [
 					{
-						type: "text",
+						type: "text" as const,
 						text: `✅ Image generated successfully!
 
 📁 Saved to: ${args.output_path}
@@ -163,14 +164,11 @@ The image has been saved and is ready to use in your BookStack documentation or 
 		} catch (error: unknown) {
 			const err = error as Error;
 			// Handle rate limiting errors
-			if (
-				err.message?.includes("rate limit") ||
-				err.message?.includes("429")
-			) {
+			if (err.message?.includes("rate limit") || err.message?.includes("429")) {
 				return {
 					content: [
 						{
-							type: "text",
+							type: "text" as const,
 							text: `⚠️ Rate limit reached for Hugging Face API.
 
 Free tier limits:
@@ -192,7 +190,7 @@ Error: ${err.message}`,
 			return {
 				content: [
 					{
-						type: "text",
+						type: "text" as const,
 						text: `Error: Image generation failed: ${err.message}`,
 					},
 				],
@@ -253,10 +251,10 @@ export const imageConvertTool = {
 	}),
 	handler: async (args: {
 		input: string;
-		output_format: string;
-		output_dir?: string;
-		quality?: number;
-		preserve_structure?: boolean;
+		output_format: "webp" | "png" | "jpeg" | "jpg" | "avif" | "gif" | "tiff";
+		output_dir?: string | undefined;
+		quality?: number | undefined;
+		preserve_structure?: boolean | undefined;
 	}) => {
 		const stats = await fs.stat(args.input);
 		const isDirectory = stats.isDirectory();
@@ -305,12 +303,12 @@ export const imageConvertTool = {
 						? path.join(
 								outputDir,
 								path.dirname(relativePath),
-		                        `${path.parse(file).name}.${args.output_format}`
-                    )
-                    : path.join(
-                        outputDir,
-                        `${path.parse(file).name}.${args.output_format}`
-                    );
+								`${path.parse(file).name}.${args.output_format}`
+						  )
+						: path.join(
+								outputDir,
+								`${path.parse(file).name}.${args.output_format}`
+						  );
 
 					// Create subdirectories if preserving structure
 					if (args.preserve_structure) {
@@ -341,7 +339,7 @@ export const imageConvertTool = {
 		return {
 			content: [
 				{
-					type: "text",
+					type: "text" as const,
 					text: `✅ Image conversion complete!
 
 📊 Statistics:
@@ -435,12 +433,12 @@ export const imageResizeTool = {
 	}),
 	handler: async (args: {
 		input: string;
-		width?: number;
-		height?: number;
-		preset?: string;
-		fit?: string;
-		output_dir?: string;
-		maintain_aspect_ratio?: boolean;
+		width?: number | undefined;
+		height?: number | undefined;
+		output_dir?: string | undefined;
+		preset?: "thumbnail" | "small" | "medium" | "large" | "hd" | "fullhd" | "4k" | undefined;
+		fit?: "cover" | "contain" | "fill" | "inside" | "outside" | undefined;
+		maintain_aspect_ratio?: boolean | undefined;
 	}) => {
 		// Preset dimensions
 		const presets: Record<string, { width: number; height: number }> = {
@@ -459,8 +457,10 @@ export const imageResizeTool = {
 
 		if (args.preset) {
 			const preset = presets[args.preset];
-			targetWidth = preset.width;
-			targetHeight = preset.height;
+			if (preset) {
+				targetWidth = preset.width;
+				targetHeight = preset.height;
+			}
 		}
 
 		if (!targetWidth && !targetHeight) {
@@ -494,7 +494,7 @@ export const imageResizeTool = {
 				const image = sharp(file) as sharp.Sharp;
 
 				// Apply resize
-				const resizeOptions: ResizeOptions = { fit: args.fit || "cover" };
+				const resizeOptions: ResizeOptions = { fit: (args.fit || "cover") as "cover" | "contain" | "fill" | "inside" | "outside" };
 				if (targetWidth) resizeOptions.width = targetWidth;
 				if (targetHeight) resizeOptions.height = targetHeight;
 
@@ -517,7 +517,7 @@ export const imageResizeTool = {
 		return {
 			content: [
 				{
-					type: "text",
+					type: "text" as const,
 					text: `✅ Image resizing complete!
 
 📊 Statistics:
@@ -597,9 +597,9 @@ export const imageOptimizeTool = {
 	}),
 	handler: async (args: {
 		input: string;
-		output_dir?: string;
-		quality?: number;
-		preserve_metadata?: boolean;
+		output_dir?: string | undefined;
+		quality?: number | undefined;
+		preserve_metadata?: boolean | undefined;
 	}) => {
 		const stats = await fs.stat(args.input);
 		const isDirectory = stats.isDirectory();
@@ -631,18 +631,14 @@ export const imageOptimizeTool = {
 				const outputPath = path.join(outputDir, path.basename(file));
 				const ext = path.extname(file).toLowerCase();
 
-				// @ts-expect-error - External library type assertion for sharp
 				const sharpImage = sharp(file);
 				let processedImage: Buffer;
-				
+
 				if (ext === ".jpg" || ext === ".jpeg") {
-					// @ts-expect-error - External library type assertion
 					let image = sharpImage;
 					if (args.preserve_metadata) {
-						// @ts-expect-error - External library type assertion
 						image = image.withMetadata();
 					}
-					// @ts-expect-error - External library type assertion
 					processedImage = await image
 						.jpeg({
 							quality: args.quality || 80,
@@ -651,13 +647,10 @@ export const imageOptimizeTool = {
 						})
 						.toBuffer();
 				} else if (ext === ".png") {
-					// @ts-expect-error - External library type assertion
 					let image = sharpImage;
 					if (args.preserve_metadata) {
-						// @ts-expect-error - External library type assertion
 						image = image.withMetadata();
 					}
-					// @ts-expect-error - External library type assertion
 					processedImage = await image
 						.png({
 							compressionLevel: 9,
@@ -666,30 +659,23 @@ export const imageOptimizeTool = {
 						})
 						.toBuffer();
 				} else if (ext === ".webp") {
-					// @ts-expect-error - External library type assertion
 					let image = sharpImage;
 					if (args.preserve_metadata) {
-						// @ts-expect-error - External library type assertion
 						image = image.withMetadata();
 					}
-					// @ts-expect-error - External library type assertion
 					processedImage = await image
 						.webp({ quality: args.quality || 80, effort: 6 })
 						.toBuffer();
 				} else if (ext === ".avif") {
-					// @ts-expect-error - External library type assertion
 					let image = sharpImage;
 					if (args.preserve_metadata) {
-						// @ts-expect-error - External library type assertion
 						image = image.withMetadata();
 					}
-					// @ts-expect-error - External library type assertion
 					processedImage = await image
 						.avif({ quality: args.quality || 50, effort: 4 })
 						.toBuffer();
 				} else {
 					// Default optimization
-					// @ts-expect-error - External library type assertion
 					processedImage = await sharpImage.toBuffer();
 				}
 
@@ -726,7 +712,7 @@ export const imageOptimizeTool = {
 		return {
 			content: [
 				{
-					type: "text",
+					type: "text" as const,
 					text: `✅ Image optimization complete!
 
 📊 Statistics:

@@ -47,24 +47,6 @@ export function registerContext7Tools(server: McpServer) {
 						"Maximum number of results to return (default: 5, max: 10)"
 					),
 			},
-			outputSchema: {
-				matches: z.array(
-					z.object({
-						libraryId: z.string(),
-						name: z.string(),
-						description: z.string(),
-						codeSnippets: z.number(),
-						trustScore: z.number(),
-						versions: z.array(z.string()).optional(),
-					})
-				),
-				bestMatch: z.object({
-					libraryId: z.string(),
-					name: z.string(),
-					reason: z.string(),
-				}),
-				query: z.string(),
-			},
 		},
 		async ({ libraryName }) => {
 			// NOTE: This handler is async to match MCP SDK requirements
@@ -188,13 +170,6 @@ For best results, provide specific library names like:
 					.describe(
 						"Maximum tokens of documentation to retrieve (default: 10000)"
 					),
-			},
-			outputSchema: {
-				libraryId: z.string(),
-				topic: z.string().optional(),
-				documentation: z.string(),
-				tokens: z.number(),
-				source: z.string(),
 			},
 		},
 		async ({ libraryId, topic, tokens = 10000 }) => {
@@ -338,18 +313,6 @@ For help: https://context7.com/help`,
 					.optional()
 					.default(5)
 					.describe("Maximum number of results to return (default: 5)"),
-			},
-			outputSchema: {
-				query: z.string(),
-				results: z.array(
-					z.object({
-						libraryId: z.string(),
-						libraryName: z.string(),
-						relevance: z.number(),
-						snippet: z.string(),
-					})
-				),
-				totalResults: z.number(),
 			},
 		},
 		async ({ query, categories, maxResults = 5 }) => {
