@@ -351,6 +351,80 @@ server.registerTool("tool_name", schema, async (args) => {
 });
 ```
 
+### **TypeScript Best Practices**
+
+**Avoid `any` types - Use proper typing:**
+
+```typescript
+// ❌ Wrong - causes "Unexpected any" errors
+const options: any = { fit: "cover" };
+catch (error: any) {
+  return error.message;
+}
+
+// ✅ Correct - Use proper interfaces or unknown
+interface ResizeOptions {
+  width?: number;
+  height?: number;
+  fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
+}
+const options: ResizeOptions = { fit: "cover" };
+
+catch (error: unknown) {
+  const err = error as Error;
+  return err.message;
+}
+```
+
+**Handle external library imports safely:**
+
+```typescript
+// ❌ Wrong - causes "error typed value" issues  
+import { InferenceClient } from '@huggingface/inference';
+const client = new InferenceClient(token); // TypeScript sees this as error type
+
+// ✅ Correct - Add type assertions when needed
+import { InferenceClient } from '@huggingface/inference';
+const client = new InferenceClient(token) as InferenceClient;
+
+// Or use try-catch for library instantiation
+try {
+  const client = new InferenceClient(token);
+  // Use client safely here
+} catch (error: unknown) {
+  // Handle initialization errors
+}
+```
+
+**Consistent indentation - No mixed tabs/spaces:**
+
+```typescript
+// ❌ Wrong - causes "Mixed spaces and tabs" errors
+function example() {
+  const data = {
+    value: "mixed indentation"  // Tab then spaces
+  };
+}
+
+// ✅ Correct - Use consistent spaces or tabs (prefer spaces)
+function example() {
+  const data = {
+    value: "consistent indentation"  // All spaces
+  };
+}
+```
+
+**Remove unused variables:**
+
+```typescript
+// ❌ Wrong - causes "assigned but never used" errors
+const preview = buffer.toString("base64"); // Assigned but never used
+
+// ✅ Correct - Only declare when used, or use underscore prefix
+const _preview = buffer.toString("base64"); // Underscore indicates intentionally unused
+// Or simply remove if truly unused
+```
+
 ### **API Integration Pattern**
 
 - **Environment variables**: Store tokens in `.env`, never hardcode
