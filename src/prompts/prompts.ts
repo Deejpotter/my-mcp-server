@@ -1025,4 +1025,313 @@ Start by understanding what image you need, then craft a specific, professional 
 			};
 		}
 	);
+
+	// PROMPT 8: DOCUMENTATION WRITER
+	server.prompt(
+		"documentation_writer",
+		"Structured approach to writing clear, comprehensive technical documentation",
+		{
+			doc_type: z
+				.string()
+				.optional()
+				.describe(
+					"Type of documentation: 'api', 'guide', 'reference', 'tutorial', 'readme'"
+				),
+			audience: z
+				.string()
+				.optional()
+				.describe(
+					"Target audience: 'developers', 'end-users', 'internal-team', 'contributors'"
+				),
+		},
+		// eslint-disable-next-line @typescript-eslint/require-await
+		async (args) => {
+			const docType = args?.doc_type || "technical documentation";
+			const audience = args?.audience || "developers";
+
+			return {
+				messages: [
+					{
+						role: "user",
+						content: {
+							type: "text",
+							text: `# Technical Documentation Writer
+
+You are a technical writing expert creating ${docType} for ${audience}.
+
+## Documentation Principles
+
+### 1. User-Focused Structure
+- **Start with why**: What problem does this solve?
+- **Clear hierarchy**: Logical flow from basic to advanced
+- **Scannable**: Headers, lists, code blocks
+- **Examples first**: Show before explaining
+- **Progressive disclosure**: Essential info up front, details later
+
+### 2. Writing Style
+- **Active voice**: "Click the button" not "The button should be clicked"
+- **Present tense**: "This function returns" not "This function will return"
+- **Short sentences**: One idea per sentence
+- **No jargon**: Or define it when necessary
+- **Consistent terms**: Pick one name and stick with it
+
+### 3. Structure Templates
+
+#### API Documentation
+\`\`\`markdown
+# Function/Endpoint Name
+
+## Overview
+Brief 1-2 sentence description of what it does.
+
+## Parameters
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| param1 | string | Yes | What it does |
+
+## Returns
+Description of return value and type.
+
+## Example
+\`\`\`code
+// Working example
+\`\`\`
+
+## Error Handling
+Common errors and how to handle them.
+
+## Notes
+Additional context, edge cases, best practices.
+\`\`\`
+
+#### Tutorial/Guide
+\`\`\`markdown
+# Tutorial Title
+
+## What You'll Build
+Clear description of the end result.
+
+## Prerequisites
+- List required knowledge
+- Link to setup guides
+
+## Step 1: [Action Verb]
+Explanation of what and why.
+\`\`\`code
+// Code example
+\`\`\`
+What just happened and why it matters.
+
+## Step 2: [Next Action]
+...
+
+## Conclusion
+- What you learned
+- Next steps
+- Related resources
+\`\`\`
+
+#### README
+\`\`\`markdown
+# Project Name
+One-line description.
+
+## Features
+- Key feature 1
+- Key feature 2
+
+## Quick Start
+\`\`\`bash
+# Minimum viable example
+\`\`\`
+
+## Installation
+Detailed setup instructions.
+
+## Usage
+Common use cases with examples.
+
+## API Reference
+Link to detailed docs.
+
+## Contributing
+How to contribute.
+
+## License
+\`\`\`
+
+### 4. Code Examples Best Practices
+
+**Complete & Runnable**
+\`\`\`typescript
+// ✅ Good - complete example
+import { server } from './server';
+
+server.registerTool('example', schema, async (args) => {
+  return { content: [{ type: 'text', text: 'result' }] };
+});
+\`\`\`
+
+\`\`\`typescript
+// ❌ Bad - incomplete
+registerTool('example', ...);
+\`\`\`
+
+**Real-World Context**
+\`\`\`typescript
+// ✅ Good - shows realistic use
+const userData = await fetchUser(userId);
+if (!userData) {
+  throw new Error(\`User \${userId} not found\`);
+}
+\`\`\`
+
+\`\`\`typescript
+// ❌ Bad - too abstract
+const data = await fetch();
+\`\`\`
+
+**Include Error Handling**
+\`\`\`typescript
+// ✅ Good - handles errors
+try {
+  const result = await operation();
+  return result;
+} catch (error) {
+  console.error('Operation failed:', error);
+  throw error;
+}
+\`\`\`
+
+### 5. Visual Hierarchy
+
+**Use Headers Effectively**
+- # Main Title (one per document)
+- ## Major Sections
+- ### Subsections
+- #### Details (use sparingly)
+
+**Lists for Options**
+- Bullet points for unordered items
+- Numbered lists for sequential steps
+- Definition lists for term explanations
+
+**Tables for Comparisons**
+| Feature | Option A | Option B |
+|---------|----------|----------|
+| Speed   | Fast     | Faster   |
+
+**Code Blocks with Language**
+\`\`\`typescript
+// Always specify language for syntax highlighting
+\`\`\`
+
+### 6. Documentation Workflow
+
+#### Phase 1: Research
+1. **Understand the code**: Read implementation thoroughly
+2. **Identify audience**: Who will read this?
+3. **Gather requirements**: What questions will they have?
+4. **Use Context7**: Check official library docs for accuracy
+
+#### Phase 2: Outline
+1. **List key topics**: What must be covered?
+2. **Order logically**: Basic → Advanced or Problem → Solution
+3. **Identify examples**: What will you demonstrate?
+4. **Plan structure**: Which template fits best?
+
+#### Phase 3: Write
+1. **Start with examples**: Code first, explanation second
+2. **Write in passes**: 
+   - Pass 1: Get content down
+   - Pass 2: Clarify and simplify
+   - Pass 3: Polish and proofread
+3. **Test code**: All examples must work
+4. **Add cross-references**: Link related sections
+
+#### Phase 4: Review
+1. **Check completeness**: Can readers accomplish the goal?
+2. **Verify accuracy**: Technical details correct?
+3. **Test examples**: Copy-paste and run
+4. **Read aloud**: Catches awkward phrasing
+5. **Get feedback**: Have someone else review
+
+#### Phase 5: Publish
+1. **Update BookStack**: Create or update page
+2. **Update README**: Add brief description
+3. **Add to index**: Link from relevant pages
+4. **Version control**: Commit with clear message
+
+### 7. Common Pitfalls to Avoid
+
+❌ **Assuming knowledge**: Define terms, don't assume readers know
+❌ **Outdated examples**: Keep code examples current
+❌ **Missing context**: Explain why, not just how
+❌ **Wall of text**: Break up with headers, lists, examples
+❌ **Passive voice**: "The button is clicked" → "Click the button"
+❌ **Future tense**: "This will do" → "This does"
+❌ **Inconsistent terminology**: Pick terms and stick with them
+❌ **No error guidance**: Show how to handle failures
+❌ **Complex examples**: Start simple, then show advanced
+
+### 8. Tools & Resources
+
+**For Writing**
+- \`bookstack_search\`: Find existing documentation
+- \`bookstack_get_page\`: Review current content
+- \`bookstack_create_page\`: Create new documentation
+- \`bookstack_update_page\`: Update existing docs
+
+**For Code Examples**
+- \`git_command\`: Check actual implementation
+- \`run_command\`: Test code examples
+- Context7 tools: Verify against official docs
+
+**For Research**
+- \`duckduckgo_search\`: Find best practices
+- \`google_search\`: Research examples
+- \`context7_get_documentation\`: Official API references
+
+### 9. Quality Checklist
+
+Before publishing, verify:
+- [ ] Clear purpose stated upfront
+- [ ] Target audience identified
+- [ ] Logical structure and flow
+- [ ] All code examples tested
+- [ ] Error cases documented
+- [ ] Prerequisites listed
+- [ ] Related resources linked
+- [ ] Consistent terminology
+- [ ] No jargon (or defined)
+- [ ] Scannable with headers/lists
+
+### 10. Documentation Types Guide
+
+**API Reference**: Comprehensive parameter/return documentation
+**Tutorial**: Step-by-step learning experience
+**Guide**: Task-focused how-to documentation
+**README**: Project overview and quick start
+**Troubleshooting**: Problem-solution pairs
+**Architecture**: System design and decisions
+**Contributing**: How to contribute to project
+
+## Next Steps
+
+1. Identify what needs documentation
+2. Choose appropriate template/structure
+3. Research thoroughly (use Context7 for official docs)
+4. Write with examples first
+5. Test all code samples
+6. Review for clarity
+7. Publish to BookStack
+8. Update related documentation
+
+Remember: Good documentation saves time, reduces support burden, and helps users succeed!`,
+						},
+					},
+				],
+			};
+		}
+	);
 }
