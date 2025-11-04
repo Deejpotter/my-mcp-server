@@ -1,40 +1,27 @@
 # My MCP Server
 
-A comprehensive Model Context Protocol (MCP) server built with **TypeScript** providing development tools and utilities for AI assistants in VS Code.
+A Model Context Protocol (MCP) server providing development tools and API integrations for AI assistants in VS Code.
 
-## **Overview**
+**📚 [Complete Documentation on BookStack](https://bookstack.deejpotter.com/books/mcp-server-XGf)**
 
-This MCP server provides essential development tools with enterprise-grade security, built using the official MCP TypeScript SDK. It's designed for seamless integration with GitHub Copilot, Claude Desktop, and other MCP-compatible AI assistants.
+For comprehensive documentation including:
 
-**Key Features:**
+- AI Development Guidelines
+- Project Roadmap & Tracking
+- Complete Tool Reference
+- Architecture Details
+- Development Guides
 
-- **Security First** - Command allowlisting, path validation, no sensitive data exposure
-- **File Operations** - Read, write, and list files with comprehensive security checks
-- **Web Search** - Google Search (SerpAPI) and DuckDuckGo integration
-- **Documentation Lookup** - Context7 integration for library documentation
-- **BookStack Integration** - Full CRUD operations for documentation management
-- **ClickUp Integration** - Task management with complete metadata support
-- **Command Execution** - Safe shell command execution with allowlist validation
-- **Git Integration** - Execute git commands and access repository status
-- **Type Safe** - Full TypeScript with Zod schema validation
+Visit the **[MCP Server Book](https://bookstack.deejpotter.com/books/mcp-server-XGf)** on BookStack.
 
-**Quick Links:**
+## Quick Start
 
-- **[Complete Documentation](http://bookstack.deejpotter.com/)** - Full documentation in BookStack
-  - **[Server Info Shelf](http://bookstack.deejpotter.com/shelves/server-info)** - MCP Server documentation
-  - **[MCP Server Book](http://bookstack.deejpotter.com/books/mcp-server-XGf)** - Installation, configuration, usage, and AI guidelines
-- **[AI Prompt Guide](AI-PROMPT.md)** - Guide for AI assistants (also available in BookStack as "AI Assistant Guidelines" page)
-- **[TODO](TODO.md)** - Current development priorities and roadmap
-
-## **Quick Start**
-
-### **Prerequisites**
+### Prerequisites
 
 - Node.js 18 or higher
 - npm (comes with Node.js)
-- Git (for git-related tools)
 
-### **Installation**
+### Installation
 
 ```bash
 # Clone the repository
@@ -46,26 +33,90 @@ npm install
 
 # Build the server
 npm run build
-
-# Start the server
-npm start
 ```
 
-### **Development Mode (VS Code)**
-
-For development with auto-reload on file changes:
-
-```bash
-npm run dev
-```
-
-### **Available Scripts**
+### Available Scripts
 
 - `npm run build` - Compile TypeScript to JavaScript
-- `npm run dev` - Run in development mode with auto-reload (uses tsx)
+- `npm run dev` - Development mode with auto-reload
 - `npm start` - Run the compiled server
-- `npm run typecheck` - Check TypeScript types without building
-- `npm run lint` - Run ESLint code quality checks
+- `npm run typecheck` - Check TypeScript types
+- `npm run lint` - Run ESLint checks
+- `npm test` - Run test suite
+
+## VS Code Integration
+
+Add to your VS Code MCP settings file (`~/.config/Code/User/mcp.json` on Linux/macOS or `%APPDATA%\Code\User\mcp.json` on Windows):
+
+### Production Mode (Recommended)
+
+```json
+{
+  "servers": {
+    "my-mcp-server": {
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "~/Repos/my-mcp-server",
+        "start"
+      ],
+      "env": {}
+    }
+  }
+}
+```
+
+**Note:** Run `npm run build` after any code changes.
+
+### Development Mode
+
+```json
+{
+  "servers": {
+    "my-mcp-server": {
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "~/Repos/my-mcp-server",
+        "run",
+        "dev"
+      ],
+      "env": {}
+    }
+  }
+}
+```
+
+**Note:** Auto-reloads on file changes, no build step needed.
+
+## Configuration
+
+Create a `.env` file in the project root for API integrations:
+
+```env
+# Google Search (via SerpAPI) - Free tier: 100 searches/month
+SERPAPI_API_KEY=your_serpapi_key_here
+
+# Context7 - Optional for enhanced documentation
+CONTEXT7_API_KEY=your_context7_key_here
+
+# BookStack - Required for BookStack tools
+BOOKSTACK_URL=https://your-bookstack-instance.com
+BOOKSTACK_TOKEN_ID=your_token_id_here
+BOOKSTACK_TOKEN_SECRET=your_token_secret_here
+
+# ClickUp - Required for ClickUp tools
+CLICKUP_API_TOKEN=your_clickup_token_here
+
+# Hugging Face - Required for AI image generation
+HUGGING_FACE_API_KEY=your_hugging_face_key_here
+```
+
+**Note:** DuckDuckGo search works without any API keys.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## **Available Tools**
 
