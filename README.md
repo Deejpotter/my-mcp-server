@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server providing development tools and API integrations for AI assistants in VS Code.
 
-**📚 [Complete Documentation on BookStack](https://bookstack.deejpotter.com/books/mcp-server-XGf)**
+**📚 [Complete Documentation on BookStack](https://bookstack.deejpotter.com/books/mcp-server)**
 
 For comprehensive documentation including:
 
@@ -12,7 +12,7 @@ For comprehensive documentation including:
 - Architecture Details
 - Development Guides
 
-Visit the **[MCP Server Book](https://bookstack.deejpotter.com/books/mcp-server-XGf)** on BookStack.
+Visit the **[MCP Server Book](https://bookstack.deejpotter.com/books/mcp-server)** on BookStack.
 
 ## Quick Start
 
