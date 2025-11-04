@@ -62,6 +62,13 @@
 
 ### Documentation & Testing
 
+- [ ] **Fix TypeScript Errors in imageTools.ts**
+  - ⚠️ Multiple "any" type usage (should use proper interfaces)
+  - ⚠️ Unsafe error handling patterns (error: any should be error: unknown)
+  - ⚠️ Mixed tabs/spaces indentation issues
+  - ⚠️ Unused variables (preview variable assigned but never used)
+  - ⚠️ External library type issues (InferenceClient, Sharp imports)
+  - 📋 Follow TypeScript best practices added to AI-PROMPT.md
 - [ ] Fix tool registration to match MCP SDK pattern
 - [x] **Create Comprehensive BookStack Documentation**
   - ✅ Created "Image Generation & Manipulation Tools" page
@@ -75,6 +82,11 @@
   - ✅ Brief descriptions of all 4 tools
   - ✅ Link to detailed BookStack documentation
   - ✅ Noted requirements (HUGGING_FACE_API_KEY)
+- [x] **Update AI-PROMPT.md**
+  - ✅ Added TypeScript best practices section
+  - ✅ Documented proper error handling patterns  
+  - ✅ Added guidance for avoiding "any" types
+  - ✅ Included examples for consistent indentation
 - [ ] Build and test the updated server
 - [ ] Test image generation with various prompts
 - [ ] Test batch conversion and optimization
