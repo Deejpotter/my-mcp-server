@@ -1334,4 +1334,394 @@ Remember: Good documentation saves time, reduces support burden, and helps users
 			};
 		}
 	);
+
+	// PROMPT 9: API INTEGRATION PLANNER
+	server.prompt(
+		"api_integration_planner",
+		"Research and plan new API integrations with comprehensive evaluation workflow",
+		{
+			api_name: z
+				.string()
+				.optional()
+				.describe(
+					"Name of the API to integrate (e.g., 'GitHub API', 'Stripe')"
+				),
+			use_case: z
+				.string()
+				.optional()
+				.describe("What you want to achieve with this API integration"),
+		},
+		// eslint-disable-next-line @typescript-eslint/require-await
+		async (args) => {
+			const apiName = args?.api_name || "the target API";
+			const useCase = args?.use_case || "your requirements";
+
+			return {
+				messages: [
+					{
+						role: "assistant" as const,
+						content: {
+							type: "text" as const,
+							text: `You are an expert at API integration planning. You help developers evaluate, design, and implement robust API integrations by conducting thorough research and creating comprehensive implementation plans.`,
+						},
+					},
+					{
+						role: "user" as const,
+						content: {
+							type: "text" as const,
+							text: `# API Integration Planning Workflow
+
+## Context
+API: ${apiName}
+Use Case: ${useCase}
+
+## Phase 1: Research & Discovery
+
+### 1.1 Documentation Review
+**Use Context7 for official API documentation**
+- API overview and capabilities
+- Authentication methods (API key, OAuth, JWT, etc.)
+- Rate limits and quotas
+- Pricing/usage tiers
+- API versioning strategy
+- SDKs and client libraries available
+
+### 1.2 Technical Requirements
+- Required credentials/setup
+- Network requirements (webhooks, IPs, ports)
+- Data formats (JSON, XML, GraphQL)
+- Required dependencies
+- Environment configuration
+
+### 1.3 Use Case Mapping
+- Map your requirements to API endpoints
+- Identify which API features you need
+- Check if API supports your use case fully
+- Note any limitations or workarounds needed
+
+## Phase 2: Security & Compliance
+
+### 2.1 Authentication Security
+- How are credentials stored? (environment variables, secrets manager)
+- Token refresh mechanisms
+- Credential rotation requirements
+- Multi-user authentication considerations
+
+### 2.2 Data Security
+- What data is transmitted?
+- Is data encrypted in transit (HTTPS)?
+- Data retention policies
+- PII/sensitive data handling
+- GDPR/compliance requirements
+
+### 2.3 Access Control
+- API scopes/permissions needed
+- Principle of least privilege
+- Service account vs user authentication
+- Audit logging requirements
+
+## Phase 3: Design & Architecture
+
+### 3.1 Integration Pattern
+Choose appropriate pattern:
+- **Direct Integration**: Simple API calls from application
+- **Backend Proxy**: Hide credentials, add caching
+- **Event-Driven**: Webhooks for real-time updates
+- **Background Jobs**: Async processing for bulk operations
+
+### 3.2 Error Handling Strategy
+- HTTP status code handling (4xx, 5xx)
+- Retry logic with exponential backoff
+- Circuit breaker pattern for availability
+- Timeout configuration
+- Error logging and monitoring
+
+### 3.3 Rate Limiting & Performance
+- Understand API rate limits
+- Implement client-side rate limiting
+- Request batching opportunities
+- Caching strategy (what, where, TTL)
+- Connection pooling for performance
+
+## Phase 4: Implementation Planning
+
+### 4.1 Code Organization
+\`\`\`
+src/
+  integrations/
+    [api-name]/
+      client.ts          # API client wrapper
+      types.ts           # TypeScript types
+      auth.ts            # Authentication logic
+      errors.ts          # Custom error classes
+      __tests__/         # Integration tests
+\`\`\`
+
+### 4.2 Configuration Structure
+\`\`\`typescript
+// Environment variables
+API_KEY=your_api_key
+API_BASE_URL=https://api.example.com/v1
+API_TIMEOUT=30000
+API_RATE_LIMIT=100
+\`\`\`
+
+### 4.3 TypeScript Types
+\`\`\`typescript
+// Define request/response types
+interface ApiRequest {
+  // Based on API documentation
+}
+
+interface ApiResponse {
+  // Based on API documentation
+}
+
+interface ApiError {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+\`\`\`
+
+### 4.4 Client Implementation Template
+\`\`\`typescript
+import { z } from 'zod';
+
+// Configuration schema
+const configSchema = z.object({
+  apiKey: z.string(),
+  baseUrl: z.string().url(),
+  timeout: z.number().default(30000),
+  rateLimit: z.number().default(100),
+});
+
+// API client class
+export class ApiClient {
+  private config: z.infer<typeof configSchema>;
+  private rateLimiter: RateLimiter;
+
+  constructor(config: unknown) {
+    this.config = configSchema.parse(config);
+    this.rateLimiter = new RateLimiter(this.config.rateLimit);
+  }
+
+  async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    // Rate limiting
+    await this.rateLimiter.acquire();
+
+    // Make request with error handling
+    try {
+      const response = await fetch(
+        \`\${this.config.baseUrl}\${endpoint}\`,
+        {
+          ...options,
+          headers: {
+            'Authorization': \`Bearer \${this.config.apiKey}\`,
+            'Content-Type': 'application/json',
+            ...options?.headers,
+          },
+          signal: AbortSignal.timeout(this.config.timeout),
+        }
+      );
+
+      if (!response.ok) {
+        throw new ApiError(response.status, await response.text());
+      }
+
+      return response.json();
+    } catch (error) {
+      // Error handling logic
+      throw this.handleError(error);
+    }
+  }
+
+  private handleError(error: unknown): ApiError {
+    // Convert errors to ApiError
+  }
+}
+\`\`\`
+
+## Phase 5: Testing Strategy
+
+### 5.1 Unit Tests
+- Mock API responses
+- Test error handling
+- Test rate limiting
+- Test timeout behavior
+
+### 5.2 Integration Tests
+- Test against real API (sandbox/test environment)
+- Test authentication flow
+- Test common workflows
+- Test error scenarios
+
+### 5.3 Load Testing
+- Test rate limit handling
+- Test concurrent requests
+- Monitor memory/CPU usage
+
+## Phase 6: Monitoring & Maintenance
+
+### 6.1 Logging
+- Log all API requests (method, endpoint, status)
+- Log errors with context
+- Track rate limit usage
+- Monitor response times
+
+### 6.2 Metrics
+- Request success/failure rate
+- Response time distribution
+- Rate limit utilization
+- Error rate by type
+
+### 6.3 Alerts
+- High error rate
+- Rate limit approaching
+- Slow response times
+- Authentication failures
+
+## Phase 7: Documentation
+
+### 7.1 Internal Documentation
+Create in BookStack:
+- API overview and capabilities
+- Authentication setup guide
+- Usage examples
+- Error handling guide
+- Rate limits and best practices
+- Troubleshooting common issues
+
+### 7.2 Code Documentation
+- JSDoc for public methods
+- README in integration directory
+- Configuration options documented
+- Example usage in comments
+
+## Implementation Checklist
+
+**Research Phase**:
+- [ ] Read official API documentation (use Context7)
+- [ ] Identify required endpoints
+- [ ] Check rate limits and quotas
+- [ ] Review authentication requirements
+- [ ] Check for existing SDKs/libraries
+- [ ] Review pricing/usage costs
+
+**Security Phase**:
+- [ ] Plan credential storage
+- [ ] Design authentication flow
+- [ ] Identify sensitive data handling
+- [ ] Check compliance requirements
+- [ ] Plan error message sanitization
+
+**Design Phase**:
+- [ ] Choose integration pattern
+- [ ] Design error handling strategy
+- [ ] Plan rate limiting approach
+- [ ] Design caching strategy
+- [ ] Create TypeScript types
+
+**Implementation Phase**:
+- [ ] Set up project structure
+- [ ] Implement API client
+- [ ] Add error handling
+- [ ] Implement rate limiting
+- [ ] Add logging
+- [ ] Write unit tests
+- [ ] Write integration tests
+
+**Testing Phase**:
+- [ ] Test authentication
+- [ ] Test happy path scenarios
+- [ ] Test error scenarios
+- [ ] Test rate limiting
+- [ ] Load testing (if applicable)
+
+**Documentation Phase**:
+- [ ] Create BookStack page
+- [ ] Document configuration
+- [ ] Add usage examples
+- [ ] Create troubleshooting guide
+- [ ] Update project README
+
+**Deployment Phase**:
+- [ ] Configure environment variables
+- [ ] Set up monitoring
+- [ ] Configure alerts
+- [ ] Deploy to staging
+- [ ] Test in staging
+- [ ] Deploy to production
+
+## Common Pitfalls to Avoid
+
+**Authentication**:
+- ❌ Hardcoding credentials
+- ❌ Not implementing token refresh
+- ❌ Exposing credentials in logs/errors
+
+**Rate Limiting**:
+- ❌ Not implementing client-side rate limiting
+- ❌ Not handling 429 responses
+- ❌ Not using exponential backoff
+
+**Error Handling**:
+- ❌ Not catching network errors
+- ❌ Not handling timeouts
+- ❌ Exposing sensitive error details to users
+
+**Testing**:
+- ❌ Only testing happy path
+- ❌ Not testing against real API
+- ❌ Not testing rate limit behavior
+
+**Monitoring**:
+- ❌ No logging of API calls
+- ❌ No metrics/alerts
+- ❌ Not tracking API costs
+
+## Tools to Use
+
+**Research & Documentation**:
+- \`search_documentation\` - Find API documentation via Context7
+- \`get_documentation\` - Get detailed API docs
+- \`duckduckgo_search\` or \`google_search\` - Find examples and discussions
+
+**Implementation**:
+- \`read_file\` - Review existing code patterns
+- \`write_file\` - Create new integration files
+- \`run_command\` - Install dependencies
+
+**Documentation**:
+- \`bookstack_create_page\` - Document the integration
+- \`bookstack_search\` - Find related documentation
+
+## Example Workflow
+
+1. **Start**: "I need to integrate the Stripe API for payment processing"
+2. **Research**: Use Context7 to get Stripe API documentation
+3. **Design**: Choose backend proxy pattern for credential security
+4. **Plan**: Create implementation checklist
+5. **Implement**: Build client with TypeScript types
+6. **Test**: Write tests for payment flows
+7. **Document**: Create BookStack guide
+8. **Deploy**: Set up monitoring and alerts
+
+## Next Steps
+
+1. Gather API documentation using Context7
+2. Map API capabilities to your use case
+3. Design integration architecture
+4. Create implementation plan
+5. Build and test incrementally
+6. Document thoroughly
+7. Deploy with monitoring
+
+Remember: Thorough planning prevents integration issues. Research first, implement carefully, test thoroughly!`,
+						},
+					},
+				],
+			};
+		}
+	);
 }
