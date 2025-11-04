@@ -1,5 +1,5 @@
 /**
- * Updated: 02/11/25
+ * Updated: 04/11/25
  * By: Daniel Potter
  *
  * MCP Prompts for workflow guidance.
@@ -1718,6 +1718,592 @@ Create in BookStack:
 7. Deploy with monitoring
 
 Remember: Thorough planning prevents integration issues. Research first, implement carefully, test thoroughly!`,
+						},
+					},
+				],
+			};
+		}
+	);
+
+	// PROMPT 10: REFACTORING GUIDE
+	server.prompt(
+		"refactoring_guide",
+		"Systematic code refactoring workflow to improve quality without breaking functionality",
+		{
+			focus_area: z
+				.string()
+				.optional()
+				.describe(
+					"What to refactor (e.g., 'component structure', 'API layer', 'database queries')"
+				),
+			codebase_size: z
+				.string()
+				.optional()
+				.describe(
+					"Size of codebase: 'small' (<1000 lines), 'medium' (<10k), 'large' (>10k)"
+				),
+		},
+		// eslint-disable-next-line @typescript-eslint/require-await
+		async (args) => {
+			const focusArea = args?.focus_area || "the code";
+			const codebaseSize = args?.codebase_size || "medium";
+
+			return {
+				messages: [
+					{
+						role: "assistant" as const,
+						content: {
+							type: "text" as const,
+							text: `You are an expert software engineer specializing in code refactoring. You help developers improve code quality, maintainability, and performance while minimizing risk and preserving functionality.`,
+						},
+					},
+					{
+						role: "user" as const,
+						content: {
+							type: "text" as const,
+							text: `# Refactoring Workflow
+
+## Context
+Focus Area: ${focusArea}
+Codebase Size: ${codebaseSize}
+
+## Phase 1: Assessment & Planning
+
+### 1.1 Understand Current State
+**Read the code thoroughly:**
+- What does this code do?
+- Why was it written this way?
+- What are the dependencies?
+- Who uses this code? (use \`list_code_usages\` tool)
+
+**Identify pain points:**
+- Hard to understand sections
+- Duplicated code
+- Long functions/files
+- Complex conditionals
+- Performance bottlenecks
+- Test coverage gaps
+
+### 1.2 Define Refactoring Goals
+**What are you trying to improve?**
+- **Readability**: Make code easier to understand
+- **Maintainability**: Easier to modify and extend
+- **Performance**: Faster execution or lower resource usage
+- **Testability**: Easier to test and verify
+- **Reusability**: Extract common patterns
+- **Type Safety**: Better TypeScript types
+
+**Success criteria:**
+- Specific, measurable goals
+- No change in functionality
+- All tests still pass
+- Performance doesn't degrade
+
+### 1.3 Risk Assessment
+**High Risk (proceed with caution):**
+- Critical business logic
+- No test coverage
+- Complex dependencies
+- Production issues history
+- Multiple teams depend on it
+
+**Medium Risk (standard refactoring):**
+- Some test coverage
+- Well-defined interfaces
+- Limited dependencies
+- Clear boundaries
+
+**Low Risk (safe to refactor):**
+- Good test coverage
+- Isolated code
+- Clear ownership
+- Recent code
+
+## Phase 2: Preparation
+
+### 2.1 Ensure Test Coverage
+**Before refactoring:**
+\`\`\`bash
+# Run existing tests
+npm test
+
+# Check coverage
+npm run test:coverage
+\`\`\`
+
+**If coverage is low:**
+1. Add tests for current behavior
+2. Focus on inputs/outputs (black box testing)
+3. Cover edge cases
+4. Get tests passing first
+
+**Golden Rule**: Never refactor without tests
+
+### 2.2 Create Backup Branch
+\`\`\`bash
+# Create refactoring branch
+git checkout -b refactor/[focus-area]
+
+# Create checkpoint commit
+git add -A
+git commit -m "chore: checkpoint before refactoring [focus-area]"
+\`\`\`
+
+### 2.3 Document Current Behavior
+- Screenshot important UI states
+- Document API contracts
+- Note performance baselines
+- List known quirks/bugs
+
+## Phase 3: Refactoring Strategies
+
+### 3.1 Extract Function
+**When**: Function doing too many things
+
+\`\`\`typescript
+// Before
+function processOrder(order: Order) {
+  // Validate (10 lines)
+  // Calculate total (15 lines)
+  // Apply discounts (20 lines)
+  // Save to database (10 lines)
+}
+
+// After
+function processOrder(order: Order) {
+  validateOrder(order);
+  const total = calculateTotal(order);
+  const finalTotal = applyDiscounts(total, order);
+  saveOrder(order, finalTotal);
+}
+
+function validateOrder(order: Order) { /* ... */ }
+function calculateTotal(order: Order): number { /* ... */ }
+function applyDiscounts(total: number, order: Order): number { /* ... */ }
+function saveOrder(order: Order, total: number) { /* ... */ }
+\`\`\`
+
+### 3.2 Extract Constant
+**When**: Magic numbers or repeated strings
+
+\`\`\`typescript
+// Before
+if (user.age >= 18 && user.age < 65) {
+  // ...
+}
+
+// After
+const MINIMUM_AGE = 18;
+const RETIREMENT_AGE = 65;
+
+if (user.age >= MINIMUM_AGE && user.age < RETIREMENT_AGE) {
+  // ...
+}
+\`\`\`
+
+### 3.3 Introduce Parameter Object
+**When**: Functions have many parameters
+
+\`\`\`typescript
+// Before
+function createUser(
+  name: string,
+  email: string,
+  age: number,
+  address: string,
+  phone: string
+) { /* ... */ }
+
+// After
+interface UserData {
+  name: string;
+  email: string;
+  age: number;
+  address: string;
+  phone: string;
+}
+
+function createUser(data: UserData) { /* ... */ }
+\`\`\`
+
+### 3.4 Replace Conditional with Polymorphism
+**When**: Long switch/if-else chains
+
+\`\`\`typescript
+// Before
+function getShippingCost(type: string, weight: number) {
+  if (type === 'standard') {
+    return weight * 0.5;
+  } else if (type === 'express') {
+    return weight * 1.5;
+  } else if (type === 'overnight') {
+    return weight * 3.0;
+  }
+}
+
+// After
+interface ShippingStrategy {
+  calculate(weight: number): number;
+}
+
+class StandardShipping implements ShippingStrategy {
+  calculate(weight: number) {
+    return weight * 0.5;
+  }
+}
+
+class ExpressShipping implements ShippingStrategy {
+  calculate(weight: number) {
+    return weight * 1.5;
+  }
+}
+
+// Use strategy pattern
+const strategies: Record<string, ShippingStrategy> = {
+  standard: new StandardShipping(),
+  express: new ExpressShipping(),
+};
+
+function getShippingCost(type: string, weight: number) {
+  return strategies[type].calculate(weight);
+}
+\`\`\`
+
+### 3.5 Simplify Conditionals
+**When**: Complex boolean logic
+
+\`\`\`typescript
+// Before
+if (user && user.isActive && user.hasPermission('write') && !user.isSuspended) {
+  // ...
+}
+
+// After
+function canUserWrite(user: User | null): boolean {
+  return Boolean(
+    user?.isActive &&
+    user.hasPermission('write') &&
+    !user.isSuspended
+  );
+}
+
+if (canUserWrite(user)) {
+  // ...
+}
+\`\`\`
+
+### 3.6 Remove Duplication
+**When**: Same code in multiple places
+
+\`\`\`typescript
+// Before
+function saveUser(user: User) {
+  validateEmail(user.email);
+  validateAge(user.age);
+  db.save('users', user);
+  logAudit('user_created', user.id);
+}
+
+function updateUser(user: User) {
+  validateEmail(user.email);
+  validateAge(user.age);
+  db.update('users', user);
+  logAudit('user_updated', user.id);
+}
+
+// After
+function validateUser(user: User) {
+  validateEmail(user.email);
+  validateAge(user.age);
+}
+
+function saveUser(user: User) {
+  validateUser(user);
+  db.save('users', user);
+  logAudit('user_created', user.id);
+}
+
+function updateUser(user: User) {
+  validateUser(user);
+  db.update('users', user);
+  logAudit('user_updated', user.id);
+}
+\`\`\`
+
+## Phase 4: Execution
+
+### 4.1 Refactor in Small Steps
+**Rule**: One refactoring at a time
+
+1. Make one change
+2. Run tests
+3. Commit if tests pass
+4. Repeat
+
+**Example workflow:**
+\`\`\`bash
+# Step 1: Extract function
+git add -A
+git commit -m "refactor: extract validateOrder function"
+
+# Step 2: Add types
+git add -A
+git commit -m "refactor: add OrderValidationResult type"
+
+# Step 3: Improve error handling
+git add -A
+git commit -m "refactor: improve validation error messages"
+\`\`\`
+
+### 4.2 Run Tests After Each Change
+\`\`\`bash
+# Quick test
+npm test -- --changed
+
+# Full test suite
+npm test
+
+# If tests fail, revert and try smaller step
+git reset --hard HEAD
+\`\`\`
+
+### 4.3 Keep Commits Small
+**Good commit messages:**
+- \`refactor: extract user validation logic\`
+- \`refactor: replace switch with strategy pattern\`
+- \`refactor: simplify shipping cost calculation\`
+
+**Bad commit messages:**
+- \`refactor: improve code\`
+- \`fix stuff\`
+- \`wip\`
+
+## Phase 5: Verification
+
+### 5.1 Test Coverage
+\`\`\`bash
+# Check coverage didn't decrease
+npm run test:coverage
+
+# Coverage should be same or better
+\`\`\`
+
+### 5.2 Performance Check
+\`\`\`bash
+# Run performance tests
+npm run test:performance
+
+# Compare with baseline
+# Should be same or better
+\`\`\`
+
+### 5.3 Code Quality Metrics
+**Check improvements:**
+- Reduced function length
+- Lower cyclomatic complexity
+- Better type coverage
+- Fewer linter warnings
+- Improved readability score
+
+### 5.4 Manual Testing
+- Test critical user flows
+- Check edge cases
+- Verify error handling
+- Test with real data
+
+## Phase 6: Documentation
+
+### 6.1 Update Code Comments
+- Remove outdated comments
+- Add comments for non-obvious decisions
+- Document complex algorithms
+- Explain why, not what
+
+### 6.2 Update Documentation
+- README if public API changed
+- BookStack for architectural changes
+- CHANGELOG for breaking changes
+- Migration guide if needed
+
+### 6.3 Team Communication
+- Share refactoring plan
+- Highlight breaking changes
+- Document new patterns
+- Provide examples
+
+## Phase 7: Review & Deploy
+
+### 7.1 Code Review Checklist
+- [ ] All tests pass
+- [ ] Test coverage maintained or improved
+- [ ] No functionality changes
+- [ ] Performance not degraded
+- [ ] Documentation updated
+- [ ] Breaking changes documented
+- [ ] Follows project coding standards
+
+### 7.2 Deployment Strategy
+**Low-risk refactoring:**
+- Deploy with regular release
+
+**Medium-risk refactoring:**
+- Deploy to staging first
+- Monitor for issues
+- Deploy during low-traffic period
+
+**High-risk refactoring:**
+- Feature flag the changes
+- Gradual rollout (canary deployment)
+- Quick rollback plan ready
+
+## Common Refactoring Patterns
+
+### Component Refactoring
+\`\`\`typescript
+// Before: God component
+function UserDashboard() {
+  // 500 lines of JSX and logic
+}
+
+// After: Extracted components
+function UserDashboard() {
+  return (
+    <div>
+      <UserProfile user={user} />
+      <UserStatistics stats={stats} />
+      <UserActivity activity={activity} />
+      <UserSettings settings={settings} />
+    </div>
+  );
+}
+\`\`\`
+
+### API Layer Refactoring
+\`\`\`typescript
+// Before: Direct API calls everywhere
+fetch('/api/users')
+  .then(r => r.json())
+  .then(data => setUsers(data));
+
+// After: Abstracted API layer
+const api = {
+  users: {
+    list: () => apiClient.get<User[]>('/users'),
+    get: (id: string) => apiClient.get<User>(\`/users/\${id}\`),
+    create: (data: UserInput) => apiClient.post<User>('/users', data),
+  },
+};
+
+// Usage
+const users = await api.users.list();
+\`\`\`
+
+### Database Query Refactoring
+\`\`\`typescript
+// Before: Raw SQL everywhere
+const result = await db.query(
+  'SELECT * FROM users WHERE age > ? AND status = ?',
+  [18, 'active']
+);
+
+// After: Query builder or ORM
+const users = await db.users
+  .where('age', '>', 18)
+  .where('status', 'active')
+  .select();
+\`\`\`
+
+## Refactoring Checklist
+
+**Before Starting:**
+- [ ] Understand current code behavior
+- [ ] Identify refactoring goals
+- [ ] Assess risk level
+- [ ] Ensure test coverage
+- [ ] Create backup branch
+- [ ] Document current behavior
+
+**During Refactoring:**
+- [ ] Make small, incremental changes
+- [ ] Run tests after each change
+- [ ] Commit frequently with clear messages
+- [ ] Keep functionality unchanged
+- [ ] Monitor performance
+- [ ] Update types/interfaces
+
+**After Refactoring:**
+- [ ] All tests pass
+- [ ] Coverage maintained/improved
+- [ ] Performance not degraded
+- [ ] Documentation updated
+- [ ] Code review completed
+- [ ] Ready for deployment
+
+## Common Pitfalls to Avoid
+
+**Refactoring without tests:**
+- ❌ "I'll add tests later"
+- ✅ Write tests first, then refactor
+
+**Changing behavior:**
+- ❌ "While I'm here, I'll fix this bug"
+- ✅ Separate refactoring from bug fixes
+
+**Big bang refactoring:**
+- ❌ Rewrite everything at once
+- ✅ Small, incremental changes
+
+**Premature optimization:**
+- ❌ "This might be slow someday"
+- ✅ Optimize when you have proof of issues
+
+**Over-engineering:**
+- ❌ Adding abstraction layers "just in case"
+- ✅ Keep it simple, refactor when needed
+
+## Tools to Use
+
+**Code Analysis:**
+- \`grep_search\` - Find code patterns
+- \`semantic_search\` - Find similar code
+- \`list_code_usages\` - Find all usages of function/class
+
+**Testing:**
+- \`run_command\` - Run test suite
+- \`get_errors\` - Check for TypeScript errors
+
+**Git:**
+- \`git_command\` - Manage branches and commits
+- \`get_changed_files\` - Review changes
+
+**Documentation:**
+- \`bookstack_create_page\` or \`bookstack_update_page\` - Document refactoring decisions
+
+## Example Workflow
+
+1. **Assess**: Identify code smell (long function, duplication)
+2. **Test**: Ensure good test coverage
+3. **Branch**: Create refactoring branch
+4. **Extract**: Extract smaller functions
+5. **Test**: Run tests, verify passing
+6. **Commit**: Commit with clear message
+7. **Repeat**: Continue with next refactoring
+8. **Review**: Code review and testing
+9. **Deploy**: Merge and deploy
+10. **Monitor**: Watch for issues
+
+## Next Steps
+
+1. Identify what needs refactoring
+2. Assess risk level
+3. Ensure test coverage
+4. Create refactoring plan
+5. Refactor in small steps
+6. Test after each change
+7. Document changes
+8. Review and deploy
+
+Remember: Good refactoring is invisible to users - same functionality, better code. Test early, test often, commit frequently!`,
 						},
 					},
 				],
