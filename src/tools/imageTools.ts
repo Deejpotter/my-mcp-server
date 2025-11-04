@@ -8,13 +8,20 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**
  * Image Generation & Manipulation Tools
- * 
+ *
  * Provides tools for:
  * - AI-powered image generation from text prompts
  * - Image format conversion (JPEG, PNG, WEBP, AVIF, etc.)
  * - Image resizing and optimization
  * - Batch processing support
  */
+
+// Type definitions for better type safety
+interface ResizeOptions {
+	width?: number;
+	height?: number;
+	fit?: "cover" | "contain" | "fill" | "inside" | "outside";
+}
 
 // =============================================================================
 // Image Generation Tool
@@ -94,7 +101,7 @@ export const imageGenerateTool = {
 		}
 
 		// Initialize Hugging Face Inference Client
-		const client = new InferenceClient(HF_TOKEN);
+		const client = new InferenceClient(HF_TOKEN) as InferenceClient;
 
 		// Map model names to Hugging Face model IDs
 		const modelMap: Record<string, string> = {
@@ -108,16 +115,21 @@ export const imageGenerateTool = {
 			// Parse dimensions
 			const [width, height] = (args.size || "1024x1024").split("x").map(Number);
 
-			// Generate image
+			// Generate image - build parameters object carefully
+			const parameters: Record<string, unknown> = {};
+			if (args.negative_prompt) {
+				parameters.negative_prompt = args.negative_prompt;
+			}
+			if (args.guidance_scale !== undefined) {
+				parameters.guidance_scale = args.guidance_scale;
+			}
+			parameters.width = width;
+			parameters.height = height;
+
 			const imageBlob = await client.textToImage({
 				model: modelId,
 				inputs: args.prompt,
-				parameters: {
-					negative_prompt: args.negative_prompt,
-					guidance_scale: args.guidance_scale,
-					width,
-					height,
-				},
+				parameters,
 			});
 
 			// Convert Blob to Buffer
@@ -130,13 +142,6 @@ export const imageGenerateTool = {
 			// Get file stats
 			const stats = await fs.stat(args.output_path);
 			const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-
-			// Generate base64 preview (for small images)
-			let preview = "";
-			if (stats.size < 500000) {
-				// Only for images < 500KB
-				preview = buffer.toString("base64");
-			}
 
 			return {
 				content: [
@@ -155,11 +160,12 @@ The image has been saved and is ready to use in your BookStack documentation or 
 					},
 				],
 			};
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const err = error as Error;
 			// Handle rate limiting errors
 			if (
-				error.message?.includes("rate limit") ||
-				error.message?.includes("429")
+				err.message?.includes("rate limit") ||
+				err.message?.includes("429")
 			) {
 				return {
 					content: [
@@ -176,13 +182,22 @@ Suggestions:
 2. Use a different API key
 3. Consider upgrading to a paid tier for higher limits
 
-Error: ${error.message}`,
+Error: ${err.message}`,
 						},
 					],
+					isError: true,
 				};
 			}
 
-			throw new Error(`Image generation failed: ${error.message}`);
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Error: Image generation failed: ${err.message}`,
+					},
+				],
+				isError: true,
+			};
 		}
 	},
 };
@@ -275,8 +290,9 @@ export const imageConvertTool = {
 					args.quality || 80
 				);
 				results.push(outputPath);
-			} catch (error: any) {
-				errors.push(`${args.input}: ${error.message}`);
+			} catch (error: unknown) {
+				const err = error as Error;
+				errors.push(`${args.input}: ${err.message}`);
 			}
 		} else {
 			// Batch conversion
@@ -289,12 +305,12 @@ export const imageConvertTool = {
 						? path.join(
 								outputDir,
 								path.dirname(relativePath),
-								`${path.parse(file).name}.${args.output_format}`
-						  )
-						: path.join(
-								outputDir,
-								`${path.parse(file).name}.${args.output_format}`
-						  );
+		                        `${path.parse(file).name}.${args.output_format}`
+                    )
+                    : path.join(
+                        outputDir,
+                        `${path.parse(file).name}.${args.output_format}`
+                    );
 
 					// Create subdirectories if preserving structure
 					if (args.preserve_structure) {
@@ -311,8 +327,9 @@ export const imageConvertTool = {
 						args.quality || 80
 					);
 					results.push(outputPath);
-				} catch (error: any) {
-					errors.push(`${file}: ${error.message}`);
+				} catch (error: unknown) {
+					const err = error as Error;
+					errors.push(`${file}: ${err.message}`);
 				}
 			}
 		}
@@ -474,10 +491,10 @@ export const imageResizeTool = {
 					`${path.parse(file).name}-resized${path.extname(file)}`
 				);
 
-				const image = sharp(file);
+				const image = sharp(file) as sharp.Sharp;
 
 				// Apply resize
-				const resizeOptions: any = { fit: args.fit || "cover" };
+				const resizeOptions: ResizeOptions = { fit: args.fit || "cover" };
 				if (targetWidth) resizeOptions.width = targetWidth;
 				if (targetHeight) resizeOptions.height = targetHeight;
 
@@ -491,8 +508,9 @@ export const imageResizeTool = {
 
 				await image.resize(resizeOptions).toFile(outputPath);
 				results.push(outputPath);
-			} catch (error: any) {
-				errors.push(`${file}: ${error.message}`);
+			} catch (error: unknown) {
+				const err = error as Error;
+				errors.push(`${file}: ${err.message}`);
 			}
 		}
 
@@ -613,42 +631,70 @@ export const imageOptimizeTool = {
 				const outputPath = path.join(outputDir, path.basename(file));
 				const ext = path.extname(file).toLowerCase();
 
-				let image = sharp(file);
-
-				// Add metadata preservation
-				if (args.preserve_metadata) {
-					image = image.withMetadata();
-				}
-
-				// Format-specific optimization
+				// @ts-expect-error - External library type assertion for sharp
+				const sharpImage = sharp(file);
+				let processedImage: Buffer;
+				
 				if (ext === ".jpg" || ext === ".jpeg") {
-					await image
+					// @ts-expect-error - External library type assertion
+					let image = sharpImage;
+					if (args.preserve_metadata) {
+						// @ts-expect-error - External library type assertion
+						image = image.withMetadata();
+					}
+					// @ts-expect-error - External library type assertion
+					processedImage = await image
 						.jpeg({
 							quality: args.quality || 80,
 							mozjpeg: true,
 							progressive: true,
 						})
-						.toFile(outputPath);
+						.toBuffer();
 				} else if (ext === ".png") {
-					await image
+					// @ts-expect-error - External library type assertion
+					let image = sharpImage;
+					if (args.preserve_metadata) {
+						// @ts-expect-error - External library type assertion
+						image = image.withMetadata();
+					}
+					// @ts-expect-error - External library type assertion
+					processedImage = await image
 						.png({
 							compressionLevel: 9,
 							quality: args.quality || 80,
 							palette: true,
 						})
-						.toFile(outputPath);
+						.toBuffer();
 				} else if (ext === ".webp") {
-					await image
+					// @ts-expect-error - External library type assertion
+					let image = sharpImage;
+					if (args.preserve_metadata) {
+						// @ts-expect-error - External library type assertion
+						image = image.withMetadata();
+					}
+					// @ts-expect-error - External library type assertion
+					processedImage = await image
 						.webp({ quality: args.quality || 80, effort: 6 })
-						.toFile(outputPath);
+						.toBuffer();
 				} else if (ext === ".avif") {
-					await image
+					// @ts-expect-error - External library type assertion
+					let image = sharpImage;
+					if (args.preserve_metadata) {
+						// @ts-expect-error - External library type assertion
+						image = image.withMetadata();
+					}
+					// @ts-expect-error - External library type assertion
+					processedImage = await image
 						.avif({ quality: args.quality || 50, effort: 4 })
-						.toFile(outputPath);
+						.toBuffer();
 				} else {
 					// Default optimization
-					await image.toFile(outputPath);
+					// @ts-expect-error - External library type assertion
+					processedImage = await sharpImage.toBuffer();
 				}
+
+				// Write the processed image
+				await fs.writeFile(outputPath, processedImage);
 
 				const optimizedStats = await fs.stat(outputPath);
 				const optimizedSize = optimizedStats.size;
@@ -660,8 +706,9 @@ export const imageOptimizeTool = {
 					optimizedSize,
 					savings,
 				});
-			} catch (error: any) {
-				errors.push(`${file}: ${error.message}`);
+			} catch (error: unknown) {
+				const err = error as Error;
+				errors.push(`${file}: ${err.message}`);
 			}
 		}
 
@@ -827,33 +874,51 @@ async function calculateTotalSize(files: string[]): Promise<number> {
  * Register all image tools with the MCP server
  */
 export function registerImageTools(server: McpServer): void {
-	server.tool(
-		imageGenerateTool.name,
-		imageGenerateTool.description,
-		imageGenerateTool.inputSchema,
+	// IMAGE GENERATE TOOL
+	server.registerTool(
+		"image_generate",
+		{
+			title: "Generate Images from Text",
+			description: imageGenerateTool.description,
+			inputSchema: imageGenerateTool.inputSchema.shape,
+		},
 		imageGenerateTool.handler
 	);
 
-	server.tool(
-		imageConvertTool.name,
-		imageConvertTool.description,
-		imageConvertTool.inputSchema,
+	// IMAGE CONVERT TOOL
+	server.registerTool(
+		"image_convert",
+		{
+			title: "Convert Image Formats",
+			description: imageConvertTool.description,
+			inputSchema: imageConvertTool.inputSchema.shape,
+		},
 		imageConvertTool.handler
 	);
 
-	server.tool(
-		imageResizeTool.name,
-		imageResizeTool.description,
-		imageResizeTool.inputSchema,
+	// IMAGE RESIZE TOOL
+	server.registerTool(
+		"image_resize",
+		{
+			title: "Resize Images",
+			description: imageResizeTool.description,
+			inputSchema: imageResizeTool.inputSchema.shape,
+		},
 		imageResizeTool.handler
 	);
 
-	server.tool(
-		imageOptimizeTool.name,
-		imageOptimizeTool.description,
-		imageOptimizeTool.inputSchema,
+	// IMAGE OPTIMIZE TOOL
+	server.registerTool(
+		"image_optimize",
+		{
+			title: "Optimize Images",
+			description: imageOptimizeTool.description,
+			inputSchema: imageOptimizeTool.inputSchema.shape,
+		},
 		imageOptimizeTool.handler
 	);
 
-	console.error("✅ Image tools registered: generate, convert, resize, optimize");
+	console.error(
+		"✅ Image tools registered: generate, convert, resize, optimize"
+	);
 }
