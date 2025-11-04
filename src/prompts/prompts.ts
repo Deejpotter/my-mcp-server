@@ -798,4 +798,229 @@ Now analyze the user's query and provide the optimized search plan!`,
 			};
 		}
 	);
+
+	// PROMPT 7: BOOKSTACK IMAGE GENERATOR
+	server.prompt(
+		"bookstack_image_generator",
+		"Generate AI images for BookStack shelves, books, and documentation with professional styling",
+		{
+			content_type: z
+				.string()
+				.optional()
+				.describe(
+					"Type of content: 'shelf', 'book', 'chapter', 'technical', 'tutorial'"
+				),
+			topic: z
+				.string()
+				.optional()
+				.describe("Main topic or subject matter (e.g., 'MCP Server', 'CNC Routing')"),
+		},
+		// eslint-disable-next-line @typescript-eslint/require-await
+		async (args) => {
+			const contentType = args?.content_type || "book";
+			const topic = args?.topic || "the documentation";
+
+			return {
+				messages: [
+					{
+						role: "assistant" as const,
+						content: {
+							type: "text" as const,
+							text: `You are an expert at creating professional, visually appealing images for documentation using AI image generation. You specialize in creating clean, minimalist cover images for BookStack shelves, books, and technical documentation.`,
+						},
+					},
+					{
+						role: "user" as const,
+						content: {
+							type: "text" as const,
+							text: `# BookStack Image Generation Workflow
+
+## Context
+Content Type: ${contentType}
+Topic: ${topic}
+
+## Step 1: Understand the Content
+Before generating images:
+- **Purpose**: What is this documentation about?
+- **Audience**: Who will use this? (technical, general, professional)
+- **Existing Images**: Check BookStack for current visual style
+- **Brand Identity**: Does this match the documentation's theme?
+
+## Step 2: Choose Image Style
+
+### For Shelves (Collection Images)
+- **Style**: Abstract, geometric, or iconographic
+- **Elements**: Minimal (3-5 elements max)
+- **Focus**: Visual metaphor for the collection theme
+- **Examples**:
+  - "Projects" → Blueprint, code editor, tools
+  - "Development" → Terminal window, git branches, modern workspace
+  - "Infrastructure" → Server racks, network diagram, cloud
+
+### For Books (Cover Images)
+- **Style**: Professional tech book cover
+- **Elements**: Central icon/symbol + clean background
+- **Focus**: Single clear concept
+- **Examples**:
+  - "MCP Server" → Plug/connection symbol, API diagram
+  - "CNC Routing" → CNC machine silhouette, precision tools
+  - "React Guide" → React logo, component tree
+
+### For Technical Documentation
+- **Style**: Diagram-style, blueprint aesthetic
+- **Elements**: Technical but approachable
+- **Focus**: Core concept visualization
+- **Examples**:
+  - Architecture → Clean system diagram
+  - API docs → Endpoint flow diagram
+  - Tutorial → Step-by-step visual
+
+## Step 3: Craft the Perfect Prompt
+
+### Prompt Formula
+\`\`\`
+[Main subject], [style], [color scheme], [composition], [technical details]
+\`\`\`
+
+### Best Practices
+- **Be specific**: "Modern server icon" not just "server"
+- **Include style**: "flat design", "isometric", "minimalist", "blueprint style"
+- **Set mood**: "professional", "clean", "technical", "modern"
+- **Specify background**: "white background", "gradient blue to purple", "dark theme"
+- **Add constraints**: "simple", "no text", "centered", "high contrast"
+
+### Example Prompts
+
+**Shelf Image (Projects):**
+\`\`\`
+Minimalist illustration of a laptop with code editor and project files, 
+flat design style, gradient blue to teal background, isometric view, 
+professional tech aesthetic, clean composition, no text
+\`\`\`
+
+**Book Cover (MCP Server):**
+\`\`\`
+Abstract geometric representation of connected nodes and APIs, modern 
+technical diagram style, dark blue background with bright accent lines, 
+centered composition, professional software documentation aesthetic, 
+circuit board elements, no text
+\`\`\`
+
+**Technical Diagram (Architecture):**
+\`\`\`
+Clean system architecture diagram showing modular components, blueprint 
+style with white lines on navy blue background, technical but minimalist, 
+professional engineering aesthetic, geometric shapes, no labels
+\`\`\`
+
+## Step 4: Generate with Negative Prompts
+
+### What to Avoid
+Use negative prompts to prevent:
+- "text, words, labels, typography, numbers"
+- "cluttered, busy, complex, detailed textures"
+- "photorealistic, blurry, low quality, distorted"
+- "people, faces, hands" (unless specifically needed)
+
+### Recommended Settings
+- **Model**: flux-schnell (fast, high quality)
+- **Size**: 1024x768 or 768x1024 (landscape/portrait)
+- **Guidance Scale**: 7-8 (balanced adherence)
+- **Quality**: High (80-90)
+
+## Step 5: Use the Image Generation Tool
+
+\`\`\`typescript
+image_generate({
+  prompt: "[Your crafted prompt]",
+  output_path: "/home/user/bookstack-images/[descriptive-name].png",
+  size: "1024x768", // or "768x1024" for vertical
+  model: "flux-schnell",
+  negative_prompt: "text, words, labels, cluttered, blurry, low quality",
+  guidance_scale: 7.5
+})
+\`\`\`
+
+## Step 6: Review and Iterate
+
+After generation:
+- **Check Quality**: Is it professional and clean?
+- **Check Relevance**: Does it represent the content well?
+- **Check Style**: Does it match existing BookStack images?
+- **Iterate if Needed**: Refine prompt and regenerate
+
+## Step 7: Optimize and Update BookStack
+
+### Optimize the Image
+\`\`\`typescript
+// Convert to WebP for better compression
+image_convert({
+  input: "/path/to/image.png",
+  output_format: "webp",
+  quality: 85
+})
+
+// Or optimize in place
+image_optimize({
+  input: "/path/to/image.png",
+  quality: 85,
+  preserve_metadata: false
+})
+\`\`\`
+
+### Update BookStack
+\`\`\`typescript
+// For a shelf
+bookstack_update_shelf({
+  shelf_id: 1,
+  // Upload image via BookStack UI, then reference in description
+})
+
+// For a book
+bookstack_update_book({
+  book_id: 6,
+  // Upload image via BookStack UI as cover
+})
+\`\`\`
+
+## Common Use Cases
+
+### Shelf Icons (Collection Thumbnails)
+- **Size**: 768x768 (square works best)
+- **Style**: Simple icon-based
+- **Prompt**: "Single [icon] representing [theme], flat design, white background"
+
+### Book Covers (Documentation)
+- **Size**: 768x1024 (portrait)
+- **Style**: Professional book cover
+- **Prompt**: "[Subject] book cover, modern tech design, [color scheme]"
+
+### Feature Banners (Page Headers)
+- **Size**: 1024x768 (landscape)
+- **Style**: Wide banner, conceptual
+- **Prompt**: "Wide banner showing [concept], minimalist, professional"
+
+## Tips for Success
+
+1. **Keep it simple**: Fewer elements = cleaner result
+2. **Be consistent**: Match existing image styles
+3. **No text in AI**: Add text in post-processing if needed
+4. **Test iterations**: Generate 2-3 variations, pick best
+5. **Optimize size**: Always compress before upload
+6. **Professional over pretty**: Technical accuracy > artistic flair
+
+## Available Tools
+- \`image_generate\`: Create images from text prompts
+- \`image_convert\`: Change format (PNG → WebP)
+- \`image_resize\`: Adjust dimensions if needed
+- \`image_optimize\`: Compress for web performance
+- \`bookstack_update_*\`: Update shelf/book with new images
+
+Start by understanding what image you need, then craft a specific, professional prompt!`,
+						},
+					},
+				],
+			};
+		}
+	);
 }
