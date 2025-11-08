@@ -4,6 +4,8 @@ A Model Context Protocol (MCP) server providing development tools and API integr
 
 **📚 [Complete Documentation on BookStack](https://bookstack.deejpotter.com/books/mcp-server)**
 
+**⚠️ IMPORTANT: All documentation MUST be created in BookStack, not as .md files. See [Documentation Workflow](https://bookstack.deejpotter.com/books/mcp-server/page/documentation-workflow-bookstack-first-approach) for guidelines.**
+
 For comprehensive documentation including:
 
 - AI Development Guidelines
@@ -11,8 +13,17 @@ For comprehensive documentation including:
 - Complete Tool Reference
 - Architecture Details
 - Development Guides
+- Recipe Management (11 recipes with nutrition data)
+- Grocy Integration Guides
 
 Visit the **[MCP Server Book](https://bookstack.deejpotter.com/books/mcp-server)** on BookStack.
+
+### Key Documentation Pages
+
+- **[Documentation Workflow](https://bookstack.deejpotter.com/books/mcp-server/page/documentation-workflow-bookstack-first-approach)** - How to create/update documentation (BookStack-first approach)
+- **[Recipe Management Guide](https://bookstack.deejpotter.com/books/mcp-server/page/recipe-management-guide-11-favorite-dinner-recipes)** - 11 recipes, 47 products, meal planning workflows
+- **[Product Nutrition Database](https://bookstack.deejpotter.com/books/mcp-server/page/product-nutrition-database)** - Detailed nutrition data for 10 products
+- **[Grocy Data Structure Reference](https://bookstack.deejpotter.com/books/mcp-server/page/grocy-data-structure-reference)** - Technical docs, 30 MCP tools, API details
 
 ## Quick Start
 

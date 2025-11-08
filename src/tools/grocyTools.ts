@@ -1567,7 +1567,7 @@ export function registerGrocyTools(server: McpServer) {
 		{
 			title: "Create Product",
 			description:
-				"Creates a new product in Grocy. Products must be created before they can be added as recipe ingredients or added to stock. Use grocy_location_list and grocy_quantity_unit_list to find valid IDs.",
+				"Creates a new product in Grocy with nutrition info. Products must be created before they can be added as recipe ingredients or added to stock. Use grocy_location_list and grocy_quantity_unit_list to find valid IDs.",
 			inputSchema: {
 				name: z
 					.string()
@@ -1604,6 +1604,17 @@ export function registerGrocyTools(server: McpServer) {
 					.describe(
 						"Default days until best before date (0 = no expiry tracking)"
 					),
+				product_group_id: z
+					.number()
+					.optional()
+					.describe("Product group/category ID (use grocy_product_group_list)"),
+				calories: z
+					.number()
+					.optional()
+					.describe(
+						"Calories per stock quantity unit (e.g., per 100g). Auto-summed in recipes."
+					),
+				barcode: z.string().optional().describe("Product barcode for scanning"),
 			},
 		},
 		async ({
@@ -1614,6 +1625,9 @@ export function registerGrocyTools(server: McpServer) {
 			qu_id_purchase,
 			min_stock_amount,
 			default_best_before_days,
+			product_group_id,
+			calories,
+			barcode,
 		}) => {
 			try {
 				if (!genericLimiter.allowCall()) {
@@ -1639,6 +1653,12 @@ export function registerGrocyTools(server: McpServer) {
 					default_best_before_days: default_best_before_days || 0,
 				};
 
+				// Add optional fields
+				if (product_group_id !== undefined)
+					body.product_group_id = product_group_id;
+				if (calories !== undefined) body.calories = calories;
+				if (barcode !== undefined) body.barcode = barcode;
+
 				const response = (await grocyRequest(
 					"objects/products",
 					"POST",
@@ -1646,6 +1666,18 @@ export function registerGrocyTools(server: McpServer) {
 				)) as {
 					created_object_id: number;
 				};
+
+				const nextSteps: string[] = [
+					"Use grocy_stock_add_product to add this product to stock",
+					"Use grocy_recipe_add_ingredient to add it to a recipe",
+				];
+
+				// Add userfields guidance if nutrition provided
+				if (calories !== undefined) {
+					nextSteps.push(
+						"For detailed nutrition (protein, carbs, fat), use grocy_userfield_set with fields: protein_g, carbs_g, fat_g, fiber_g, etc."
+					);
+				}
 
 				return {
 					content: [
@@ -1655,12 +1687,16 @@ export function registerGrocyTools(server: McpServer) {
 								{
 									success: true,
 									product_id: response.created_object_id,
-									message: `Created product "${name}" with ID ${response.created_object_id}`,
+									message: `Created product "${name}" with ID ${
+										response.created_object_id
+									}${calories !== undefined ? ` (${calories} cal)` : ""}`,
 									name,
 									location_id: location_id || 1,
 									qu_id_stock: qu_id_stock || 1,
-									next_step:
-										"Use grocy_stock_add_product to add this product to stock, or grocy_recipe_add_ingredient to add it to a recipe",
+									calories,
+									product_group_id,
+									barcode,
+									next_steps: nextSteps,
 								},
 								null,
 								2
@@ -1674,6 +1710,173 @@ export function registerGrocyTools(server: McpServer) {
 						{
 							type: "text",
 							text: `Error creating product: ${
+								error instanceof Error ? error.message : String(error)
+							}`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// USERFIELDS - GET
+	server.registerTool(
+		"grocy_userfield_get",
+		{
+			title: "Get Userfields",
+			description:
+				"Retrieves custom userfields for a product, recipe, location, or other entity. Userfields store extra data like nutrition (protein_g, carbs_g, fat_g), metadata (brand, package_size), or custom properties.",
+			inputSchema: {
+				entity: z
+					.enum([
+						"products",
+						"recipes",
+						"locations",
+						"shopping_locations",
+						"quantity_units",
+						"product_groups",
+					])
+					.describe(
+						"Entity type to get userfields for (e.g., 'products', 'recipes')"
+					),
+				object_id: z
+					.number()
+					.describe("ID of the specific object to get userfields for"),
+			},
+		},
+		async ({ entity, object_id }) => {
+			try {
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const response = await grocyRequest(
+					`userfields/${entity}/${object_id}`,
+					"GET"
+				);
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify(
+								{
+									success: true,
+									entity,
+									object_id,
+									userfields: response || {},
+									message: `Retrieved userfields for ${entity} ID ${object_id}`,
+								},
+								null,
+								2
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error getting userfields: ${
+								error instanceof Error ? error.message : String(error)
+							}`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// USERFIELDS - SET
+	server.registerTool(
+		"grocy_userfield_set",
+		{
+			title: "Set Userfields",
+			description:
+				"Sets custom userfields for a product, recipe, or other entity. Use this to add detailed nutrition data (protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg), metadata (brand, package_size, serving_size), or custom properties. Userfields are NOT auto-aggregated in recipes.",
+			inputSchema: {
+				entity: z
+					.enum([
+						"products",
+						"recipes",
+						"locations",
+						"shopping_locations",
+						"quantity_units",
+						"product_groups",
+					])
+					.describe(
+						"Entity type to set userfields for (e.g., 'products', 'recipes')"
+					),
+				object_id: z
+					.number()
+					.describe("ID of the specific object to set userfields for"),
+				userfields: z
+					.record(z.any())
+					.describe(
+						"Object containing userfield names and values. Common product fields: protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, saturated_fat_g, brand, package_size, serving_size, is_organic. Common recipe fields: prep_time_minutes, cook_time_minutes, difficulty, cuisine_type, meal_type, is_vegetarian."
+					),
+			},
+		},
+		async ({ entity, object_id, userfields }) => {
+			try {
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				await grocyRequest(
+					`userfields/${entity}/${object_id}`,
+					"PUT",
+					userfields
+				);
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify(
+								{
+									success: true,
+									entity,
+									object_id,
+									userfields,
+									message: `Set ${
+										Object.keys(userfields).length
+									} userfield(s) for ${entity} ID ${object_id}`,
+									note: "Userfields are NOT auto-aggregated in recipes. Use grocy_nutrition_calculate_recipe for manual aggregation.",
+								},
+								null,
+								2
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error setting userfields: ${
 								error instanceof Error ? error.message : String(error)
 							}`,
 						},
