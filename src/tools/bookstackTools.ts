@@ -138,9 +138,16 @@ async function bookstackRequest(
 		let errorMessage = `BookStack API error: ${response.status} ${response.statusText}`;
 
 		try {
-			const errorJson = JSON.parse(errorText);
-			if (errorJson.error?.message) {
-				errorMessage = errorJson.error.message;
+			const errorJson = JSON.parse(errorText) as unknown;
+			if (
+				typeof errorJson === "object" &&
+				errorJson !== null &&
+				"error" in errorJson
+			) {
+				const error = (errorJson as { error?: { message?: string } }).error;
+				if (error && typeof error.message === "string") {
+					errorMessage = error.message;
+				}
 			}
 		} catch {
 			// Error response wasn't JSON, use text

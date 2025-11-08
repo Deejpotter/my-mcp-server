@@ -39,6 +39,9 @@ import { registerContext7Tools } from "./tools/context7Tools.js";
 import { registerBookStackTools } from "./tools/bookstackTools.js";
 import { registerClickUpTools } from "./tools/clickupTools.js";
 import { registerImageTools } from "./tools/imageTools.js";
+import { registerGrocyTools } from "./tools/grocyTools.js";
+import { registerAustralianGroceryTools } from "./tools/australianGroceryTools.js";
+import { registerPDFTools } from "./tools/pdfTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
 import { registerPrompts } from "./prompts/prompts.js";
 
@@ -60,6 +63,9 @@ registerContext7Tools(server);
 registerBookStackTools(server);
 registerClickUpTools(server);
 registerImageTools(server);
+registerGrocyTools(server);
+registerAustralianGroceryTools(server);
+registerPDFTools(server);
 
 // Register all resources
 registerGitResources(server);

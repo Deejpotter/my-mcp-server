@@ -108,6 +108,10 @@ BOOKSTACK_TOKEN_SECRET=your_token_secret_here
 # ClickUp - Required for ClickUp tools
 CLICKUP_API_TOKEN=your_clickup_token_here
 
+# Grocy - Required for Grocy tools
+GROCY_BASE_URL=https://your-grocy-instance.com
+GROCY_API_KEY=your_grocy_api_key_here
+
 # Hugging Face - Required for AI image generation
 HUGGING_FACE_API_KEY=your_hugging_face_key_here
 ```
@@ -253,6 +257,94 @@ All tools include comprehensive security validation and error handling.
   - Modify task properties (name, description, status, priority)
   - Add or remove assignees
   - Update due dates and other fields
+
+### **Grocy Integration**
+
+Kitchen and household inventory management with smart stock tracking, shopping lists, and recipes.
+
+**Stock Management:**
+
+- **grocy_stock_get_current** - Get complete stock overview with amounts and best before dates
+- **grocy_stock_get_product** - Get detailed product information, pricing, and history
+- **grocy_stock_add_product** - Add products to stock (purchase tracking with dates and prices)
+- **grocy_stock_consume_product** - Remove products from stock (consumption tracking with FIFO)
+- **grocy_stock_get_volatile** - Get products expiring soon, overdue, expired, or below minimum stock
+- **grocy_stock_get_product_by_barcode** - Look up products by barcode
+
+**Shopping List:**
+
+- **grocy_shoppinglist_add_product** - Add products to shopping list
+- **grocy_shoppinglist_remove_product** - Remove products from shopping list
+- **grocy_shoppinglist_add_missing** - Auto-add all products below minimum stock
+- **grocy_shoppinglist_clear** - Clear shopping list (all items or completed only)
+
+**Product Management:**
+
+- **grocy_product_create** - Create new products in Grocy (required before adding to recipes)
+- **grocy_location_list** - List all storage locations (for product creation)
+- **grocy_quantity_unit_list** - List all quantity units (piece, gram, kg, liter, ml, etc.)
+
+**Recipes & Meal Planning:**
+
+- **grocy_recipe_create** - Create new recipe with name, description, and serving information
+- **grocy_recipe_add_ingredient** - Add ingredient to recipe with quantity and product ID
+- **grocy_recipe_get_fulfillment** - Check if ingredients are in stock for a recipe
+- **grocy_recipe_consume** - Consume all recipe ingredients from stock
+- **grocy_recipe_add_missing_to_shoppinglist** - Add missing recipe ingredients to shopping list
+- **grocy_meal_plan_add** - Add recipe to meal plan calendar for a specific date
+- **grocy_meal_plan_get** - Retrieve meal plans for a date range (weekly planning overview)
+
+**Tasks:**
+
+- **grocy_tasks_get_pending** - Get all incomplete tasks
+- **grocy_task_complete** - Mark task as completed
+
+**System:**
+
+- **grocy_system_info** - Get Grocy version and system information
+
+Requires `GROCY_BASE_URL` and `GROCY_API_KEY` environment variables.
+
+### **Australian Grocery Price Comparison**
+
+Search and compare prices across Woolworths and Coles supermarkets in Australia.
+
+- **woolworths_search_product** - Search Woolworths products and get current prices
+  - Public API (no authentication required)
+  - Returns product names, prices, units (kg, g, L, ml, each, pack)
+  - Includes package sizes and unit price information
+  - Limit results with optional parameter
+
+- **coles_search_product** - Search Coles products and get current prices
+  - Returns product names, prices, units, and package sizes
+  - Supports store-specific searches (default: store 0584)
+  - Requires `COLES_API_KEY` environment variable
+  - Limit results with optional parameter
+
+- **grocery_compare_prices** - Compare prices across both stores
+  - Search product at Woolworths and Coles simultaneously
+  - Shows best match from each store with prices
+  - Calculates which store is cheapest
+  - Displays savings amount
+  - Perfect for making informed shopping decisions
+
+**Example Usage:**
+
+```text
+"Search for ground beef at Woolworths"
+"Check Coles prices for spaghetti"
+"Compare tomato sauce prices at both stores"
+"Find the cheapest option for olive oil"
+```
+
+**Benefits:**
+
+- Real-time pricing from both major Australian supermarkets
+- Unit price comparison ($/kg, $/100g, etc.)
+- Save money by shopping at the cheapest store
+- Integration ready for Grocy shopping lists (coming soon)
+
+Requires `COLES_API_KEY` environment variable. Woolworths API is public and needs no key.
 
 ### **Command Execution**
 
