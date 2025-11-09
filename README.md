@@ -25,6 +25,20 @@ Visit the **[MCP Server Book](https://bookstack.deejpotter.com/books/mcp-server)
 - **[Product Nutrition Database](https://bookstack.deejpotter.com/books/mcp-server/page/product-nutrition-database)** - Detailed nutrition data for 10 products
 - **[Grocy Data Structure Reference](https://bookstack.deejpotter.com/books/mcp-server/page/grocy-data-structure-reference)** - Technical docs, 30 MCP tools, API details
 
+### Where to look in BookStack (project policy)
+
+All documentation for this project MUST live in BookStack. Do not add or update local `.md` files in the repository — create or edit the corresponding BookStack page instead. For quick reference, the key locations are:
+
+- Shelves: `Development`, `Personal`, `Projects` (use these to organize books)
+- Project book: MCP Server — <https://bookstack.deejpotter.com/books/mcp-server>
+- Important pages:
+  - Grocy Data Structure Reference — <https://bookstack.deejpotter.com/books/mcp-server/page/grocy-data-structure-reference> (page id: 82)
+  - Grocy API Integration — <https://bookstack.deejpotter.com/books/mcp-server/page/grocy-api-integration> (page id: 78)
+  - Documentation Workflow (BookStack-first) — <https://bookstack.deejpotter.com/books/mcp-server/page/documentation-workflow-bookstack-first-approach> (page id: 84)
+  - Woolworths Receipt Imports (overview) — <https://bookstack.deejpotter.com/books/woolworths-receipt-imports-2025-11-09/page/overview> (page id: 85)
+
+When working on imports, always check these BookStack pages first. If you need a new page for an import run (for example, a per-receipt summary), create it under the project book or the `Woolworths Receipt Imports (2025-11-09)` book and link back into the project book.
+
 ## Quick Start
 
 ### Prerequisites

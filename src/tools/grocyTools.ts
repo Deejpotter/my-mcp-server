@@ -14,6 +14,78 @@
  * - Grocy GitHub: https://github.com/grocy/grocy
  */
 
+/**
+ * Grocy Stock API Reference (copied from supplied API documentation)
+ *
+ * This section records the canonical shapes used by the Grocy stock endpoints
+ * so callers and future maintainers know exactly which fields are expected.
+ * Keep this in-sync with BookStack: Grocy API Integration (project book).
+ *
+ * Endpoints covered (stock):
+ *
+ * GET /stock
+ * - Returns an array of CurrentStockResponse objects (products currently in stock)
+ * - Example item fields:
+ *   {
+ *     product_id: number,
+ *     amount: number|string,
+ *     amount_aggregated: number|string,
+ *     amount_opened: number|string,
+ *     amount_opened_aggregated: number|string,
+ *     best_before_date: "YYYY-MM-DD",
+ *     is_aggregated_amount: boolean,
+ *     product: { id, name, description, location_id, qu_id_purchase, qu_id_stock, min_stock_amount, default_best_before_days, ... }
+ *   }
+ *
+ * GET /stock/entry/{entryId}
+ * - Returns a StockEntry object with fields such as:
+ *   { id, product_id, amount, best_before_date, purchased_date, stock_id, price, open, opened_date, row_created_timestamp, location_id, shopping_location_id }
+ *
+ * PUT /stock/entry/{entryId}
+ * - Edit an existing stock entry. Body fields accepted include:
+ *   { id, amount, best_before_date, purchased_date, price, open, location_id }
+ *
+ * GET /stock/volatile
+ * - Returns products due soon / overdue / expired / missing. Query param: due_soon_days (default 5)
+ * - Response contains arrays: due_products, overdue_products, expired_products, missing_products
+ *
+ * GET /stock/products/{productId}
+ * - Returns ProductDetailsResponse with product, quantity unit info, last_price, avg_price, stock_amount, next_due_date, location, etc.
+ *
+ * GET /stock/products/{productId}/price-history
+ * - Returns array of { date, price, shopping_location }
+ *
+ * POST /stock/products/{productId}/add
+ * - Adds the given amount of the product to stock (purchase). Important request body fields:
+ *   {
+ *     amount: number,                    // amount in product's stock unit
+ *     best_before_date?: "YYYY-MM-DD", // optional
+ *     transaction_type?: "purchase" | "inventory" | string, // usually "purchase"
+ *     price?: number,                    // price per stock quantity unit (used to populate last_price)
+ *     purchased_date?: "YYYY-MM-DD",   // historic purchase date to record in stock_log
+ *     location_id?: number,
+ *     shopping_location_id?: number,
+ *     note?: string
+ *   }
+ * - Response: array of StockLogEntry objects similar to:
+ *   [{ id, product_id, amount, best_before_date, purchased_date, used_date, spoiled, stock_id, transaction_id, transaction_type, note, row_created_timestamp }]
+ *
+ * POST /stock/products/{productId}/consume
+ * - Removes amount from stock. Body example: { amount: number, transaction_type: "consume", spoiled?: boolean }
+ *
+ * POST /stock/products/{productId}/inventory
+ * - Inventories the product to new_amount. Body example: { new_amount: number, best_before_date?, shopping_location_id?, location_id?, price?, note? }
+ *
+ * POST /stock/transactions/{transactionId}
+ * - Transaction endpoints exist to retrieve bookings or undo transactions: GET /stock/transactions/{transactionId}, POST /stock/transactions/{transactionId}/undo
+ *
+ * Notes / guidance for my-mcp-server:
+ * - Always supply `price` when importing historic receipts if you want Grocy's `last_price` and product UI value to reflect the purchase.
+ * - Use `purchased_date` to preserve the receipt date in the stock_log.
+ * - The `amount` must be in the product's stock unit (qu_id_stock). If receipts use different units (kg/g, L/mL), normalize the amount and adjust `price` accordingly before posting.
+ * - Common unit conversions implemented in this tool: kg <-> g, L <-> mL. Extend as needed and document in BookStack.
+ */
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { genericLimiter } from "../utils/cache.js";
@@ -52,7 +124,7 @@ interface GrocyStockResponse {
 /**
  * Stock entry with location and dates (unused but kept for future use)
  */
-// @ts-ignore - Unused interface kept for API reference
+// @ts-expect-error - Unused interface kept for API reference
 interface _GrocyStockEntry {
 	id: string;
 	product_id: number;
@@ -86,7 +158,7 @@ interface GrocyProductDetails {
 /**
  * Shopping list item (unused but kept for future use)
  */
-// @ts-ignore - Unused interface kept for API reference
+// @ts-expect-error - Unused interface kept for API reference
 interface _GrocyShoppingListItem {
 	id: number;
 	product_id?: number;
@@ -128,7 +200,7 @@ interface GrocyRecipeFulfillment {
 /**
  * Task information (unused but kept for future use)
  */
-// @ts-ignore - Unused interface kept for API reference
+// @ts-expect-error - Unused interface kept for API reference
 interface _GrocyTask {
 	id: number;
 	name: string;
@@ -400,7 +472,19 @@ export function registerGrocyTools(server: McpServer) {
 					.describe(
 						"Best before date (YYYY-MM-DD), defaults to today if omitted"
 					),
+				purchased_date: z
+					.string()
+					.optional()
+					.describe(
+						"Purchased date (YYYY-MM-DD). If omitted Grocy will use the current date"
+					),
 				price: z.number().optional().describe("Price per stock quantity unit"),
+				unit: z
+					.string()
+					.optional()
+					.describe(
+						"Optional unit of the provided amount/price (e.g., 'kg','g','l','ml','piece'). If provided, the tool will normalize to the product's stock unit."
+					),
 				location_id: z
 					.number()
 					.optional()
@@ -419,7 +503,9 @@ export function registerGrocyTools(server: McpServer) {
 			product_id,
 			amount,
 			best_before_date,
+			purchased_date,
 			price,
+			unit,
 			location_id,
 			shopping_location_id,
 			note,
@@ -438,13 +524,89 @@ export function registerGrocyTools(server: McpServer) {
 					};
 				}
 
+				// Normalize amount/price to product stock unit when a unit is provided
+				let adjustedAmount = amount;
+				let adjustedPrice = price;
+				const conversionNotes: string[] = [];
+
+				if (unit) {
+					// Fetch product details to know the stock unit
+					const prodDetails = (await grocyRequest(
+						`stock/products/${product_id}`
+					)) as GrocyProductDetails;
+
+					// Fetch quantity units mapping
+					const quList = (await grocyRequest(
+						"objects/quantity_units"
+					)) as Array<{ id: number; name: string }>;
+
+					const quMap = new Map<number, string>();
+					for (const q of quList) quMap.set(q.id, (q.name || "").toLowerCase());
+
+					const stockQuId = prodDetails.product.qu_id_stock;
+					const stockUnitName = (quMap.get(stockQuId) || "").toLowerCase();
+					const unitLower = unit.toLowerCase();
+
+					// Common conversions: kg <-> g, l <-> ml
+					if (
+						(unitLower === "kg" || unitLower.includes("kilogram")) &&
+						stockUnitName.includes("gram")
+					) {
+						adjustedAmount = amount * 1000;
+						if (price !== undefined) adjustedPrice = price / 1000;
+						conversionNotes.push(
+							`Converted ${amount}${unit} -> ${adjustedAmount} ${stockUnitName} (kg -> g). Price adjusted accordingly.`
+						);
+					} else if (
+						(unitLower === "g" || unitLower.includes("gram")) &&
+						stockUnitName.includes("kg")
+					) {
+						adjustedAmount = amount / 1000;
+						if (price !== undefined) adjustedPrice = price * 1000;
+						conversionNotes.push(
+							`Converted ${amount}${unit} -> ${adjustedAmount} ${stockUnitName} (g -> kg). Price adjusted accordingly.`
+						);
+					} else if (
+						(unitLower === "l" ||
+							unitLower.includes("litre") ||
+							unitLower.includes("liter")) &&
+						stockUnitName.includes("ml")
+					) {
+						adjustedAmount = amount * 1000;
+						if (price !== undefined) adjustedPrice = price / 1000;
+						conversionNotes.push(
+							`Converted ${amount}${unit} -> ${adjustedAmount} ${stockUnitName} (L -> mL). Price adjusted accordingly.`
+						);
+					} else if (
+						(unitLower === "ml" ||
+							unitLower.includes("millilitre") ||
+							unitLower.includes("milliliter")) &&
+						stockUnitName.includes("l")
+					) {
+						adjustedAmount = amount / 1000;
+						if (price !== undefined) adjustedPrice = price * 1000;
+						conversionNotes.push(
+							`Converted ${amount}${unit} -> ${adjustedAmount} ${stockUnitName} (mL -> L). Price adjusted accordingly.`
+						);
+					} else {
+						// No recognized conversion, just log a note if units differ textually
+						if (!stockUnitName.includes(unitLower)) {
+							conversionNotes.push(
+								`Provided unit '${unit}' does not match product stock unit '${stockUnitName}'. No numeric conversion performed.`
+							);
+						}
+					}
+				}
+
 				const body: Record<string, unknown> = {
-					amount,
+					amount: adjustedAmount,
 					transaction_type: "purchase",
 				};
 
 				if (best_before_date) body.best_before_date = best_before_date;
-				if (price !== undefined) body.price = price;
+				if (adjustedPrice !== undefined) body.price = adjustedPrice;
+				// Include purchased_date when provided so the stock_log shows the historic purchase date
+				if (purchased_date) body.purchased_date = purchased_date;
 				if (location_id) body.location_id = location_id;
 				if (shopping_location_id)
 					body.shopping_location_id = shopping_location_id;
@@ -455,20 +617,27 @@ export function registerGrocyTools(server: McpServer) {
 					"POST",
 					body
 				)) as GrocyStockLogEntry[];
+				// If price was not provided, warn the caller that UI value will be $0.00 until a priced purchase exists
+				const responsePayload: Record<string, unknown> = {
+					success: true,
+					message: `Added ${adjustedAmount} unit(s) of product ${product_id} to stock`,
+					transaction: data[0],
+				};
+
+				if (price === undefined) {
+					responsePayload.note =
+						"Price was not provided. Stock overview value will show $0.00 until a purchase with price is recorded.";
+				}
+
+				if (conversionNotes.length > 0) {
+					responsePayload.conversion = conversionNotes;
+				}
 
 				return {
 					content: [
 						{
 							type: "text",
-							text: JSON.stringify(
-								{
-									success: true,
-									message: `Added ${amount} unit(s) of product ${product_id} to stock`,
-									transaction: data[0],
-								},
-								null,
-								2
-							),
+							text: JSON.stringify(responsePayload, null, 2),
 						},
 					],
 				};
@@ -1615,6 +1784,64 @@ export function registerGrocyTools(server: McpServer) {
 						"Calories per stock quantity unit (e.g., per 100g). Auto-summed in recipes."
 					),
 				barcode: z.string().optional().describe("Product barcode for scanning"),
+				enable_tare_weight_handling: z
+					.boolean()
+					.optional()
+					.describe("Enable tare weight handling (default: false)"),
+				tare_weight: z
+					.number()
+					.optional()
+					.describe("Tare weight in stock quantity units (default: 0.0)"),
+				should_not_be_frozen: z
+					.boolean()
+					.optional()
+					.describe(
+						"Indicates if the product should not be frozen (default: false)"
+					),
+				default_consume_location_id: z
+					.number()
+					.optional()
+					.describe(
+						"Default consume location ID (use grocy_location_list to find IDs)"
+					),
+				default_quantity_unit_consume: z
+					.number()
+					.optional()
+					.describe(
+						"Default quantity unit consume (required for recipes and stock management)"
+					),
+				default_quantity_unit_for_prices: z
+					.number()
+					.optional()
+					.describe(
+						"Default quantity unit for prices (required for pricing calculations)"
+					),
+				default_store: z
+					.number()
+					.optional()
+					.describe("Default store ID (use grocy_store_list to find IDs)"),
+				move_on_open: z
+					.boolean()
+					.optional()
+					.describe(
+						"Indicates if the product should move to a different location when opened (default: false)"
+					),
+				energy_kcal_per_piece: z
+					.number()
+					.optional()
+					.describe(
+						"Energy in kcal per piece (used for nutritional calculations)"
+					),
+				quick_consume_amount: z
+					.number()
+					.optional()
+					.describe(
+						"Quick consume amount in stock quantity units (default: 1)"
+					),
+				quick_open_amount: z
+					.number()
+					.optional()
+					.describe("Quick open amount in stock quantity units (default: 1)"),
 			},
 		},
 		async ({
@@ -1628,6 +1855,17 @@ export function registerGrocyTools(server: McpServer) {
 			product_group_id,
 			calories,
 			barcode,
+			enable_tare_weight_handling,
+			tare_weight,
+			should_not_be_frozen,
+			default_consume_location_id,
+			default_quantity_unit_consume,
+			default_quantity_unit_for_prices,
+			default_store,
+			move_on_open,
+			energy_kcal_per_piece,
+			quick_consume_amount,
+			quick_open_amount,
 		}) => {
 			try {
 				if (!genericLimiter.allowCall()) {
@@ -1658,6 +1896,26 @@ export function registerGrocyTools(server: McpServer) {
 					body.product_group_id = product_group_id;
 				if (calories !== undefined) body.calories = calories;
 				if (barcode !== undefined) body.barcode = barcode;
+				if (enable_tare_weight_handling !== undefined)
+					body.enable_tare_weight_handling = enable_tare_weight_handling;
+				if (tare_weight !== undefined) body.tare_weight = tare_weight;
+				if (should_not_be_frozen !== undefined)
+					body.should_not_be_frozen = should_not_be_frozen;
+				if (default_consume_location_id !== undefined)
+					body.default_consume_location_id = default_consume_location_id;
+				if (default_quantity_unit_consume !== undefined)
+					body.default_quantity_unit_consume = default_quantity_unit_consume;
+				if (default_quantity_unit_for_prices !== undefined)
+					body.default_quantity_unit_for_prices =
+						default_quantity_unit_for_prices;
+				if (default_store !== undefined) body.default_store = default_store;
+				if (move_on_open !== undefined) body.move_on_open = move_on_open;
+				if (energy_kcal_per_piece !== undefined)
+					body.energy_kcal_per_piece = energy_kcal_per_piece;
+				if (quick_consume_amount !== undefined)
+					body.quick_consume_amount = quick_consume_amount;
+				if (quick_open_amount !== undefined)
+					body.quick_open_amount = quick_open_amount;
 
 				const response = (await grocyRequest(
 					"objects/products",
@@ -2256,7 +2514,7 @@ export function registerGrocyTools(server: McpServer) {
 			},
 		},
 		async ({ name, description }) => {
-			try {
+					try {
 				if (!genericLimiter.allowCall()) {
 					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
 					return {
