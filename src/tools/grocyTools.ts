@@ -122,25 +122,6 @@ interface GrocyStockResponse {
 }
 
 /**
- * Stock entry with location and dates (unused but kept for future use)
- */
-// @ts-expect-error - Unused interface kept for API reference
-interface _GrocyStockEntry {
-	id: string;
-	product_id: number;
-	amount: string;
-	best_before_date: string;
-	purchased_date: string;
-	stock_id: string;
-	price?: number;
-	open: number;
-	opened_date?: string;
-	location_id: number;
-	shopping_location_id?: number;
-	note?: string;
-}
-
-/**
  * Product details with extended information
  */
 interface GrocyProductDetails {
@@ -153,20 +134,6 @@ interface GrocyProductDetails {
 	last_price?: number;
 	avg_price?: number;
 	location?: { id: number; name: string };
-}
-
-/**
- * Shopping list item (unused but kept for future use)
- */
-// @ts-expect-error - Unused interface kept for API reference
-interface _GrocyShoppingListItem {
-	id: number;
-	product_id?: number;
-	note?: string;
-	amount: number;
-	shopping_list_id: number;
-	done: number;
-	qu_id?: number;
 }
 
 /**
@@ -195,21 +162,6 @@ interface GrocyRecipeFulfillment {
 		amount_missing: number;
 		amount_missing_for_recipe: number;
 	}>;
-}
-
-/**
- * Task information (unused but kept for future use)
- */
-// @ts-expect-error - Unused interface kept for API reference
-interface _GrocyTask {
-	id: number;
-	name: string;
-	description?: string;
-	due_date?: string;
-	done: number;
-	done_timestamp?: string;
-	category_id?: number;
-	assigned_to_user_id?: number;
 }
 
 /**
@@ -1403,6 +1355,13 @@ export function registerGrocyTools(server: McpServer) {
 				"Creates a new recipe in Grocy with name, description, and serving information. " +
 				"Returns the new recipe ID to use when adding ingredients.",
 			inputSchema: {
+				product_id: z
+					.number()
+					.positive()
+					.optional()
+					.describe(
+						"If provided, update the existing product instead of creating a new one"
+					),
 				name: z
 					.string()
 					.min(1)
@@ -1844,29 +1803,33 @@ export function registerGrocyTools(server: McpServer) {
 					.describe("Quick open amount in stock quantity units (default: 1)"),
 			},
 		},
-		async ({
-			name,
-			description,
-			location_id,
-			qu_id_stock,
-			qu_id_purchase,
-			min_stock_amount,
-			default_best_before_days,
-			product_group_id,
-			calories,
-			barcode,
-			enable_tare_weight_handling,
-			tare_weight,
-			should_not_be_frozen,
-			default_consume_location_id,
-			default_quantity_unit_consume,
-			default_quantity_unit_for_prices,
-			default_store,
-			move_on_open,
-			energy_kcal_per_piece,
-			quick_consume_amount,
-			quick_open_amount,
-		}) => {
+		async (params: Record<string, unknown>) => {
+			const {
+				product_id,
+				name,
+				description,
+				location_id,
+				qu_id_stock,
+				qu_id_purchase,
+				min_stock_amount,
+				default_best_before_days,
+				product_group_id,
+				calories,
+				barcode,
+			} = params as {
+				product_id: number;
+				name: string;
+				description?: string;
+				location_id?: number;
+				qu_id_stock?: number;
+				qu_id_purchase?: number;
+				min_stock_amount?: number;
+				default_best_before_days?: number;
+				product_group_id?: number;
+				calories?: number;
+				barcode?: string;
+			};
+
 			try {
 				if (!genericLimiter.allowCall()) {
 					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
@@ -1896,34 +1859,18 @@ export function registerGrocyTools(server: McpServer) {
 					body.product_group_id = product_group_id;
 				if (calories !== undefined) body.calories = calories;
 				if (barcode !== undefined) body.barcode = barcode;
-				if (enable_tare_weight_handling !== undefined)
-					body.enable_tare_weight_handling = enable_tare_weight_handling;
-				if (tare_weight !== undefined) body.tare_weight = tare_weight;
-				if (should_not_be_frozen !== undefined)
-					body.should_not_be_frozen = should_not_be_frozen;
-				if (default_consume_location_id !== undefined)
-					body.default_consume_location_id = default_consume_location_id;
-				if (default_quantity_unit_consume !== undefined)
-					body.default_quantity_unit_consume = default_quantity_unit_consume;
-				if (default_quantity_unit_for_prices !== undefined)
-					body.default_quantity_unit_for_prices =
-						default_quantity_unit_for_prices;
-				if (default_store !== undefined) body.default_store = default_store;
-				if (move_on_open !== undefined) body.move_on_open = move_on_open;
-				if (energy_kcal_per_piece !== undefined)
-					body.energy_kcal_per_piece = energy_kcal_per_piece;
-				if (quick_consume_amount !== undefined)
-					body.quick_consume_amount = quick_consume_amount;
-				if (quick_open_amount !== undefined)
-					body.quick_open_amount = quick_open_amount;
 
-				const response = (await grocyRequest(
-					"objects/products",
-					"POST",
-					body
-				)) as {
-					created_object_id: number;
-				};
+				let response: { created_object_id?: number } | { success?: boolean };
+
+				if (product_id !== undefined) {
+					// Update existing product
+					await grocyRequest(`objects/products/${product_id}`, "PUT", body);
+					response = { success: true };
+				} else {
+					response = (await grocyRequest("objects/products", "POST", body)) as {
+						created_object_id: number;
+					};
+				}
 
 				const nextSteps: string[] = [
 					"Use grocy_stock_add_product to add this product to stock",
@@ -1937,31 +1884,64 @@ export function registerGrocyTools(server: McpServer) {
 					);
 				}
 
-				return {
-					content: [
-						{
-							type: "text",
-							text: JSON.stringify(
-								{
-									success: true,
-									product_id: response.created_object_id,
-									message: `Created product "${name}" with ID ${
-										response.created_object_id
-									}${calories !== undefined ? ` (${calories} cal)` : ""}`,
-									name,
-									location_id: location_id || 1,
-									qu_id_stock: qu_id_stock || 1,
-									calories,
-									product_group_id,
-									barcode,
-									next_steps: nextSteps,
-								},
-								null,
-								2
-							),
-						},
-					],
-				};
+				if (product_id !== undefined) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(
+									{
+										success: true,
+										product_id,
+										message: `Updated product "${name}" (ID ${product_id})${
+											calories !== undefined ? ` (${calories} cal)` : ""
+										}`,
+										name,
+										location_id: location_id || 1,
+										qu_id_stock: qu_id_stock || 1,
+										calories,
+										product_group_id,
+										barcode,
+										next_steps: nextSteps,
+									},
+									null,
+									2
+								),
+							},
+						],
+					};
+				} else {
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(
+									{
+										success: true,
+										product_id: (response as { created_object_id: number })
+											.created_object_id,
+										message: `Created product "${name}" with ID ${
+											(
+												response as {
+													created_object_id: number;
+												}
+											).created_object_id
+										}${calories !== undefined ? ` (${calories} cal)` : ""}`,
+										name,
+										location_id: location_id || 1,
+										qu_id_stock: qu_id_stock || 1,
+										calories,
+										product_group_id,
+										barcode,
+										next_steps: nextSteps,
+									},
+									null,
+									2
+								),
+							},
+						],
+					};
+				}
 			} catch (error) {
 				return {
 					content: [
@@ -2514,7 +2494,7 @@ export function registerGrocyTools(server: McpServer) {
 			},
 		},
 		async ({ name, description }) => {
-					try {
+			try {
 				if (!genericLimiter.allowCall()) {
 					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
 					return {
@@ -2910,6 +2890,73 @@ export function registerGrocyTools(server: McpServer) {
 						{
 							type: "text",
 							text: `Error fetching system info: ${
+								error instanceof Error ? error.message : String(error)
+							}`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+	// STOCK - GET ALL PRODUCTS
+	server.registerTool(
+		"grocy_stock_get_all_products",
+		{
+			title: "Get All Products",
+			description:
+				"Fetches a list of all products in the Grocy database, including their details like name, description, and stock information.",
+			inputSchema: {},
+		},
+		async () => {
+			try {
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Rate limit exceeded. Please wait ${waitTime} seconds before making another request.`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				const data = (await grocyRequest("stock/products")) as GrocyProduct[];
+
+				// Format results
+				const formattedProducts = data.map((product) => ({
+					id: product.id,
+					name: product.name,
+					description: product.description,
+					min_stock_amount: product.min_stock_amount,
+					qu_id_stock: product.qu_id_stock,
+					qu_id_purchase: product.qu_id_purchase,
+				}));
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify(
+								{
+									total_products: formattedProducts.length,
+									products: formattedProducts,
+								},
+								null,
+								2
+							),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error fetching products: ${
 								error instanceof Error ? error.message : String(error)
 							}`,
 						},
