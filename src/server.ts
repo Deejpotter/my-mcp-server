@@ -36,10 +36,9 @@ import { registerGitTools } from "./tools/gitTools.js";
 import { registerGoogleSearchTools } from "./tools/googleSearchTools.js";
 import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js";
 import { registerContext7Tools } from "./tools/context7Tools.js";
-import { registerBookStackTools } from "./tools/bookstackTools.js";
 import { registerClickUpTools } from "./tools/clickupTools.js";
 import { registerImageTools } from "./tools/imageTools.js";
-import { registerGrocyTools } from "./tools/grocyTools.js";
+// Grocy tools archived: import removed from main branch
 import { registerAustralianGroceryTools } from "./tools/australianGroceryTools.js";
 import { registerPDFTools } from "./tools/pdfTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
@@ -60,10 +59,9 @@ registerGitTools(server);
 registerGoogleSearchTools(server);
 registerDuckDuckGoSearchTools(server);
 registerContext7Tools(server);
-registerBookStackTools(server);
 registerClickUpTools(server);
 registerImageTools(server);
-registerGrocyTools(server);
+// BookStack and Grocy tools archived: registration disabled on main branch
 registerAustralianGroceryTools(server);
 registerPDFTools(server);
 
