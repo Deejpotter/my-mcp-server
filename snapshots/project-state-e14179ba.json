@@ -1,0 +1,324 @@
+{
+  "generated_at": "2026-01-15T10:11:45.017Z",
+  "git": {
+    "commit": "e14179ba5a3d053fce78f411488464c21ac31bcf"
+  },
+  "project": {
+    "name": "my-mcp-server",
+    "version": "1.0.0",
+    "main": "dist/server.js",
+    "scripts": {
+      "build": "tsc && chmod +x dist/server.js",
+      "dev": "tsx watch src/server.ts",
+      "start": "node dist/server.js",
+      "typecheck": "tsc --noEmit",
+      "lint": "eslint src --ext .ts",
+      "test": "vitest",
+      "test:watch": "vitest --watch",
+      "clean": "rm -rf dist"
+    }
+  },
+  "checksums": {
+    "package_lock": "df8944901f62dda9e88016b4ee2db3b4b1ade592285ab77204b1478d60e35221",
+    "tsconfig": "41a1ede45f93c5dd740917da16f8686ac0a8257026face87b41d3754bee2475b"
+  },
+  "counts": {
+    "src_files": 18,
+    "dist_files": 80
+  },
+  "env_keys": [
+    "SERPAPI_API_KEY",
+    "CONTEXT7_API_KEY",
+    "BOOKSTACK_URL",
+    "BOOKSTACK_TOKEN_ID",
+    "BOOKSTACK_TOKEN_SECRET",
+    "CLICKUP_API_TOKEN",
+    "GROCY_BASE_URL",
+    "GROCY_API_KEY",
+    "COLES_API_KEY",
+    "OPENAI_API_KEY",
+    "GITHUB_TOKEN"
+  ],
+  "discovered_tools": [
+    {
+      "name": "woolworths_search_product",
+      "file": "australianGroceryTools.js"
+    },
+    {
+      "name": "coles_search_product",
+      "file": "australianGroceryTools.js"
+    },
+    {
+      "name": "grocery_compare_prices",
+      "file": "australianGroceryTools.js"
+    },
+    {
+      "name": "bookstack_search",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_get_page",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_get_book",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_create_book",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_create_chapter",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_create_page",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_update_book",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_update_page",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_create_shelf",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_get_shelf",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_update_shelf",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_delete_chapter",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_delete_page",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_delete_book",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "bookstack_delete_shelf",
+      "file": "bookstackTools.js"
+    },
+    {
+      "name": "clickup_get_task",
+      "file": "clickupTools.js"
+    },
+    {
+      "name": "clickup_update_task",
+      "file": "clickupTools.js"
+    },
+    {
+      "name": "clickup_create_task",
+      "file": "clickupTools.js"
+    },
+    {
+      "name": "run_command",
+      "file": "commandTools.js"
+    },
+    {
+      "name": "security_status",
+      "file": "commandTools.js"
+    },
+    {
+      "name": "resolve_library_id",
+      "file": "context7Tools.js"
+    },
+    {
+      "name": "get_documentation",
+      "file": "context7Tools.js"
+    },
+    {
+      "name": "search_documentation",
+      "file": "context7Tools.js"
+    },
+    {
+      "name": "mcp_tools_discovery",
+      "file": "discoveryTools.js"
+    },
+    {
+      "name": "duckduckgo_search",
+      "file": "duckduckgoSearchTools.js"
+    },
+    {
+      "name": "read_file",
+      "file": "fileTools.js"
+    },
+    {
+      "name": "write_file",
+      "file": "fileTools.js"
+    },
+    {
+      "name": "list_files",
+      "file": "fileTools.js"
+    },
+    {
+      "name": "git_command",
+      "file": "gitTools.js"
+    },
+    {
+      "name": "google_search",
+      "file": "googleSearchTools.js"
+    },
+    {
+      "name": "grocy_stock_get_current",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_stock_get_product",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_stock_add_product",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_stock_consume_product",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_stock_get_volatile",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_stock_get_product_by_barcode",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_shoppinglist_add_product",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_shoppinglist_remove_product",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_shoppinglist_add_missing",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_shoppinglist_clear",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_recipe_get_fulfillment",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_recipe_consume",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_recipe_add_missing_to_shoppinglist",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_recipe_create",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_recipe_add_ingredient",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_tasks_get_pending",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_task_complete",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_product_create",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_userfield_get",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_userfield_set",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_location_list",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_quantity_unit_list",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_store_list",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_store_create",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_product_group_list",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_product_group_create",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_meal_plan_add",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_meal_plan_get",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_meal_plan_delete",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_system_info",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "grocy_stock_get_all_products",
+      "file": "grocyTools.js"
+    },
+    {
+      "name": "image_generate",
+      "file": "imageTools.js"
+    },
+    {
+      "name": "image_convert",
+      "file": "imageTools.js"
+    },
+    {
+      "name": "image_resize",
+      "file": "imageTools.js"
+    },
+    {
+      "name": "image_optimize",
+      "file": "imageTools.js"
+    },
+    {
+      "name": "pdf_list_receipts",
+      "file": "pdfTools.js"
+    },
+    {
+      "name": "pdf_extract_receipt",
+      "file": "pdfTools.js"
+    }
+  ]
+}
