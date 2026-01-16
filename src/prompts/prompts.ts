@@ -1032,7 +1032,7 @@ try {
 5. **Get feedback**: Have someone else review
 
 #### Phase 5: Publish
-1. **Update BookStack**: Create or update page
+1. **Publish Documentation**: Create or update your docs site/page
 2. **Update README**: Add brief description
 3. **Add to index**: Link from relevant pages
 4. **Version control**: Commit with clear message
@@ -1052,10 +1052,7 @@ try {
 ### 8. Tools & Resources
 
 **For Writing**
-- \`bookstack_search\`: Find existing documentation
-- \`bookstack_get_page\`: Review current content
-- \`bookstack_create_page\`: Create new documentation
-- \`bookstack_update_page\`: Update existing docs
+- Project documentation site or repository docs (README, wiki)
 
 **For Code Examples**
 - \`git_command\`: Check actual implementation
@@ -1099,7 +1096,7 @@ Before publishing, verify:
 4. Write with examples first
 5. Test all code samples
 6. Review for clarity
-7. Publish to BookStack
+7. Publish documentation
 8. Update related documentation
 
 Remember: Good documentation saves time, reduces support burden, and helps users succeed!`,
@@ -1359,7 +1356,7 @@ export class ApiClient {
 ## Phase 7: Documentation
 
 ### 7.1 Internal Documentation
-Create in BookStack:
+Create internal documentation:
 - API overview and capabilities
 - Authentication setup guide
 - Usage examples
@@ -1414,7 +1411,7 @@ Create in BookStack:
 - [ ] Load testing (if applicable)
 
 **Documentation Phase**:
-- [ ] Create BookStack page
+- [ ] Create documentation page
 - [ ] Document configuration
 - [ ] Add usage examples
 - [ ] Create troubleshooting guide
@@ -1468,8 +1465,7 @@ Create in BookStack:
 - \`run_command\` - Install dependencies
 
 **Documentation**:
-- \`bookstack_create_page\` - Document the integration
-- \`bookstack_search\` - Find related documentation
+- Create or update your project docs (README/wiki)
 
 ## Example Workflow
 
@@ -1479,7 +1475,7 @@ Create in BookStack:
 4. **Plan**: Create implementation checklist
 5. **Implement**: Build client with TypeScript types
 6. **Test**: Write tests for payment flows
-7. **Document**: Create BookStack guide
+7. **Document**: Create or update project documentation
 8. **Deploy**: Set up monitoring and alerts
 
 ## Next Steps
@@ -1898,7 +1894,7 @@ npm run test:performance
 
 ### 6.2 Update Documentation
 - README if public API changed
-- BookStack for architectural changes
+- Internal docs site for architectural changes
 - CHANGELOG for breaking changes
 - Migration guide if needed
 
@@ -2054,7 +2050,7 @@ const users = await db.users
 - \`get_changed_files\` - Review changes
 
 **Documentation:**
-- \`bookstack_create_page\` or \`bookstack_update_page\` - Document refactoring decisions
+- Create or update refactoring notes in project docs (README/wiki)
 
 ## Example Workflow
 

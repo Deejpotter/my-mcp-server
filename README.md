@@ -2,9 +2,11 @@
 
 A Model Context Protocol (MCP) server providing development tools and API integrations for AI assistants in VS Code.
 
-**📚 [Complete Documentation on BookStack](https://bookstack.deejpotter.com/books/mcp-server)**
+> Status: BookStack and Grocy integrations are archived on branch `archive/bookstack-grocy` and are not available on `main`. This README reflects the current main-branch tools.
 
-**⚠️ IMPORTANT: All documentation MUST be created in BookStack, not as .md files. See [Documentation Workflow](https://bookstack.deejpotter.com/books/mcp-server/page/documentation-workflow-bookstack-first-approach) for guidelines.**
+**📚 Historical docs on BookStack**: <https://bookstack.deejpotter.com/books/mcp-server> (for archived integrations)
+
+Note: You can check out the archived branch to access those tools and prompts again.
 
 For comprehensive documentation including:
 
@@ -18,16 +20,16 @@ For comprehensive documentation including:
 
 Visit the **[MCP Server Book](https://bookstack.deejpotter.com/books/mcp-server)** on BookStack.
 
-### Key Documentation Pages
+## Key Documentation Pages
 
 - **[Documentation Workflow](https://bookstack.deejpotter.com/books/mcp-server/page/documentation-workflow-bookstack-first-approach)** - How to create/update documentation (BookStack-first approach)
 - **[Recipe Management Guide](https://bookstack.deejpotter.com/books/mcp-server/page/recipe-management-guide-11-favorite-dinner-recipes)** - 11 recipes, 47 products, meal planning workflows
 - **[Product Nutrition Database](https://bookstack.deejpotter.com/books/mcp-server/page/product-nutrition-database)** - Detailed nutrition data for 10 products
 - **[Grocy Data Structure Reference](https://bookstack.deejpotter.com/books/mcp-server/page/grocy-data-structure-reference)** - Technical docs, 30 MCP tools, API details
 
-### Where to look in BookStack (project policy)
+## Documentation locations
 
-All documentation for this project MUST live in BookStack. Do not add or update local `.md` files in the repository — create or edit the corresponding BookStack page instead. For quick reference, the key locations are:
+This README documents the current main-branch tools. Additional historical documentation may exist in BookStack. For quick reference, key locations are:
 
 - Shelves: `Development`, `Personal`, `Projects` (use these to organize books)
 - Project book: MCP Server — <https://bookstack.deejpotter.com/books/mcp-server>
@@ -67,7 +69,7 @@ npm run build
 - `npm start` - Run the compiled server
 - `npm run typecheck` - Check TypeScript types
 - `npm run lint` - Run ESLint checks
-- `npm test` - Run test suite
+- `npm test run` - Run test suite (non-watch)
 
 ## VS Code Integration
 
@@ -125,7 +127,7 @@ SERPAPI_API_KEY=your_serpapi_key_here
 # Context7 - Optional for enhanced documentation
 CONTEXT7_API_KEY=your_context7_key_here
 
-# BookStack - Required for BookStack tools
+# BookStack (archived) – only needed on archive branch
 BOOKSTACK_URL=https://your-bookstack-instance.com
 BOOKSTACK_TOKEN_ID=your_token_id_here
 BOOKSTACK_TOKEN_SECRET=your_token_secret_here
@@ -133,7 +135,7 @@ BOOKSTACK_TOKEN_SECRET=your_token_secret_here
 # ClickUp - Required for ClickUp tools
 CLICKUP_API_TOKEN=your_clickup_token_here
 
-# Grocy - Required for Grocy tools
+# Grocy (archived) – only needed on archive branch
 GROCY_BASE_URL=https://your-grocy-instance.com
 GROCY_API_KEY=your_grocy_api_key_here
 
@@ -193,78 +195,9 @@ All tools include comprehensive security validation and error handling.
   - Filter by category/technology
   - Get relevance-ranked results with snippets
 
-### **BookStack Integration**
+### Archived: BookStack Integration
 
-- **bookstack_search** - Search across BookStack documentation
-  - Search books, pages, chapters, and shelves
-  - Supports advanced search syntax (filters, exact matches, tags)
-  - Returns previews and metadata
-  - Requires `BOOKSTACK_URL`, `BOOKSTACK_TOKEN_ID`, `BOOKSTACK_TOKEN_SECRET`
-
-- **bookstack_get_shelf** - Get shelf details and books
-  - Retrieve shelf information including all books
-  - View book list in display order
-  - Includes metadata and hierarchy
-
-- **bookstack_get_page** - Retrieve full page content
-  - Get page content in HTML and Markdown formats
-  - Includes all metadata and hierarchy information
-
-- **bookstack_get_book** - Get book structure
-  - Retrieve book details and table of contents
-  - View all chapters and pages in structured format
-
-- **bookstack_create_shelf** - Create new shelves
-  - Create top-level shelves to organize multiple books
-  - Optionally add books during shelf creation
-  - Supports descriptions and tags
-
-- **bookstack_create_book** - Create new books
-  - Create top-level books with name, description, and tags
-  - Returns book ID and URL for adding chapters/pages
-  - Supports tagging for organization
-
-- **bookstack_create_chapter** - Create chapters within books
-  - Organize pages into logical chapters
-  - Requires parent book_id
-  - Supports descriptions and tags
-
-- **bookstack_create_page** - Create pages with content
-  - Create pages within books or chapters
-  - Supports both HTML and Markdown content
-  - Automatic base64 image extraction to gallery
-  - Requires either book_id or chapter_id
-
-- **bookstack_update_shelf** - Update shelf details and books
-  - Modify shelf name, description, and book assignments
-  - Reorder books by providing new books array
-  - Partial updates supported
-
-- **bookstack_update_book** - Update book details
-  - Modify book name, description, and tags
-  - Partial updates supported (only provide fields to change)
-
-- **bookstack_update_page** - Update page content and metadata
-  - Update page name, HTML/Markdown content, and tags
-  - Move pages between books or chapters
-  - Partial updates supported
-
-- **bookstack_delete_shelf** - Delete a shelf
-  - WARNING: Permanently deletes the shelf (cannot be undone)
-  - Books within the shelf are preserved
-  - Requires shelf_id
-
-- **bookstack_delete_book** - Delete a book
-  - WARNING: Permanently deletes the book and all its chapters and pages (cannot be undone)
-  - Requires book_id
-
-- **bookstack_delete_chapter** - Delete a chapter
-  - WARNING: Permanently deletes the chapter and all its pages (cannot be undone)
-  - Requires chapter_id
-
-- **bookstack_delete_page** - Delete a page
-  - WARNING: Permanently deletes the page (cannot be undone)
-  - Requires page_id
+The BookStack tools have been archived and are not available on the main branch. See the `archive/bookstack-grocy` branch for code and docs.
 
 ### **ClickUp Integration**
 
@@ -283,52 +216,9 @@ All tools include comprehensive security validation and error handling.
   - Add or remove assignees
   - Update due dates and other fields
 
-### **Grocy Integration**
+### Archived: Grocy Integration
 
-Kitchen and household inventory management with smart stock tracking, shopping lists, and recipes.
-
-**Stock Management:**
-
-- **grocy_stock_get_current** - Get complete stock overview with amounts and best before dates
-- **grocy_stock_get_product** - Get detailed product information, pricing, and history
-- **grocy_stock_add_product** - Add products to stock (purchase tracking with dates and prices)
-- **grocy_stock_consume_product** - Remove products from stock (consumption tracking with FIFO)
-- **grocy_stock_get_volatile** - Get products expiring soon, overdue, expired, or below minimum stock
-- **grocy_stock_get_product_by_barcode** - Look up products by barcode
-
-**Shopping List:**
-
-- **grocy_shoppinglist_add_product** - Add products to shopping list
-- **grocy_shoppinglist_remove_product** - Remove products from shopping list
-- **grocy_shoppinglist_add_missing** - Auto-add all products below minimum stock
-- **grocy_shoppinglist_clear** - Clear shopping list (all items or completed only)
-
-**Product Management:**
-
-- **grocy_product_create** - Create new products in Grocy (required before adding to recipes)
-- **grocy_location_list** - List all storage locations (for product creation)
-- **grocy_quantity_unit_list** - List all quantity units (piece, gram, kg, liter, ml, etc.)
-
-**Recipes & Meal Planning:**
-
-- **grocy_recipe_create** - Create new recipe with name, description, and serving information
-- **grocy_recipe_add_ingredient** - Add ingredient to recipe with quantity and product ID
-- **grocy_recipe_get_fulfillment** - Check if ingredients are in stock for a recipe
-- **grocy_recipe_consume** - Consume all recipe ingredients from stock
-- **grocy_recipe_add_missing_to_shoppinglist** - Add missing recipe ingredients to shopping list
-- **grocy_meal_plan_add** - Add recipe to meal plan calendar for a specific date
-- **grocy_meal_plan_get** - Retrieve meal plans for a date range (weekly planning overview)
-
-**Tasks:**
-
-- **grocy_tasks_get_pending** - Get all incomplete tasks
-- **grocy_task_complete** - Mark task as completed
-
-**System:**
-
-- **grocy_system_info** - Get Grocy version and system information
-
-Requires `GROCY_BASE_URL` and `GROCY_API_KEY` environment variables.
+The Grocy tools have been archived and are not available on the main branch. See the `archive/bookstack-grocy` branch for code and docs.
 
 ### **Australian Grocery Price Comparison**
 
@@ -367,7 +257,7 @@ Search and compare prices across Woolworths and Coles supermarkets in Australia.
 - Real-time pricing from both major Australian supermarkets
 - Unit price comparison ($/kg, $/100g, etc.)
 - Save money by shopping at the cheapest store
-- Integration ready for Grocy shopping lists (coming soon)
+ 
 
 Requires `COLES_API_KEY` environment variable. Woolworths API is public and needs no key.
 
@@ -397,13 +287,13 @@ Requires `COLES_API_KEY` environment variable. Woolworths API is public and need
   - Multiple size options (512x512 to 1024x1024)
   - Supports negative prompts and guidance scale
   - Requires `HUGGING_FACE_API_KEY` (free tier: ~50 images/day)
-  - [Detailed documentation](http://bookstack.deejpotter.com/books/mcp-server-XGf/page/image-generation-manipulation-tools)
+  - Detailed documentation available in project notes
 
 - **image_convert** - Convert images between formats
   - Supports WEBP, PNG, JPEG, AVIF, GIF, TIFF
   - Batch processing with directory support
   - Quality control and folder structure preservation
-  - Perfect for optimizing images for web/BookStack
+  - Perfect for optimizing images for the web
 
 - **image_resize** - Resize images with smart strategies
   - 7 convenient presets (thumbnail to 4K)
