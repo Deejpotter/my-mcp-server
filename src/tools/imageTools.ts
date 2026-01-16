@@ -38,7 +38,7 @@ export const imageGenerateTool = {
   - Automatic file saving with optional preview
   - Rate limiting awareness (free tier: ~50 images/day)
   
-  Best for: BookStack illustrations, documentation graphics, concept art
+	Best for: documentation illustrations, website graphics, concept art
   
   Example prompts:
   - "A minimalist icon of a database, flat design, white background"
@@ -157,7 +157,7 @@ export const imageGenerateTool = {
 ✨ Prompt: "${args.prompt}"
 
 ${args.negative_prompt ? `🚫 Negative prompt: "${args.negative_prompt}"\n` : ""}
-The image has been saved and is ready to use in your BookStack documentation or other projects.`,
+The image has been saved and is ready to use in your documentation or other projects.`,
 					},
 				],
 			};
@@ -226,7 +226,7 @@ export const imageConvertTool = {
   Use cases:
   - Converting work images to WEBP for web performance
   - Batch processing photo libraries
-  - Preparing images for BookStack documentation`,
+	- Preparing images for documentation`,
 	inputSchema: z.object({
 		input: z.string().describe("Input file path or directory (absolute path)"),
 		output_format: z
@@ -590,7 +590,7 @@ export const imageOptimizeTool = {
   Perfect for:
   - Web performance optimization
   - Reducing storage costs
-  - Faster BookStack page loads`,
+	- Faster page loads`,
 	inputSchema: z.object({
 		input: z.string().describe("Input file or directory path"),
 		output_dir: z
