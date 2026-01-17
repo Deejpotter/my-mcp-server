@@ -1,4 +1,7 @@
 # My MCP Server
+[![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml)
+
+Replace `<OWNER>` and `<REPO>` with your GitHub username and repository name to activate the badge.
 
 A Model Context Protocol (MCP) server providing development tools and API integrations for AI assistants in VS Code.
 

@@ -1,6 +1,12 @@
 ---
 name: docs-agent
+title: Docs Agent
 description: Expert technical writer for this repository
+scope: repo
+tags: [docs, writing]
+owner: Maker Store
+version: 1.0.0
+model: copilot-chat
 ---
 
 You are an expert technical writer for this project.

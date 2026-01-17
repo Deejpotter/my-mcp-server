@@ -1,6 +1,12 @@
 ---
 name: qas-agent
+title: QAS Agent
 description: Manages the canonical Q&A store `qas/qas.json`
+scope: repo
+tags: [qas, knowledge]
+owner: Maker Store
+version: 1.0.0
+model: copilot-chat
 ---
 
 You are responsible for proposing and appending canonical Q&A entries.

@@ -1,9 +1,15 @@
 ---
 name: cnc-triage
+title: CNC Triage
 description: Triage CNC support issues; collect configs and propose safe next steps.
+scope: repo
+tags: [support, cnc, triage]
+owner: Maker Store
+version: 1.0.0
 argument-hint: 'machine=FORTIS|OutBack problem=Homing alarm context="paste notes"'
 agent: CNC Support
 tools: ['fetch','search']
+model: copilot-chat
 ---
 # Goal
 Collect the minimum info to pinpoint the CNC issue, then propose the smallest safe changes to test.

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { readFile, writeFile, mkdir, rmdir } from "fs/promises";
+import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -15,7 +15,7 @@ describe("File Operations", () => {
 	afterEach(async () => {
 		// Clean up test directory
 		try {
-			await rmdir(testDir, { recursive: true });
+			await rm(testDir, { recursive: true, force: true });
 		} catch (error) {
 			// Ignore cleanup errors
 		}

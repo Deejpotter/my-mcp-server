@@ -41,6 +41,7 @@ import { registerImageTools } from "./tools/imageTools.js";
 // Grocy tools archived: import removed from main branch
 import { registerAustralianGroceryTools } from "./tools/australianGroceryTools.js";
 import { registerPDFTools } from "./tools/pdfTools.js";
+import { registerDiscoveryTools } from "./tools/discoveryTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
 import { registerPrompts } from "./prompts/prompts.js";
 
@@ -64,6 +65,8 @@ registerImageTools(server);
 // BookStack and Grocy tools archived: registration disabled on main branch
 registerAustralianGroceryTools(server);
 registerPDFTools(server);
+// Register runtime discovery tool last so it can scan compiled tool files
+registerDiscoveryTools(server);
 
 // Register all resources
 registerGitResources(server);

@@ -1,0 +1,37 @@
+{
+  "code_review_guide": {
+    "title": "Code Review Guide",
+    "tools_required": ["list_files", "read_file", "git_command", "run_command"],
+    "tool_flow": ["list_files", "read_file", "git_command", "run_command"],
+    "execution_mode": "sequential",
+    "estimated_duration_minutes": 10
+  },
+  "commit_message_composer": {
+    "title": "Commit Message Composer",
+    "tools_required": ["git_command"],
+    "tool_flow": ["git_command"],
+    "execution_mode": "sequential",
+    "estimated_duration_minutes": 2
+  },
+  "library_research_workflow": {
+    "title": "Library Research Workflow",
+    "tools_required": ["search", "resolve_library_id", "web_fetch"],
+    "tool_flow": ["search", "resolve_library_id", "web_fetch"],
+    "execution_mode": "sequential",
+    "estimated_duration_minutes": 8
+  },
+  "customer-reply": {
+    "title": "Customer Reply",
+    "tools_required": ["fetch", "search"],
+    "tool_flow": ["fetch", "search"],
+    "execution_mode": "sequential",
+    "estimated_duration_minutes": 3
+  },
+  "cnc-triage": {
+    "title": "CNC Triage",
+    "tools_required": ["fetch", "search"],
+    "tool_flow": ["fetch", "search"],
+    "execution_mode": "sequential",
+    "estimated_duration_minutes": 5
+  }
+}

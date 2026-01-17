@@ -1,9 +1,15 @@
 ---
 name: customer-reply
+title: Customer Reply
 description: Draft a customer reply in Maker Store style with Logic then Answer sections.
+scope: repo
+tags: [customer-service, reply, canned]
+owner: Maker Store
+version: 1.0.0
 argument-hint: 'name=Customer issue=Short summary context="paste key details"'
 agent: Customer Service
 tools: ['fetch','search']
+model: copilot-chat
 ---
 # Goal
 Write a concise, helpful reply to the customer in Maker Store style.
