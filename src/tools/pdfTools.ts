@@ -352,7 +352,7 @@ export function registerPDFTools(server: McpServer): void {
 										total: receiptData.total,
 									},
 									next_steps:
-										"Use grocy_product_create to add new products, then grocy_stock_add_product to add items to stock",
+										"Review extracted data, map items to your inventory or budgeting system, optionally price-check with australian_grocery_search, and save the JSON to a file for records",
 								},
 								null,
 								2

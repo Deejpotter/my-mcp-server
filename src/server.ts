@@ -38,7 +38,7 @@ import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js"
 import { registerContext7Tools } from "./tools/context7Tools.js";
 import { registerClickUpTools } from "./tools/clickupTools.js";
 import { registerImageTools } from "./tools/imageTools.js";
-// Grocy tools archived: import removed from main branch
+// BookStack and Grocy tools archived: registration disabled on main branch
 import { registerAustralianGroceryTools } from "./tools/australianGroceryTools.js";
 import { registerPDFTools } from "./tools/pdfTools.js";
 import { registerDiscoveryTools } from "./tools/discoveryTools.js";
@@ -62,7 +62,10 @@ registerDuckDuckGoSearchTools(server);
 registerContext7Tools(server);
 registerClickUpTools(server);
 registerImageTools(server);
+<<<<<<< HEAD
 // BookStack and Grocy tools archived: registration disabled on main branch
+=======
+>>>>>>> 1047b2dc6f18eaa8926c2c3eb405aed2e3ba969d
 registerAustralianGroceryTools(server);
 registerPDFTools(server);
 // Register runtime discovery tool last so it can scan compiled tool files
