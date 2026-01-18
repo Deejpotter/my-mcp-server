@@ -228,21 +228,24 @@ export function registerFileTools(server: McpServer) {
 					};
 				}
 
-				// Build glob pattern
+				// Build glob pattern using POSIX-style separators to satisfy glob on Windows
+				const toPosix = (p: string) => p.replaceAll("\\", "/");
+				const dirPosix = toPosix(path.resolve(directory));
+				const patPosix = toPosix(pattern);
 				const searchPattern = recursive
-					? path.join(directory, "**", pattern)
-					: path.join(directory, pattern);
+					? `${dirPosix}/**/${patPosix}`
+					: `${dirPosix}/${patPosix}`;
 
 				// Find files
 				const files = await glob(searchPattern, {
 					nodir: true,
-					absolute: false,
+					absolute: true, // ensure validatePath sees absolute paths regardless of cwd
 				});
 
 				// Validate each file path
-				const validFiles = files.filter(
-					(file) => validatePath(file, "read").valid
-				);
+				const validFiles = files
+					.map((f) => path.resolve(f))
+					.filter((file) => validatePath(file, "read").valid);
 
 				const output = {
 					files: validFiles.sort(),
