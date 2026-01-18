@@ -1,0 +1,24 @@
+{
+	"servers": {
+		"my-mcp-server": {
+			"type": "stdio",
+			"command": "node",
+			"args": [
+				"~/repos/my-mcp-server/dist/server.js"
+			]
+		},
+		"hf-mcp-server": {
+			"url": "https://huggingface.co/mcp?login"
+		},
+		"awesome-copilot": {
+			"type": "stdio",
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot:latest"
+			]
+		}
+	}
+}
