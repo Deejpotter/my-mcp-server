@@ -209,16 +209,7 @@ function getHomeDir(): string | undefined {
 	return home ? normalizeFsPath(home) : undefined;
 }
 
-function getUsersRootWindows(): string | undefined {
-	if (!isWindows()) return undefined;
-	const home = process.env.USERPROFILE;
-	if (!home) return undefined;
-	const users = normalizeFsPath(path.dirname(home)); // typically C:\Users
-	// Use case-insensitive check because Windows paths are case-insensitive
-	// and normalizeFsPath already lowercases paths on Windows
-	if (!users.toLowerCase().endsWith("\\users")) return undefined;
-	return users;
-}
+// No longer exposing C:\Users as a default root; limiting to the current user's HOME reduces blast radius.
 
 function expandHome(input: string): string {
 	if (!input) return input;
@@ -288,40 +279,10 @@ function getDefaultAllowedRoots(): AllowedRoot[] {
 	const repo = moduleRootDir();
 	const cwd = normalizeFsPath(process.cwd());
 	const home = getHomeDir();
-	const usersRoot = getUsersRootWindows();
 
 	const defaults: AllowedRoot[] = [{ root: repo, mode: "rw" }];
 	if (cwd !== repo) defaults.push({ root: cwd, mode: "rw" });
 	if (home) defaults.push({ root: home, mode: "rw" });
-	
-	/**
-	 * Windows-only: optionally allow the entire C:\Users tree as writable.
-	 *
-	 * This was originally added by user request to make it easy for the MCP server
-	 * to work across multiple projects in a typical single-user dev environment.
-	 *
-	 * Security implications:
-	 * - When enabled, the assistant can write into all user profiles under C:\Users,
-	 *   not just the profile running this process.
-	 * - On shared or multi-user systems this significantly expands the blast radius
-	 *   of any misbehaving tool or compromised agent.
-	 *
-	* Configuration:
-	* - MCP_ALLOW_ALL_WINDOWS_USERS_RW (optional)
-	*   - unset          -> DO NOT add C:\\Users (safer default)
-	*   - "true" or "1"  -> explicitly allow C:\\Users as rw
-	*   - "false" or "0" -> do NOT add C:\\Users to the allowed roots
-	 */
-	const usersRootEnv = process.env.MCP_ALLOW_ALL_WINDOWS_USERS_RW;
-	const allowWindowsUsersRoot = !!usersRootEnv && (
-		usersRootEnv.toLowerCase() === "1" ||
-		usersRootEnv.toLowerCase() === "true"
-	);
-
-	if (usersRoot && allowWindowsUsersRoot) {
-		defaults.push({ root: usersRoot, mode: "rw" });
-	}
-	
 	return defaults;
 }
 
