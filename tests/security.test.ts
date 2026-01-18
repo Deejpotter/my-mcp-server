@@ -17,7 +17,7 @@ describe("Security Validation", () => {
 
 		it("should reject forbidden paths like /etc/passwd (or Windows System32)", () => {
 			const target = process.platform === "win32"
-				? require("path").join(process.env.SystemRoot || "C\\\\Windows", "System32")
+				? require("path").join(process.env.SystemRoot || "C:\\Windows", "System32")
 				: "/etc/passwd";
 			const result = validatePath(target);
 			expect(result.valid).toBe(false);
@@ -28,7 +28,7 @@ describe("Security Validation", () => {
 
 		it("should reject paths outside allowed directories", () => {
 			const target = process.platform === "win32"
-				? require("path").join(process.env.SystemRoot || "C\\\\Windows", "System32", "drivers", "etc", "hosts")
+				? require("path").join(process.env.SystemRoot || "C:\\Windows", "System32", "drivers", "etc", "hosts")
 				: "/etc/hosts";
 			const result = validatePath(target);
 			expect(result.valid).toBe(false);
@@ -47,7 +47,7 @@ describe("Security Validation", () => {
 		it("should reject path traversal with ../ to system directory", () => {
 			// Craft a traversal that resolves to a system path outside allowlist
 			const target = process.platform === "win32"
-				? require("path").resolve(process.cwd(), "..", "..", process.env.SystemRoot || "C\\\\Windows", "System32")
+				? require("path").resolve(process.cwd(), "..", "..", process.env.SystemRoot || "C:\\Windows", "System32")
 				: "/etc/passwd";
 			const result = validatePath(target);
 			expect(result.valid).toBe(false);
@@ -55,7 +55,7 @@ describe("Security Validation", () => {
 
 		it("should reject path traversal with ..\\ to system directory (Windows only)", () => {
 			if (process.platform !== "win32") return;
-			const systemRoot = process.env.SystemRoot || "C\\\\Windows";
+			const systemRoot = process.env.SystemRoot || "C:\\Windows";
 			const traversalPath = require("path").resolve(process.cwd(), "..", "..", systemRoot, "System32");
 			const result = validatePath(traversalPath);
 			expect(result.valid).toBe(false);
