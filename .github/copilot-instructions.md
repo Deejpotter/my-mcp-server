@@ -50,9 +50,9 @@
 - **Do not use console.log**; use `console.error` for all logging.
 - **Test edge cases** for security, especially for file/command tools.
 - **Read the README first** to understand the correct workflow before making changes.
-- **Use Context7** to find exact documentation prior to code changes; supplement with DuckDuckGo/Google for official references.
+- **Use Context7** to find exact documentation prior to code changes; supplement with my-mcp-server's `google_search` (SerpAPI) and `duckduckgo_search` for official references.
 - **Prefer updating existing files** over creating new ones; add detailed comments from the user's point of view when you change behavior.
-- **Maintain a TODO list** in the repo to reflect ongoing doc/code tasks and the workflow to follow.
+- **Maintain `.github/TODOs.md`** with status buckets (Todo, In Progress, Completed). Keep the last 10 Completed tasks and delete older ones.
 - **Refer to** `README.md` for tooling and workflows; tests document patterns within `tests/`.
 
 ## Examples

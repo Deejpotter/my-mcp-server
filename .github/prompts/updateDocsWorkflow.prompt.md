@@ -2,7 +2,6 @@
 name: updateDocsWorkflow
 description: Plan and update repo docs, agents, prompts consistently with official references.
 argument-hint: 'scope=all|agents|prompts|readme notes="constraints or references"'
-tools: [
 ---
 
 Goal
@@ -13,7 +12,17 @@ Instructions
 
 - Think and act in the following order. Produce a brief plan before edits, then apply focused patches, and summarize.
 
-1. Read README first
+Codebase checklist (#codebase)
+
+1. Read the README first to understand the correct workflow.
+2. Use Context7 to find exact documentation before making changes.
+3. Also, use my-mcp-server's google and duckduckgo search tools to find official documentation references or search online for information for things that don't have documentation.
+4. Keep the current code and comments where possible or add your own detailed comments from the repo owner's point of view to explain the purpose of the code.
+5. Prioritize updating and improving files over creating new ones. Update current files instead of making new ones and copying them over.
+6. Maintain `.github/TODOs.md` with status buckets (Todo, In Progress, Completed). Keep the last 10 Completed tasks for reference; delete older ones.
+7. First consider how to find the best actions. Then make a detailed plan. Refer back to it regularly and follow it to completion.
+
+8. Read README first
 
 - Skim the repository README to understand the correct workflow, tooling, and conventions.
 - Note any required environment variables for tools that will be documented.
@@ -37,7 +46,7 @@ Instructions
 
 - Prefer updating existing files over creating new ones; only create new files when necessary for clarity.
 - Keep existing code and comments; add concise, purpose-driven comments from the repo owner’s point of view.
-- Maintain or create a project TODO list to reflect planned documentation improvements and next steps.
+- Maintain or create `.github/TODOs.md` with statuses to reflect planned documentation improvements and next steps (keep last 10 Completed).
 
 5. Apply minimal, safe edits
 

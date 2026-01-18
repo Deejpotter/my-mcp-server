@@ -1,30 +1,40 @@
-# Project TODOs
+# Project TODOs (.github/TODOs.md)
 
-Purpose: Track workflow for updates and additions. Follow this order of operations for any change.
+Purpose: Track workflow for updates and additions. Use status buckets and keep only the last 10 completed tasks.
 
-General workflow
+Codebase workflow (#codebase)
 
-1. Read README.md to confirm the correct workflow and conventions.
-2. Plan: write down the steps you will take and why; keep this list updated.
-3. Research:
-   - Use Context7 to fetch exact documentation first (resolve_library_id → get_documentation).
-   - Use DuckDuckGo/Google to find official references where docs are missing.
-4. Prefer updating existing files over creating new ones.
-5. Keep existing code and comments; add detailed comments from my point of view to explain purpose and constraints.
-6. Implement minimal, safe edits; add/update tests where applicable.
-7. Validate with `npm test` and, if available, coverage.
-8. Summarize results and update this TODO.
+1. Read README.md to understand the correct workflow.
+2. Use Context7 to find exact documentation before making changes.
+3. Use my-mcp-server's google_search (SerpAPI) and duckduckgo_search to find official references or fill gaps.
+4. Prefer updating existing files over creating new ones; keep existing code/comments and add purpose-driven notes.
+5. Implement minimal, safe edits; add/update tests when applicable.
+6. Summarize results and update this TODOs file.
 
-Active tasks (2026-01-18)
+Statuses
 
-- [ ] Documentation: ensure agents and prompts reference Context7 + web search workflow and README-first guidance.
-- [ ] README: add Receipt Management tools and environment variables for COLES_API_KEY and OPENAI_API_KEY.
-- [ ] Copilot instructions: point to .github/agents, .github/prompts, .github/instructions.
-- [ ] Agents: dev, support, qas — include README-first, Context7-first, and TODO maintenance notes.
-- [ ] Prompts: confirm .github/prompts list is reflected in README.
+- Todo — upcoming tasks
+- In Progress — currently being worked on
+- Completed — done items (keep only the last 10)
+
+Todo
+
+- (none)
+
+In Progress
+
+- 2026-01-18: Push & sync pending changes (dev agent, copilot-instructions, prompts, TODOs)
+
+Completed (last 10)
+
+- 2026-01-18: Update dev.agent.md with #codebase workflow and TODOs policy
+- 2026-01-18: Update README with Receipt tools and env keys (COLES_API_KEY, OPENAI_API_KEY)
+- 2026-01-18: Align Copilot instructions with .github structure and #codebase policy
+- 2026-01-18: Add README-first guidance to support prompts (cnc-triage, customer-reply)
+- 2026-01-18: Create and standardize .github/TODOs.md with status buckets and retention policy
 
 Notes
 
 - Do not introduce new dependencies without explicit need.
-- Keep stderr-only logging for MCP server processes.
-- Use `git` diffs before/after to verify scope of changes.
+- Use stderr-only logging for MCP server processes (no console.log in MCP transports).
+- Use git diffs before/after to verify scope of changes.
