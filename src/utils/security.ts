@@ -232,12 +232,19 @@ function parseAllowedFromEnv(): AllowedRoot[] {
 		.map((s) => s.trim())
 		.filter(Boolean)
 		.map((entry) => {
-			const [maybeMode, maybePath] = entry.includes(":")
-				? entry.split(":", 2)
-				: [undefined, entry];
-			const mode: "ro" | "rw" =
-				maybeMode === "ro" || maybeMode === "rw" ? (maybeMode as any) : "rw";
-			const base = normalizeFsPath(expandHome(maybePath ?? entry));
+			// Support optional leading mode 'ro:' or 'rw:'.
+			// Do NOT misparse Windows paths like 'C:\\Path' as a mode.
+			let mode: "ro" | "rw" = "rw";
+			let rawPath = entry;
+			const colonIdx = entry.indexOf(":");
+			if (colonIdx > 0) {
+				const prefix = entry.slice(0, colonIdx).toLowerCase();
+				if (prefix === "ro" || prefix === "rw") {
+					mode = prefix as "ro" | "rw";
+					rawPath = entry.slice(colonIdx + 1);
+				}
+			}
+			const base = normalizeFsPath(expandHome(rawPath));
 			return { root: base, mode };
 		});
 }
