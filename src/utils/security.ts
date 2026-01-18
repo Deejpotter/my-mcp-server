@@ -12,7 +12,9 @@
  */
 
 import * as path from "path";
-import * as fs from "fs/promises";
+import * as fsp from "fs/promises";
+import * as fsSync from "fs";
+import { fileURLToPath } from "url";
 
 /**
  * Paths that are forbidden for any file operations
@@ -100,44 +102,210 @@ export interface PathValidation {
  */
 export function validatePath(
 	filePath: string,
-	_operation: string = "read"
+	operation: string = "read"
 ): PathValidation {
 	const checks: string[] = [];
 
 	try {
-		// Resolve to absolute path to prevent traversal
-		const resolvedPath = path.resolve(filePath);
-		const cwd = process.cwd();
+		const resolvedPath = normalizeFsPath(filePath);
 
-		// Check if path is outside current working directory
-		if (!resolvedPath.startsWith(cwd)) {
-			checks.push(`Path outside allowed directory: ${resolvedPath}`);
-			return { valid: false, checks };
-		}
+		// Load allowlist roots (repo, cwd, home, optional Windows Users, env/JSON)
+		const allowedRoots = getAllowedRoots();
 
-		// Check for forbidden paths
+		// Quick forbidden checks first (apply regardless of allowlist)
 		for (const forbidden of FORBIDDEN_PATHS) {
-			if (resolvedPath.includes(forbidden)) {
+			if (resolvedPath.includes(normalizeFsPath(forbidden))) {
 				checks.push(`Forbidden path detected: ${forbidden}`);
 				return { valid: false, checks };
 			}
 		}
 
-		// Check for forbidden directories in path
-		const pathParts = resolvedPath.split(path.sep);
-		for (const part of pathParts) {
+		// Check for forbidden directories in path components
+		const parts = resolvedPath.split(path.sep);
+		for (const part of parts) {
 			if (FORBIDDEN_DIRS.includes(part)) {
 				checks.push(`Forbidden directory in path: ${part}`);
 				return { valid: false, checks };
 			}
 		}
 
-		checks.push("Path validation passed");
-		return { valid: true, checks, resolvedPath };
+		// Enforce allowlist
+		for (const root of allowedRoots) {
+			if (isSubpath(resolvedPath, root.root)) {
+				// Write operation blocked on read-only roots
+				if (operation === "write" && root.mode === "ro") {
+					checks.push(
+						`Write blocked: read-only root ${root.root}`
+					);
+					return { valid: false, checks };
+				}
+				checks.push("Path validation passed");
+				return { valid: true, checks, resolvedPath };
+			}
+		}
+
+		checks.push(
+			`Path outside allowed directories: ${resolvedPath}`
+		);
+		return { valid: false, checks };
 	} catch (error) {
 		checks.push(`Path resolution error: ${error}`);
 		return { valid: false, checks };
 	}
+}
+
+// --- Enhanced allowlist logic below ---
+
+type AllowedRoot = { root: string; mode: "ro" | "rw" };
+
+function isWindows(): boolean {
+	return process.platform === "win32";
+}
+
+function normalizeFsPath(p: string): string {
+	// Resolve to absolute and strip trailing separators (but keep volume root)
+	let abs = path.resolve(p);
+	abs = abs.replace(/[\\\/]+$/, "");
+	if (isWindows()) {
+		abs = abs.toLowerCase().split("/").join("\\");
+	}
+	return abs;
+}
+
+function moduleRootDir(): string {
+	try {
+		const thisFile = fileURLToPath(import.meta.url);
+		// dist/utils/security.js → project root is two levels up from dist
+		// Walk up until we find a package.json or .git
+		let dir = normalizeFsPath(path.dirname(thisFile));
+		const volumeRoot = isWindows() ? dir.split("\\")[0] + "\\" : "/";
+		while (true) {
+			const pkg = path.join(dir, "package.json");
+			const git = path.join(dir, ".git");
+			try {
+				if (fsSync.existsSync(pkg) || fsSync.existsSync(git)) {
+					return dir;
+				}
+			} catch {
+				// ignore
+			}
+			if (dir === volumeRoot) break;
+			dir = normalizeFsPath(path.dirname(dir));
+		}
+	} catch {
+		// ignore
+	}
+	return normalizeFsPath(process.cwd());
+}
+
+function getHomeDir(): string | undefined {
+	const home = process.env[isWindows() ? "USERPROFILE" : "HOME"];
+	return home ? normalizeFsPath(home) : undefined;
+}
+
+function getUsersRootWindows(): string | undefined {
+	if (!isWindows()) return undefined;
+	const home = process.env.USERPROFILE;
+	if (!home) return undefined;
+	const users = normalizeFsPath(path.dirname(home)); // typically C:\\Users
+	if (!users.endsWith("\\users")) return undefined;
+	return users;
+}
+
+function expandHome(input: string): string {
+	if (!input) return input;
+	const home = process.env[isWindows() ? "USERPROFILE" : "HOME"];
+	if (!home) return input;
+	if (input.startsWith("~")) {
+		return path.join(home, input.slice(1));
+	}
+	if (isWindows() && input.toUpperCase().includes("%USERPROFILE%")) {
+		return input.replace(/%USERPROFILE%/gi, home);
+	}
+	return input;
+}
+
+function parseAllowedFromEnv(): AllowedRoot[] {
+	const raw = process.env.MCP_ALLOWED_PATHS?.trim();
+	if (!raw) return [];
+	return raw
+		.split(",")
+		.map((s) => s.trim())
+		.filter(Boolean)
+		.map((entry) => {
+			const [maybeMode, maybePath] = entry.includes(":")
+				? entry.split(":", 2)
+				: [undefined, entry];
+			const mode: "ro" | "rw" =
+				maybeMode === "ro" || maybeMode === "rw" ? (maybeMode as any) : "rw";
+			const base = normalizeFsPath(expandHome(maybePath ?? entry));
+			return { root: base, mode };
+		});
+}
+
+function tryReadJson<T = unknown>(file: string): T | undefined {
+	try {
+		if (fsSync.existsSync(file)) {
+			const raw = fsSync.readFileSync(file, "utf8");
+			return JSON.parse(raw) as T;
+		}
+	} catch {
+		// degrade gracefully
+	}
+	return undefined;
+}
+
+function parseAllowedFromConfig(repoRoot: string): AllowedRoot[] {
+	const jsonPath = path.join(repoRoot, ".mcp-allowed-paths.json");
+	const cfg = tryReadJson<{
+		paths?: Array<{ path: string; mode?: "ro" | "rw" }>;
+	}>(jsonPath);
+	if (!cfg?.paths?.length) return [];
+	return cfg.paths
+		.filter((p) => p?.path)
+		.map((p) => {
+			const base = normalizeFsPath(expandHome(p.path));
+			return { root: base, mode: p.mode === "ro" ? "ro" : "rw" };
+		});
+}
+
+function isSubpath(child: string, parent: string): boolean {
+	const rel = path.relative(parent, child);
+	if (!rel) return true; // same dir
+	if (rel === ".." || rel.startsWith(".." + path.sep)) return false;
+	return !path.isAbsolute(rel);
+}
+
+function getDefaultAllowedRoots(): AllowedRoot[] {
+	const repo = moduleRootDir();
+	const cwd = normalizeFsPath(process.cwd());
+	const home = getHomeDir();
+	const usersRoot = getUsersRootWindows();
+
+	const defaults: AllowedRoot[] = [{ root: repo, mode: "rw" }];
+	if (cwd !== repo) defaults.push({ root: cwd, mode: "rw" });
+	if (home) defaults.push({ root: home, mode: "rw" });
+	// User requested: allow entire C:\\Users as writable by default
+	if (usersRoot) defaults.push({ root: usersRoot, mode: "rw" });
+	return defaults;
+}
+
+function getAllowedRoots(): AllowedRoot[] {
+	const defaults = getDefaultAllowedRoots();
+	const envRoots = parseAllowedFromEnv();
+	const repoForConfig = defaults[0]?.root ?? moduleRootDir();
+	const cfgRoots = parseAllowedFromConfig(repoForConfig);
+	const byRoot = new Map<string, AllowedRoot>();
+	for (const r of [...defaults, ...cfgRoots, ...envRoots]) {
+		const existing = byRoot.get(r.root);
+		if (!existing) {
+			byRoot.set(r.root, r);
+		} else {
+			const mode: "ro" | "rw" = existing.mode === "rw" || r.mode === "rw" ? "rw" : "ro";
+			byRoot.set(r.root, { root: existing.root, mode });
+		}
+	}
+	return [...byRoot.values()];
 }
 
 /**
@@ -206,13 +374,13 @@ export async function safeReadFile(
 	}
 
 	// Check file size before reading
-	const stats = await fs.stat(validation.resolvedPath!);
+	const stats = await fsp.stat(validation.resolvedPath!);
 	if (stats.size > maxSize) {
 		throw new Error(`File too large: ${stats.size} bytes (max: ${maxSize})`);
 	}
 
 	// Read file
-	return await fs.readFile(validation.resolvedPath!, "utf-8");
+	return await fsp.readFile(validation.resolvedPath!, "utf-8");
 }
 
 /**
@@ -238,10 +406,10 @@ export async function safeWriteFile(
 
 	// Create parent directory if needed
 	const dir = path.dirname(validation.resolvedPath!);
-	await fs.mkdir(dir, { recursive: true });
+	await fsp.mkdir(dir, { recursive: true });
 
 	// Write file
-	await fs.writeFile(validation.resolvedPath!, content, "utf-8");
+	await fsp.writeFile(validation.resolvedPath!, content, "utf-8");
 
 	return `File written successfully: ${validation.resolvedPath}`;
 }

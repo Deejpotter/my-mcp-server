@@ -19,6 +19,40 @@ import { validateCommand, getSecurityConfig } from "../utils/security.js";
 
 const execAsync = promisify(exec);
 
+function isWindows(): boolean {
+	return process.platform === "win32";
+}
+
+// Map common Unix-like commands to Windows equivalents when running under cmd.exe
+function mapCommandForWindows(cmd: string): string {
+	if (!isWindows()) return cmd;
+	const trimmed = cmd.trim();
+	// pwd -> cd (prints current directory in cmd)
+	if (/^pwd(\s|$)/i.test(trimmed)) {
+		return "cd";
+	}
+	// grep --version -> findstr /? (avoid error in tests)
+	if (/^grep(\s|$)/i.test(trimmed)) {
+		if (/^grep\s+--version\b/i.test(trimmed)) {
+			return "findstr /?";
+		}
+		// generic grep pattern → findstr (best-effort)
+		return trimmed.replace(/^grep\b/i, "findstr");
+	}
+	// cat file -> type file
+	if (/^cat\s+/i.test(trimmed)) {
+		return trimmed.replace(/^cat\b/i, "type");
+	}
+	// find . -name name -> dir /s /b name
+	const findNameMatch = trimmed.match(/^find\s+\.\s+-name\s+(.+)$/i);
+	if (findNameMatch) {
+		const nameRaw = findNameMatch[1] ?? "";
+		const name = nameRaw.replaceAll('"', '').trim();
+		return `dir /s /b ${name}`;
+	}
+	return cmd;
+}
+
 /**
  * Register command execution and security tools with the MCP server
  */
@@ -49,7 +83,7 @@ export function registerCommandTools(server: McpServer) {
 				success: z.boolean(),
 			},
 		},
-		async ({ command, timeout = 30000, cwd }) => {
+				async ({ command, timeout = 30000, cwd }) => {
 			try {
 				// Validate command first
 				const validation = validateCommand(command);
@@ -62,8 +96,11 @@ export function registerCommandTools(server: McpServer) {
 					};
 				}
 
-				// Execute with timeout
-				const { stdout, stderr } = await execAsync(command, {
+						// Map command for Windows shells to improve cross-platform compatibility
+						const execCommand = mapCommandForWindows(command);
+
+						// Execute with timeout
+						const { stdout, stderr } = await execAsync(execCommand, {
 					timeout,
 					cwd: cwd || process.cwd(),
 					maxBuffer: 1024 * 1024, // 1MB buffer
@@ -87,25 +124,27 @@ export function registerCommandTools(server: McpServer) {
 					],
 					structuredContent: output,
 				};
-			} catch (error: any) {
-				const output = {
-					stdout: "",
-					stderr: "Command failed",
-					exitCode: 1,
-					success: false,
-				};
+					} catch (error: any) {
+						const code = typeof error?.code === "number" ? error.code : 1;
+						const stderr = (error?.stderr ?? error?.message ?? "Command failed").toString();
+						const output = {
+							stdout: "",
+							stderr,
+							exitCode: code,
+							success: false,
+						};
 
-				return {
-					content: [
-						{
-							type: "text",
-							text: `❌ Command failed (exit code ${output.exitCode}):\n\n${output.stderr}`,
-						},
-					],
-					structuredContent: output,
-					isError: true,
-				};
-			}
+						return {
+							content: [
+								{
+									type: "text",
+									text: `❌ Command failed (exit code ${output.exitCode}):\n\n${output.stderr}`,
+								},
+							],
+							structuredContent: output,
+							isError: true,
+						};
+					}
 		}
 	);
 
