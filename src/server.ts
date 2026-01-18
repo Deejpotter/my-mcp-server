@@ -62,10 +62,7 @@ registerDuckDuckGoSearchTools(server);
 registerContext7Tools(server);
 registerClickUpTools(server);
 registerImageTools(server);
-<<<<<<< HEAD
 // BookStack and Grocy tools archived: registration disabled on main branch
-=======
->>>>>>> 1047b2dc6f18eaa8926c2c3eb405aed2e3ba969d
 registerAustralianGroceryTools(server);
 registerPDFTools(server);
 // Register runtime discovery tool last so it can scan compiled tool files

@@ -1,4 +1,5 @@
 # My MCP Server
+
 [![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml)
 
 Replace `<OWNER>` and `<REPO>` with your GitHub username and repository name to activate the badge.
@@ -130,6 +131,9 @@ SERPAPI_API_KEY=your_serpapi_key_here
 # Context7 - Optional for enhanced documentation
 CONTEXT7_API_KEY=your_context7_key_here
 
+# Coles API (Australian grocery) - Required for Coles price search
+COLES_API_KEY=your_coles_subscription_key_here
+
 # BookStack (archived) – only needed on archive branch
 BOOKSTACK_URL=https://your-bookstack-instance.com
 BOOKSTACK_TOKEN_ID=your_token_id_here
@@ -144,6 +148,9 @@ GROCY_API_KEY=your_grocy_api_key_here
 
 # Hugging Face - Required for AI image generation
 HUGGING_FACE_API_KEY=your_hugging_face_key_here
+
+# OpenAI - Required for PDF receipt extraction tools
+OPENAI_API_KEY=your_openai_key_here
 ```
 
 **Note:** DuckDuckGo search works without any API keys.
@@ -197,6 +204,20 @@ All tools include comprehensive security validation and error handling.
   - Full-text search across documentation
   - Filter by category/technology
   - Get relevance-ranked results with snippets
+
+### **Receipt Management**
+
+Tools for extracting structured data from grocery receipt PDFs (store, date, items, totals). Requires an OpenAI API key.
+
+- **pdf_list_receipts** - List PDF files in a directory
+  - Helps find receipts before parsing
+  - Supports recursive directory search
+
+- **pdf_extract_receipt** - Extract structured data from a receipt PDF
+  - Uses OpenAI GPT-4o Vision to parse text into JSON
+  - Returns items, prices, subtotal/total, store, and date
+  - Requires `OPENAI_API_KEY`
+  - Reference: <https://platform.openai.com/docs/guides/vision>
 
 ### Archived: BookStack Integration
 
@@ -260,7 +281,6 @@ Search and compare prices across Woolworths and Coles supermarkets in Australia.
 - Real-time pricing from both major Australian supermarkets
 - Unit price comparison ($/kg, $/100g, etc.)
 - Save money by shopping at the cheapest store
- 
 
 Requires `COLES_API_KEY` environment variable. Woolworths API is public and needs no key.
 
@@ -324,6 +344,13 @@ These are high-quality, workflow-focused prompts exposed by the MCP server. Each
 - **bug_investigation_guide** — Structured debugging methodology: reproduce, gather data, form hypotheses, test, fix, and document.
 - **feature_implementation_plan** — Break a feature into requirements, architecture, file changes, tests, rollout, and success metrics.
 - **search_strategy_guide** — Transforms user's rough search intent into optimized queries; analyzes intent, recommends best tool, and provides ready-to-execute search strategies.
+
+### Support prompts (GitHub agents)
+
+In addition to the MCP-registered workflow prompts above, the repository includes GitHub agent prompts for support workflows under `.github/prompts`:
+
+- **cnc-triage** — Triage CNC support issues; collect configs and propose safe next steps. Agent: `support-agent`.
+- **customer-reply** — Draft a customer reply in Maker Store style using Logic then Answer sections. Agent: `support-agent`.
 
 ## **Security Features**
 
@@ -459,6 +486,9 @@ SERPAPI_API_KEY=your_serpapi_key_here
 # Get your key from: https://context7.com
 CONTEXT7_API_KEY=your_context7_key_here
 
+# Coles API — Required for Coles product search
+COLES_API_KEY=your_coles_subscription_key_here
+
 # BookStack - Required for BookStack tools
 # Create tokens in your BookStack instance: Settings > API Tokens
 BOOKSTACK_URL=https://your-bookstack-instance.com
@@ -472,6 +502,9 @@ CLICKUP_API_TOKEN=your_clickup_token_here
 # GitHub - Optional for enhanced code search
 # Create at: https://github.com/settings/tokens
 GITHUB_TOKEN=your_github_token_here
+
+# OpenAI — Required for PDF receipt extraction tools
+OPENAI_API_KEY=your_openai_key_here
 ```
 
 **Note:** DuckDuckGo search works without any API keys - it's completely free and unlimited!
@@ -484,12 +517,19 @@ my-mcp-server/
 │   ├── server.ts              # Main MCP server entry point
 │   ├── tools/                 # MCP tool implementations
 │   │   ├── fileTools.ts       # File read/write/list operations
-│   │   ├── systemTools.ts     # System monitoring and stats
 │   │   ├── commandTools.ts    # Command execution and security
-│   │   └── gitTools.ts        # Git command operations
+│   │   ├── gitTools.ts        # Git command operations
+│   │   ├── googleSearchTools.ts # Google (SerpAPI) web search
+│   │   ├── duckduckgoSearchTools.ts # DuckDuckGo web search
+│   │   ├── context7Tools.ts   # Context7 docs lookup/search
+│   │   ├── clickupTools.ts    # ClickUp integration
+│   │   ├── imageTools.ts      # Image generate/convert/resize/optimize
+│   │   ├── australianGroceryTools.ts # Woolworths/Coles price search
+│   │   └── pdfTools.ts        # PDF receipt extraction tools
 │   ├── resources/             # MCP resources (read-only data)
-│   │   ├── systemResources.ts # System and workspace information
 │   │   └── gitResources.ts    # Git repository status
+│   ├── prompts/
+│   │   └── prompts.ts         # MCP-registered workflow prompts
 │   └── utils/                 # Shared utility functions
 │       ├── security.ts        # Security validation and checks
 │       ├── cache.ts           # Caching and rate limiting

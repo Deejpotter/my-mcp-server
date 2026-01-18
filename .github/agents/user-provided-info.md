@@ -8,6 +8,7 @@ This file records the specific information, tone, and wording the user supplied 
 ---
 
 ## Tone / Style
+
 - Tone Name: "Maker Store — Straightforward Technical Support"
 - Tone Description: Concise, direct, plain-English, minimal fluff. Use full sentences. Preserve the user's exact wording when they provide text to be used verbatim. Clearly label anything not 100% confirmed as "I'm not sure" and request confirmation. Keep replies short, helpful, and actionable.
 - Behavior rules: When the user provides wording to insert verbatim, insert it exactly. When stating Maker Store product/company facts, cite internal docs or say "I'm not sure" and ask for confirmation.
@@ -30,6 +31,7 @@ We will proceed with resending the item back to you. In such a case, please be a
 ---
 
 ## Product details (user-supplied listing text)
+
 The user provided the following product listing details for the 2.2kW Water Cooled Spindle (SPINDLE ONLY) + Hose. Record includes SKU and specs exactly as supplied.
 
 SKU: `ELEC-SPIN-2200W-WC`
@@ -86,6 +88,7 @@ How do you power a 3 phase Spindle with a standard wall socket?
 ## Customer interactions / example replies (user-supplied or user-approved wording)
 
 ### Mirko (customer) — original message (recorded)
+
 The user's message from Mirko was recorded earlier; agent replies were drafted and the user supplied company wording. The final simplified reply text created in the user's tone is recorded below and should be used verbatim unless the user requests edits.
 
 "Hi Mirko,
@@ -109,6 +112,7 @@ Regards,
 Maker Store"
 
 ### Neil (customer) — final reply (user-supplied wording preserved)
+
 The user-approved reply for Neil (preserve wording and tone) is recorded:
 
 "Hi Neil,
@@ -132,6 +136,7 @@ Regards,
 Maker Store"
 
 ### Isaac Wrathall (customer) — warranty/troubleshoot reply (user wording preserved)
+
 User-approved reply recorded:
 
 "Hi Isaac,
@@ -141,6 +146,7 @@ Thanks for letting us know and for the order number (#170488).
 My understanding is that we can troubleshoot the driver remotely to see if it's faulty. If we do find that we can't get it working with remote troubleshooting, I can get it returned under warranty and we can test it in store. If the engineers find that they can't get it working either, we can offer a replacement for the customer.
 
 To start, please send the following to team@makerstore.help and include your order number in the subject line:
+
 - A short description of the failure and when it started.
 - Photos or a short video showing the driver, the wiring, and any error behaviour.
 - Proof of purchase (order confirmation or receipt).
@@ -157,6 +163,7 @@ Maker Store"
 ---
 
 ## Miscellaneous notes recorded from user inputs
+
 - The user is the technical assistance contact and prefers to use full paragraphs, preserve their wording, and avoid spamming customers with troubleshooting steps. Only request photos/video first unless additional tests are required.
 - The user expects engineers' approval before issuing a Return Authorisation for warranty testing.
 - The user prefers concise answers and that uncertain facts be labelled "I'm not sure".
@@ -164,6 +171,7 @@ Maker Store"
 ---
 
 ## References / repo locations
+
 - Product docs and controller info: `new docs/CompleteDocumentation.md`, `Maker Store Customer Service Docs/OldInternalFAQ.md`.
 - Q&A store: `qas/qas.json` (do not modify without approval).
 - Agent files: `.github/agents/chat-agent.md` (tone recorded), `.github/agents/user-provided-info.md` (this file).
@@ -172,8 +180,8 @@ Maker Store"
 
 If you want any additional text recorded here (other exact phrasings, canned replies, or other product listings), tell me exactly what to add and I will append it verbatim.
 
-
 ### Kristy / ALARM 8 - additional technical notes (user-supplied)
+
 Record of user's exact technical logic and suggested wording for Kristy (preserve tone and wording):
 
 "First, I have a feeling that the ALARM: 8 may be because the limit switches are wired Normally Closed (or recommended setup) but in the Machine Settings, the $5 setting is supposed to invert the limit switch logic. I have a feeling the alarm 8 might just be saying that the Limit Switches may be "Triggered" so the homing won't start. If that's the case, I would expect the homing to only start for a fraction of a second before showing the alarm.
@@ -190,6 +198,7 @@ But they don't need to use the B-AXIS wiring, just use the clone port for the 2n
 Use this block when drafting the Kristy reply or when an agent needs to reference the recommended settings / reflashing note. Preserve wording when inserted verbatim.
 
 ### Mark VFD / Dust Shoe reply (user-supplied)
+
 The following reply was provided by the user and is recorded verbatim. Use this exact wording and tone when appropriate.
 
 "Hi Mark,
@@ -233,7 +242,7 @@ image.png
 If you need the link, you can find it here:
 https://makerhardware.net/knowledge-base/how-to-guides/cnc-workflow-using-fusion-360-for-cnc/#articleTOC_4
 
-Or here's the direct link: 
+Or here's the direct link:
 https://makerhardware.net/wp-content/uploads/2024/01/Maker-Store-Fusion360-Postprocessor.zip
 
 Dust Shoe
@@ -249,7 +258,6 @@ https://www.thingiverse.com/thing:4728278/files
 If you want to make your own, we have Dust Shoe Bristles here:
 https://www.makerstore.com.au/product/hard-dsb/
 
-
 ---
 
 Original customer message (recorded):
@@ -258,7 +266,7 @@ Original customer message (recorded):
 
 New week new issue i guess.
 
-i'm having trouble with iosender and the vfd. ive got the machine running fine but at the end of running a program the vfd throws a code \"E-00A\". i can reset the machine by restarting iosender and the router but it then drops it into local control \"H00\" mode causing me to manually switch it back to \"F00\". Any ideas? 
+i'm having trouble with iosender and the vfd. ive got the machine running fine but at the end of running a program the vfd throws a code \"E-00A\". i can reset the machine by restarting iosender and the router but it then drops it into local control \"H00\" mode causing me to manually switch it back to \"F00\". Any ideas?
 
 I'll attach a gcode in case it's coming from fusion 360.
 
@@ -268,6 +276,4 @@ cheers
 
 Mark
 
-
 fortis_table_brace.nc (108 KB)"
-
