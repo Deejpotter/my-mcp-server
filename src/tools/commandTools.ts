@@ -32,21 +32,30 @@ function mapCommandForWindows(cmd: string): string {
 		return "cd";
 	}
 	// grep --version -> findstr /? (avoid error in tests)
-	if (/^grep(\s|$)/i.test(trimmed)) {
-		if (/^grep\s+--version\b/i.test(trimmed)) {
-			return "findstr /?";
-		}
-		// generic grep pattern → findstr (best-effort)
-		return trimmed.replace(/^grep\b/i, "findstr");
+	if (/^grep\s+--version\b/i.test(trimmed)) {
+		return "findstr /?";
 	}
+	// For other grep invocations, do not attempt a generic findstr mapping.
+	// findstr's syntax and behavior differ significantly from grep, so a
+	// naive replacement (e.g., "grep" -> "findstr") is likely to produce
+	// incorrect results. Let the original command run (and potentially fail)
+	// rather than returning misleading output.
+	
 	// cat file -> type file
 	if (/^cat\s+/i.test(trimmed)) {
 		return trimmed.replace(/^cat\b/i, "type");
 	}
-	// find . -name name -> dir /s /b name
+	// find . -name name -> dir /s /b name (limited support: no extra find flags)
 	const findNameMatch = trimmed.match(/^find\s+\.\s+-name\s+(.+)$/i);
 	if (findNameMatch) {
 		const nameRaw = findNameMatch[1] ?? "";
+		// If additional options are present after the -name pattern (for example:
+		//   find . -name "*.ts" -type f
+		// then our simple mapping cannot faithfully emulate Unix `find` on Windows.
+		// In that case, fall back to the original command to avoid incorrect results.
+		if (/\s-[-\w]/.test(nameRaw)) {
+			return cmd;
+		}
 		const name = nameRaw.replaceAll('"', '').trim();
 		return `dir /s /b ${name}`;
 	}
@@ -96,11 +105,25 @@ export function registerCommandTools(server: McpServer) {
 					};
 				}
 
-						// Map command for Windows shells to improve cross-platform compatibility
-						const execCommand = mapCommandForWindows(command);
+				// Map command for Windows shells to improve cross-platform compatibility
+				const execCommand = mapCommandForWindows(command);
+				
+				// Validate the mapped command as well to ensure the transformation
+				// didn't introduce any security issues
+				if (execCommand !== command) {
+					const mappedValidation = validateCommand(execCommand);
+					if (!mappedValidation.valid) {
+						return {
+							content: [
+								{ type: "text", text: `🔒 Security Error: Mapped command validation failed: ${mappedValidation.reason}` },
+							],
+							isError: true,
+						};
+					}
+				}
 
-						// Execute with timeout
-						const { stdout, stderr } = await execAsync(execCommand, {
+				// Execute with timeout
+				const { stdout, stderr } = await execAsync(execCommand, {
 					timeout,
 					cwd: cwd || process.cwd(),
 					maxBuffer: 1024 * 1024, // 1MB buffer

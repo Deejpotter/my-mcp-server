@@ -49,6 +49,7 @@ const FORBIDDEN_DIRS = [
 /**
  * Commands allowed for execution
  * This is a security allowlist - only these commands can be run
+ * Includes both Unix and Windows equivalents for cross-platform support
  */
 const ALLOWED_COMMANDS = [
 	"git",
@@ -58,7 +59,9 @@ const ALLOWED_COMMANDS = [
 	"cd",
 	"echo",
 	"cat",
+	"type",
 	"grep",
+	"findstr",
 	"find",
 	"python",
 	"node",
@@ -113,8 +116,11 @@ export function validatePath(
 		const allowedRoots = getAllowedRoots();
 
 		// Quick forbidden checks first (apply regardless of allowlist)
+		// Normalize forbidden paths to match the resolved path's format for consistent comparison
 		for (const forbidden of FORBIDDEN_PATHS) {
-			if (resolvedPath.includes(normalizeFsPath(forbidden))) {
+			const normalizedForbidden = normalizeFsPath(forbidden);
+			// Check if the forbidden path is contained in the resolved path
+			if (resolvedPath.includes(normalizedForbidden)) {
 				checks.push(`Forbidden path detected: ${forbidden}`);
 				return { valid: false, checks };
 			}
@@ -207,8 +213,10 @@ function getUsersRootWindows(): string | undefined {
 	if (!isWindows()) return undefined;
 	const home = process.env.USERPROFILE;
 	if (!home) return undefined;
-	const users = normalizeFsPath(path.dirname(home)); // typically C:\\Users
-	if (!users.endsWith("\\users")) return undefined;
+	const users = normalizeFsPath(path.dirname(home)); // typically C:\Users
+	// Use case-insensitive check because Windows paths are case-insensitive
+	// and normalizeFsPath already lowercases paths on Windows
+	if (!users.toLowerCase().endsWith("\\users")) return undefined;
 	return users;
 }
 
@@ -285,8 +293,35 @@ function getDefaultAllowedRoots(): AllowedRoot[] {
 	const defaults: AllowedRoot[] = [{ root: repo, mode: "rw" }];
 	if (cwd !== repo) defaults.push({ root: cwd, mode: "rw" });
 	if (home) defaults.push({ root: home, mode: "rw" });
-	// User requested: allow entire C:\\Users as writable by default
-	if (usersRoot) defaults.push({ root: usersRoot, mode: "rw" });
+	
+	/**
+	 * Windows-only: optionally allow the entire C:\Users tree as writable.
+	 *
+	 * This was originally added by user request to make it easy for the MCP server
+	 * to work across multiple projects in a typical single-user dev environment.
+	 *
+	 * Security implications:
+	 * - When enabled, the assistant can write into all user profiles under C:\Users,
+	 *   not just the profile running this process.
+	 * - On shared or multi-user systems this significantly expands the blast radius
+	 *   of any misbehaving tool or compromised agent.
+	 *
+	 * Configuration:
+	 * - MCP_ALLOW_ALL_WINDOWS_USERS_RW (optional)
+	 *   - unset          -> behave as before (ALLOW C:\Users as rw by default)
+	 *   - "true" or "1"  -> explicitly allow C:\Users as rw
+	 *   - "false" or "0" -> do NOT add C:\Users to the allowed roots
+	 */
+	const usersRootEnv = process.env.MCP_ALLOW_ALL_WINDOWS_USERS_RW;
+	const allowWindowsUsersRoot =
+		!usersRootEnv ||
+		usersRootEnv.toLowerCase() === "1" ||
+		usersRootEnv.toLowerCase() === "true";
+
+	if (usersRoot && allowWindowsUsersRoot) {
+		defaults.push({ root: usersRoot, mode: "rw" });
+	}
+	
 	return defaults;
 }
 
