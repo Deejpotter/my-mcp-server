@@ -306,17 +306,17 @@ function getDefaultAllowedRoots(): AllowedRoot[] {
 	 * - On shared or multi-user systems this significantly expands the blast radius
 	 *   of any misbehaving tool or compromised agent.
 	 *
-	 * Configuration:
-	 * - MCP_ALLOW_ALL_WINDOWS_USERS_RW (optional)
-	 *   - unset          -> behave as before (ALLOW C:\Users as rw by default)
-	 *   - "true" or "1"  -> explicitly allow C:\Users as rw
-	 *   - "false" or "0" -> do NOT add C:\Users to the allowed roots
+	* Configuration:
+	* - MCP_ALLOW_ALL_WINDOWS_USERS_RW (optional)
+	*   - unset          -> DO NOT add C:\\Users (safer default)
+	*   - "true" or "1"  -> explicitly allow C:\\Users as rw
+	*   - "false" or "0" -> do NOT add C:\\Users to the allowed roots
 	 */
 	const usersRootEnv = process.env.MCP_ALLOW_ALL_WINDOWS_USERS_RW;
-	const allowWindowsUsersRoot =
-		!usersRootEnv ||
+	const allowWindowsUsersRoot = !!usersRootEnv && (
 		usersRootEnv.toLowerCase() === "1" ||
-		usersRootEnv.toLowerCase() === "true";
+		usersRootEnv.toLowerCase() === "true"
+	);
 
 	if (usersRoot && allowWindowsUsersRoot) {
 		defaults.push({ root: usersRoot, mode: "rw" });
