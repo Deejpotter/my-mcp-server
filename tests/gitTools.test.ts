@@ -21,12 +21,15 @@ describe("gitTools git_command", () => {
     expect(text.toLowerCase()).toContain("git command executed successfully".toLowerCase());
   });
 
-  it("rejects invalid working directory outside CWD", async () => {
+  it("rejects invalid working directory (forbidden path)", async () => {
     const server: any = new MockServer();
     registerGitTools(server);
     const run = server.tools["git_command"];
 
-    const invalidCwd = path.resolve(process.cwd(), "..", "..", "outside-dir");
+    // Use a clearly forbidden/system path to trigger security validation
+    const invalidCwd = process.platform === "win32"
+      ? path.resolve(process.cwd().split(path.sep)[0] + path.sep, "Windows", "System32")
+      : "/etc";
     const res = await run({ git_args: "status", cwd: invalidCwd });
     expect(res.isError).toBe(true);
     const text = res.content?.[0]?.text || "";

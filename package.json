@@ -8,7 +8,7 @@
     "my-mcp-server": "./dist/server.js"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/server.js",
+    "build": "tsc",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
