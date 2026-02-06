@@ -1,16 +1,6 @@
 # My MCP Server
 
-[![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml)
-
-Replace `<OWNER>` and `<REPO>` with your GitHub username and repository name to activate the badge.
-
 A Model Context Protocol (MCP) server providing development tools and API integrations for AI assistants in VS Code.
-
-> Status: BookStack and Grocy integrations are archived on branch `archive/bookstack-grocy` and are not available on `main`. This README reflects the current main-branch tools.
-
-**📚 Historical docs on BookStack**: <https://bookstack.deejpotter.com/books/mcp-server> (for archived integrations)
-
-Note: You can check out the archived branch to access those tools and prompts again.
 
 For comprehensive documentation including:
 
@@ -19,31 +9,6 @@ For comprehensive documentation including:
 - Complete Tool Reference
 - Architecture Details
 - Development Guides
-- Recipe Management (11 recipes with nutrition data)
-- Grocy Integration Guides
-
-Visit the **[MCP Server Book](https://bookstack.deejpotter.com/books/mcp-server)** on BookStack.
-
-## Key Documentation Pages
-
-- **[Documentation Workflow](https://bookstack.deejpotter.com/books/mcp-server/page/documentation-workflow-bookstack-first-approach)** - How to create/update documentation (BookStack-first approach)
-- **[Recipe Management Guide](https://bookstack.deejpotter.com/books/mcp-server/page/recipe-management-guide-11-favorite-dinner-recipes)** - 11 recipes, 47 products, meal planning workflows
-- **[Product Nutrition Database](https://bookstack.deejpotter.com/books/mcp-server/page/product-nutrition-database)** - Detailed nutrition data for 10 products
-- **[Grocy Data Structure Reference](https://bookstack.deejpotter.com/books/mcp-server/page/grocy-data-structure-reference)** - Technical docs, 30 MCP tools, API details
-
-## Documentation locations
-
-This README documents the current main-branch tools. Additional historical documentation may exist in BookStack. For quick reference, key locations are:
-
-- Shelves: `Development`, `Personal`, `Projects` (use these to organize books)
-- Project book: MCP Server — <https://bookstack.deejpotter.com/books/mcp-server>
-- Important pages:
-  - Grocy Data Structure Reference — <https://bookstack.deejpotter.com/books/mcp-server/page/grocy-data-structure-reference> (page id: 82)
-  - Grocy API Integration — <https://bookstack.deejpotter.com/books/mcp-server/page/grocy-api-integration> (page id: 78)
-  - Documentation Workflow (BookStack-first) — <https://bookstack.deejpotter.com/books/mcp-server/page/documentation-workflow-bookstack-first-approach> (page id: 84)
-  - Woolworths Receipt Imports (overview) — <https://bookstack.deejpotter.com/books/woolworths-receipt-imports-2025-11-09/page/overview> (page id: 85)
-
-When working on imports, always check these BookStack pages first. If you need a new page for an import run (for example, a per-receipt summary), create it under the project book or the `Woolworths Receipt Imports (2025-11-09)` book and link back into the project book.
 
 ## Quick Start
 
@@ -134,17 +99,8 @@ CONTEXT7_API_KEY=your_context7_key_here
 # Coles API (Australian grocery) - Required for Coles price search
 COLES_API_KEY=your_coles_subscription_key_here
 
-# BookStack (archived) – only needed on archive branch
-BOOKSTACK_URL=https://your-bookstack-instance.com
-BOOKSTACK_TOKEN_ID=your_token_id_here
-BOOKSTACK_TOKEN_SECRET=your_token_secret_here
-
 # ClickUp - Required for ClickUp tools
 CLICKUP_API_TOKEN=your_clickup_token_here
-
-# Grocy (archived) – only needed on archive branch
-GROCY_BASE_URL=https://your-grocy-instance.com
-GROCY_API_KEY=your_grocy_api_key_here
 
 # Hugging Face - Required for AI image generation
 HUGGING_FACE_API_KEY=your_hugging_face_key_here
