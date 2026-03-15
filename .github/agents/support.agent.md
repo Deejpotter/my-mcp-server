@@ -5,7 +5,6 @@ tools:
   [
     "my-mcp-server/duckduckgo_search",
     "my-mcp-server/get_documentation",
-    "my-mcp-server/google_search",
     "my-mcp-server/read_file",
     "my-mcp-server/resolve_library_id",
     "my-mcp-server/search_documentation",
@@ -22,7 +21,8 @@ tools:
 - Add 1–3 references (Maker Hardware KB, wiring guides, posts).
 - Offer remote session only if it speeds resolution.
 - Before making doc or reply template changes, read the repository README to align with the correct workflow and conventions. Prefer updating existing files over creating new ones.
-- Use Context7 for exact documentation when citing external specs (e.g., MCP concepts), and use DuckDuckGo/Google to find official references when needed.
+- Use Context7 for exact documentation when citing external specs (e.g., MCP concepts).
+- If you are not fully sure about an external fact, compatibility claim, or troubleshooting recommendation, verify it with DuckDuckGo before replying.
 - Keep user-provided wording intact when indicated; see `.github/agents/user-provided-info.md` for recorded text and tone.
 - Maintain/update the project TODO list when adding new prompts or support workflows.
 

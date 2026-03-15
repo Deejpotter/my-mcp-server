@@ -111,7 +111,7 @@ Provide 3-5 specific, actionable improvements with:
 Use these MCP tools to examine code:
 - \`read_file\`: Read specific files for detailed review
 - \`list_files\`: Understand project structure
-- \`run_command\`: Run linters, tests, or analysis tools
+- \`duckduckgo_search\`: Verify unfamiliar APIs, libraries, advisories, or claims before concluding
 - \`git_command\`: Check git history, blame, or diff
 
 Start by asking what code needs review, or use the tools to explore the codebase.`,
@@ -269,15 +269,17 @@ First, clarify what you need:
 
 ## Step 2: Initial Discovery
 Use search tools to find candidates:
-- \`google_search\`: Search for "${libraryName} ${useCase}"
-- \`google_search\`: Search for "best ${libraryName} alternatives"
-- \`duckduckgo_search\`: Cross-reference with privacy-focused results
+- \`duckduckgo_search\`: Search for "${libraryName} ${useCase}"
+- \`duckduckgo_search\`: Search for "best ${libraryName} alternatives"
+- \`duckduckgo_search\`: Verify ecosystem claims, comparisons, and community sentiment before treating them as fact
 
 Look for:
 - Official documentation sites
 - GitHub repositories
 - Comparison articles
 - Community discussions
+
+If you are not 100% sure about a claim, verify it with \`duckduckgo_search\` before using it in your recommendation.
 
 ## Step 3: Get Official Documentation
 Use Context7 tools for authoritative documentation:
@@ -329,8 +331,7 @@ Synthesize your findings:
 ## Available Tools
 - \`resolve_library_id\`: Find Context7 library IDs
 - \`get_documentation\`: Fetch official documentation
-- \`google_search\`: Web search for articles, tutorials
-- \`duckduckgo_search\`: Privacy-focused search
+- \`duckduckgo_search\`: Web search for articles, tutorials, comparisons, and fact-checking when you are not fully sure
 - \`read_file\`: Examine local files if testing locally
 
 Start by clarifying requirements, then systematically work through discovery and evaluation.`,
@@ -395,7 +396,7 @@ Collect diagnostic data:
 
 Use available tools:
 - \`read_file\`: Examine relevant source files
-- \`run_command\`: Run diagnostic commands, check logs
+- \`duckduckgo_search\`: Research exact error messages, regressions, and external issues you are not fully sure about
 - \`list_files\`: Understand code structure
 - \`git_command\`: Check git history with \`git log\`, \`git blame\`
 
@@ -522,7 +523,7 @@ Plan the technical approach:
 Use tools to understand existing code:
 - \`list_files\`: Explore project structure
 - \`read_file\`: Examine relevant existing code
-- \`run_command\`: Check current setup, dependencies
+- \`duckduckgo_search\`: Verify unfamiliar dependencies, APIs, or implementation patterns before finalizing the plan
 
 ## Step 3: File Changes Needed
 Identify what files need changes:
@@ -617,7 +618,7 @@ Start by exploring the codebase to understand the current implementation, then w
 	// PROMPT 6: SEARCH OPTIMIZER
 	server.prompt(
 		"search_strategy_guide",
-		"Transforms user's rough search intent into optimized queries for Google, DuckDuckGo, and Context7 tools",
+		"Transforms user's rough search intent into optimized queries for DuckDuckGo and Context7 tools",
 		{
 			user_query: z
 				.string()
@@ -645,7 +646,9 @@ Start by exploring the codebase to understand the current implementation, then w
 - What search operators and filters to use
 - How to structure multi-step search strategies
 
-You provide actionable search plans with specific queries ready to execute.`,
+You provide actionable search plans with specific queries ready to execute.
+
+When you are not 100% sure about a factual claim or recommendation, default to \`duckduckgo_search\` instead of guessing.`,
 						},
 					},
 					{
@@ -673,11 +676,11 @@ Analyze the user's query and create an optimized search strategy. Provide:
 
 Classify the search type:
 - 📚 **Official Documentation** → Use Context7 (resolve_library_id + get_documentation)
-- 🐛 **Error/Bug** → Use Google with exact error message in quotes
-- 📖 **Tutorial/Learning** → Use Google or DuckDuckGo for community content
-- 💻 **Code Examples** → Context7 first, then Google "site:github.com"
+- 🐛 **Error/Bug** → Use DuckDuckGo with the exact error message in quotes
+- 📖 **Tutorial/Learning** → Use DuckDuckGo for community content
+- 💻 **Code Examples** → Context7 first, then DuckDuckGo with \`site:github.com\`
 - 🔍 **Comparison** → DuckDuckGo for unbiased results, then Context7 for official docs
-- 📰 **Latest News** → Google with recent date filter
+- 📰 **Latest News** → DuckDuckGo with recent year/site terms
 
 ## Step 2: Extract Key Information
 
@@ -700,31 +703,23 @@ From the user's query, identify:
 - With topic: library="Next.js", topic="routing"
 - With version: library="React 18", topic="hooks"
 
-### Use Google Search (\`google_search\`) when:
-✅ Searching for error messages
-✅ Need Stack Overflow solutions
-✅ Want blog tutorials or guides
-✅ Looking for community discussions
-✅ Recent news or updates
+### Use DuckDuckGo (\`duckduckgo_search\`) when:
+✅ You are not 100% sure and need to verify before answering
+✅ Want unbiased, non-personalized results
+✅ Need community discussions, tutorials, bug reports, or news
+✅ Quick factual lookups
+✅ Comparing options without SEO bias
+✅ Looking for examples outside official docs
 
-**Example queries for Google:**
+**Example queries for DuckDuckGo:**
 - Error: \`"Error: ENOENT: no such file or directory" node.js\`
 - How-to: \`how to deploy Next.js to vercel 2025\`
 - GitHub: \`site:github.com react custom hooks examples\`
 - Stack Overflow: \`site:stackoverflow.com typescript generics\`
-- Version specific: \`Node.js 20 new features\`
-
-### Use DuckDuckGo (\`duckduckgo_search\`) when:
-✅ Want unbiased, non-personalized results
-✅ Privacy is important
-✅ Quick factual lookups
-✅ Comparing options without SEO bias
-✅ Alternative to Google for general queries
-
-**Example queries for DuckDuckGo:**
 - Comparison: \`React vs Vue 2025 comparison\`
 - Definition: \`what is serverless computing\`
 - Unbiased review: \`best typescript ORM\`
+- Version specific: \`Node.js 20 new features\`
 
 ## Step 4: Formulate Optimized Queries
 
@@ -746,7 +741,7 @@ From the user's query, identify:
 ❌ Bad: "node fetch"
 ✅ Good: "Node.js 18 native fetch API"
 
-**Google Search Operators:**
+**Useful Web Search Operators:**
 - \`"exact phrase"\` - Exact match
 - \`site:domain.com\` - Search specific site
 - \`-exclude\` - Remove term
@@ -767,7 +762,7 @@ Format your response as:
 
 ### 📝 Optimized Queries
 
-**Query 1 (Context7/Google/DuckDuckGo):**
+**Query 1 (Context7/DuckDuckGo):**
 \`\`\`
 [Exact query to execute]
 \`\`\`
@@ -788,8 +783,7 @@ Format your response as:
 
 **Available Tools:**
 - \`resolve_library_id\` + \`get_documentation\` - Context7 official docs
-- \`google_search\` - Web search via SerpAPI
-- \`duckduckgo_search\` - Privacy-focused web search
+- \`duckduckgo_search\` - Default web verification tool when you are not fully sure
 
 Now analyze the user's query and provide the optimized search plan!`,
 						},
@@ -1055,14 +1049,13 @@ try {
 - Project documentation site or repository docs (README, wiki)
 
 **For Code Examples**
-- \`git_command\`: Check actual implementation
-- \`run_command\`: Test code examples
+- \`read_file\`: Pull examples from the current codebase
+- \`git_command\`: Check actual implementation history or diffs
 - Context7 tools: Verify against official docs
 
 **For Research**
-- \`duckduckgo_search\`: Find best practices
-- \`google_search\`: Research examples
-- \`context7_get_documentation\`: Official API references
+- \`duckduckgo_search\`: Verify best practices, examples, and any claim you are not 100% sure about
+- \`get_documentation\`: Official API references
 
 ### 9. Quality Checklist
 
@@ -1457,12 +1450,11 @@ Create internal documentation:
 **Research & Documentation**:
 - \`search_documentation\` - Find API documentation via Context7
 - \`get_documentation\` - Get detailed API docs
-- \`duckduckgo_search\` or \`google_search\` - Find examples and discussions
+- \`duckduckgo_search\` - Find examples, discussions, and external references whenever you are not fully sure
 
 **Implementation**:
 - \`read_file\` - Review existing code patterns
 - \`write_file\` - Create new integration files
-- \`run_command\` - Install dependencies
 
 **Documentation**:
 - Create or update your project docs (README/wiki)
@@ -2042,8 +2034,8 @@ const users = await db.users
 - \`list_code_usages\` - Find all usages of function/class
 
 **Testing:**
-- \`run_command\` - Run test suite
 - \`get_errors\` - Check for TypeScript errors
+- Local test runner / CI - Validate the refactor after changes
 
 **Git:**
 - \`git_command\` - Manage branches and commits

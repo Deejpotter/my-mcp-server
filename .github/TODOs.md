@@ -1,4 +1,5 @@
 ### C:\Users\Deej\repos\my-mcp-server\.github\TODOs.md
+
 ```markdown
 1: ### C:\Users\Deej\repos\my-mcp-server\.github\TODOs.md
 2: ```markdown
@@ -10,7 +11,7 @@
 8: 6: 
 9: 7: 1. Read README.md to understand the correct workflow.
 10: 8: 2. Use Context7 to find exact documentation before making changes.
-11: 9: 3. Use my-mcp-server's google_search (SerpAPI) and duckduckgo_search to find official references or fill gaps.
+11: 9: 3. Use my-mcp-server's duckduckgo_search to verify anything you are not 100% sure about and to find official references or fill gaps.
 12: 10: 4. Prefer updating existing files over creating new ones; keep existing code/comments and add purpose-driven notes.
 13: 11: 5. Implement minimal, safe edits; add/update tests when applicable.
 14: 12: 6. Summarize results and update this TODOs file.

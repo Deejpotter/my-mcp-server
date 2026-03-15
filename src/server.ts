@@ -33,13 +33,9 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerFileTools } from "./tools/fileTools.js";
 import { registerCommandTools } from "./tools/commandTools.js";
 import { registerGitTools } from "./tools/gitTools.js";
-import { registerGoogleSearchTools } from "./tools/googleSearchTools.js";
 import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js";
 import { registerContext7Tools } from "./tools/context7Tools.js";
-import { registerClickUpTools } from "./tools/clickupTools.js";
 import { registerImageTools } from "./tools/imageTools.js";
-// BookStack and Grocy tools archived: registration disabled on main branch
-import { registerAustralianGroceryTools } from "./tools/australianGroceryTools.js";
 import { registerPDFTools } from "./tools/pdfTools.js";
 import { registerDiscoveryTools } from "./tools/discoveryTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
@@ -57,13 +53,9 @@ const server = new McpServer({
 registerFileTools(server);
 registerCommandTools(server);
 registerGitTools(server);
-registerGoogleSearchTools(server);
 registerDuckDuckGoSearchTools(server);
 registerContext7Tools(server);
-registerClickUpTools(server);
 registerImageTools(server);
-// BookStack and Grocy tools archived: registration disabled on main branch
-registerAustralianGroceryTools(server);
 registerPDFTools(server);
 // Register runtime discovery tool last so it can scan compiled tool files
 registerDiscoveryTools(server);

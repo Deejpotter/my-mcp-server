@@ -75,8 +75,7 @@ Constraints and decision rules
 Useful tools (if available)
 
 - list_files, read_file, write_file, git_command
-- duckduckgo_search, google_search
-- resolve_library_id, get_documentation (Context7)
+- duckduckgo_search (default when you are not fully sure), resolve_library_id, get_documentation (Context7)
 
 Expected outputs
 

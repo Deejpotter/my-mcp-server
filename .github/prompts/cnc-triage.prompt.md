@@ -5,7 +5,6 @@ argument-hint: 'machine=FORTIS|OutBack|MakerBee problem=Homing alarm context="pa
 tools:
   [
     "my-mcp-server/duckduckgo_search",
-    "my-mcp-server/google_search",
     "my-mcp-server/read_file",
   ]
 ---
@@ -15,6 +14,7 @@ tools:
 Collect the minimum info to pinpoint the CNC issue, then propose the smallest safe changes to test.
 
 Always read the repository README first to align with the correct workflow and conventions.
+If you are not fully sure about a troubleshooting claim, firmware behavior, or compatibility note, verify it with DuckDuckGo before advising the user.
 
 # Checklist to collect
 

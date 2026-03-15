@@ -90,17 +90,8 @@ Add to your VS Code MCP settings file (`~/.config/Code/User/mcp.json` on Linux/m
 Create a `.env` file in the project root for API integrations:
 
 ```env
-# Google Search (via SerpAPI) - Free tier: 100 searches/month
-SERPAPI_API_KEY=your_serpapi_key_here
-
 # Context7 - Optional for enhanced documentation
 CONTEXT7_API_KEY=your_context7_key_here
-
-# Coles API (Australian grocery) - Required for Coles price search
-COLES_API_KEY=your_coles_subscription_key_here
-
-# ClickUp - Required for ClickUp tools
-CLICKUP_API_TOKEN=your_clickup_token_here
 
 # Hugging Face - Required for AI image generation
 HUGGING_FACE_API_KEY=your_hugging_face_key_here
@@ -133,14 +124,10 @@ All tools include comprehensive security validation and error handling.
   - Supports recursive directory traversal
   - Filters out forbidden paths (.git, node_modules, .env)
 
-### **Web Search**
-
-- **google_search** - Search Google using SerpAPI
-  - Returns structured results: title, URL, snippet, position
-  - Requires `SERPAPI_API_KEY` environment variable (free tier: 100 searches/month)
-  - Supports location-specific results
+### **Default Web Verification Tool**
 
 - **duckduckgo_search** - Search DuckDuckGo for web results
+  - Use this whenever you are not 100% sure about an external fact, package behavior, recommendation, comparison, or current best practice
   - No API key required - free and unlimited
   - Returns real web search results with titles, URLs, and snippets
   - Privacy-focused search option without tracking
@@ -175,78 +162,12 @@ Tools for extracting structured data from grocery receipt PDFs (store, date, ite
   - Requires `OPENAI_API_KEY`
   - Reference: <https://platform.openai.com/docs/guides/vision>
 
-### Archived: BookStack Integration
+### Archived: BookStack & Grocy Integration
 
-The BookStack tools have been archived and are not available on the main branch. See the `archive/bookstack-grocy` branch for code and docs.
-
-### **ClickUp Integration**
-
-- **clickup_get_task** - Retrieve task details
-  - Get complete task information including status, priority, assignees
-  - View tags, dates, descriptions, and custom fields
-  - Requires `CLICKUP_API_TOKEN`
-
-- **clickup_create_task** - Create new tasks
-  - Create tasks in any list with name, description, status
-  - Set priority, due dates, assignees, and tags
-  - Returns task ID and URL
-
-- **clickup_update_task** - Update existing tasks
-  - Modify task properties (name, description, status, priority)
-  - Add or remove assignees
-  - Update due dates and other fields
-
-### Archived: Grocy Integration
-
-The Grocy tools have been archived and are not available on the main branch. See the `archive/bookstack-grocy` branch for code and docs.
-
-### **Australian Grocery Price Comparison**
-
-Search and compare prices across Woolworths and Coles supermarkets in Australia.
-
-- **woolworths_search_product** - Search Woolworths products and get current prices
-  - Public API (no authentication required)
-  - Returns product names, prices, units (kg, g, L, ml, each, pack)
-  - Includes package sizes and unit price information
-  - Limit results with optional parameter
-
-- **coles_search_product** - Search Coles products and get current prices
-  - Returns product names, prices, units, and package sizes
-  - Supports store-specific searches (default: store 0584)
-  - Requires `COLES_API_KEY` environment variable
-  - Limit results with optional parameter
-
-- **grocery_compare_prices** - Compare prices across both stores
-  - Search product at Woolworths and Coles simultaneously
-  - Shows best match from each store with prices
-  - Calculates which store is cheapest
-  - Displays savings amount
-  - Perfect for making informed shopping decisions
-
-**Example Usage:**
-
-```text
-"Search for ground beef at Woolworths"
-"Check Coles prices for spaghetti"
-"Compare tomato sauce prices at both stores"
-"Find the cheapest option for olive oil"
-```
-
-**Benefits:**
-
-- Real-time pricing from both major Australian supermarkets
-- Unit price comparison ($/kg, $/100g, etc.)
-- Save money by shopping at the cheapest store
-
-Requires `COLES_API_KEY` environment variable. Woolworths API is public and needs no key.
+The BookStack and Grocy tools have been archived and are not available on the main branch. See the `archive/bookstack-grocy` branch for code and docs.
 
 ### **Command Execution**
 
-- **run_command** - Execute shell commands with security validation
-  - Allowlist-only execution (git, ls, pwd, echo, cat, grep, find, npm, node, etc.)
-  - Timeout protection (default 30 seconds)
-  - Working directory validation
-  
 - **security_status** - View security configuration
   - Shows allowed commands
   - Lists forbidden paths and directories
@@ -296,17 +217,17 @@ These are high-quality, workflow-focused prompts exposed by the MCP server. Each
 
 - **code_review_guide** — Step-by-step code review workflow covering readability, security, performance, testing, and actionable recommendations.
 - **commit_message_composer** — Compose meaningful commit messages following Conventional Commits; integrates with git tools to analyze diffs.
-- **library_research_workflow** — Systematic library/framework research workflow using Context7 and web search to evaluate fit and alternatives.
+- **library_research_workflow** — Systematic library/framework research workflow using Context7 and DuckDuckGo to evaluate fit and alternatives.
 - **bug_investigation_guide** — Structured debugging methodology: reproduce, gather data, form hypotheses, test, fix, and document.
 - **feature_implementation_plan** — Break a feature into requirements, architecture, file changes, tests, rollout, and success metrics.
-- **search_strategy_guide** — Transforms user's rough search intent into optimized queries; analyzes intent, recommends best tool, and provides ready-to-execute search strategies.
+- **search_strategy_guide** — Transforms rough search intent into optimized queries; uses Context7 for official docs and DuckDuckGo as the default verification tool whenever the model is not fully sure.
 
 ### Support prompts (GitHub agents)
 
 In addition to the MCP-registered workflow prompts above, the repository includes GitHub agent prompts for support workflows under `.github/prompts`:
 
-- **cnc-triage** — Triage CNC support issues; collect configs and propose safe next steps. Agent: `support-agent`.
-- **customer-reply** — Draft a customer reply in Maker Store style using Logic then Answer sections. Agent: `support-agent`.
+- **cnc-triage** — Triage CNC support issues; collect configs and propose safe next steps. Agent: `Customer Support Agent`.
+- **customer-reply** — Draft a customer reply in Maker Store style using Logic then Answer sections. Agent: `Customer Support Agent`.
 
 ## **Security Features**
 
@@ -368,13 +289,9 @@ Best for normal daily use. Runs the compiled JavaScript for better performance a
 }
 ```
 
-**Benefits:**
+### **Web Search**
 
-- Faster startup and lower memory usage
-- More stable for long-running background process
-- Standard production Node.js setup
-
-### **Development Mode**
+- **duckduckgo_search** - Search DuckDuckGo for web results
 
 Best for active development. Runs TypeScript directly with hot reload.
 
@@ -433,11 +350,6 @@ Jan uses a different configuration format. Add to Jan's MCP settings:
 Create a `.env` file for API integrations:
 
 ```env
-# Google Search (via SerpAPI) - Required for google_search tool
-# Get your key from: https://serpapi.com/manage-api-key
-# Free tier: 100 searches/month
-SERPAPI_API_KEY=your_serpapi_key_here
-
 # Context7 - Optional for enhanced documentation lookup
 # Get your key from: https://context7.com
 CONTEXT7_API_KEY=your_context7_key_here
@@ -475,12 +387,10 @@ my-mcp-server/
 │   │   ├── fileTools.ts       # File read/write/list operations
 │   │   ├── commandTools.ts    # Command execution and security
 │   │   ├── gitTools.ts        # Git command operations
-│   │   ├── googleSearchTools.ts # Google (SerpAPI) web search
 │   │   ├── duckduckgoSearchTools.ts # DuckDuckGo web search
 │   │   ├── context7Tools.ts   # Context7 docs lookup/search
 │   │   ├── clickupTools.ts    # ClickUp integration
 │   │   ├── imageTools.ts      # Image generate/convert/resize/optimize
-│   │   ├── australianGroceryTools.ts # Woolworths/Coles price search
 │   │   └── pdfTools.ts        # PDF receipt extraction tools
 │   ├── resources/             # MCP resources (read-only data)
 │   │   └── gitResources.ts    # Git repository status

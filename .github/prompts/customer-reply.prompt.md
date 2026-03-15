@@ -2,11 +2,10 @@
 name: customer-reply
 description: Draft a customer reply in Maker Store style with Logic then Answer sections.
 argument-hint: 'name=Customer issue=Short summary context="paste key details"'
-agent: support-agent
+agent: Customer Support Agent
 tools:
   [
     "my-mcp-server/duckduckgo_search",
-    "my-mcp-server/google_search",
     "my-mcp-server/read_file",
   ]
 ---
@@ -16,6 +15,7 @@ tools:
 Write a concise, helpful reply to the customer in Maker Store style.
 
 Before modifying templates or tone, read the repository README to confirm the correct workflow and conventions.
+If you are not fully sure about any external fact, compatibility detail, or recommendation, verify it with DuckDuckGo before replying.
 
 # Inputs
 
