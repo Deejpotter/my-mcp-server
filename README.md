@@ -98,6 +98,9 @@ HUGGING_FACE_API_KEY=your_hugging_face_key_here
 
 # OpenAI - Required for PDF receipt extraction tools
 OPENAI_API_KEY=your_openai_key_here
+
+# Maker Image Converter - Optional local repo path override
+MAKER_IMAGE_CONVERTER_ROOT=C:/Users/Deej/Repos/maker-image-converter
 ```
 
 **Note:** DuckDuckGo search works without any API keys.
@@ -206,6 +209,12 @@ The BookStack and Grocy tools have been archived and are not available on the ma
   - Typically 40-70% space savings
   - Metadata preservation option
   - Detailed statistics reporting
+
+- **maker_image_convert** - Run maker-image-converter workflows from MCP
+  - Supports the same modes: `convert`, `overlay`, `diagonal`, `full`
+  - Uses your local maker-image-converter CLI without replacing the desktop app
+  - Accepts optional watermark path, opacity, dimensions folder, and timeout
+  - Optional `MAKER_IMAGE_CONVERTER_ROOT` environment variable for custom install paths
 
 ## **Available Resources**
 
@@ -373,6 +382,9 @@ GITHUB_TOKEN=your_github_token_here
 
 # OpenAI — Required for PDF receipt extraction tools
 OPENAI_API_KEY=your_openai_key_here
+
+# Maker Image Converter - Optional local repo path override
+MAKER_IMAGE_CONVERTER_ROOT=C:/Users/Deej/Repos/maker-image-converter
 ```
 
 **Note:** DuckDuckGo search works without any API keys - it's completely free and unlimited!

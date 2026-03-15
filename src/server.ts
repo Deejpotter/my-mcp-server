@@ -36,6 +36,7 @@ import { registerGitTools } from "./tools/gitTools.js";
 import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js";
 import { registerContext7Tools } from "./tools/context7Tools.js";
 import { registerImageTools } from "./tools/imageTools.js";
+import { registerMakerImageConverterTools } from "./tools/makerImageConverterTools.js";
 import { registerPDFTools } from "./tools/pdfTools.js";
 import { registerDiscoveryTools } from "./tools/discoveryTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
@@ -56,6 +57,7 @@ registerGitTools(server);
 registerDuckDuckGoSearchTools(server);
 registerContext7Tools(server);
 registerImageTools(server);
+registerMakerImageConverterTools(server);
 registerPDFTools(server);
 // Register runtime discovery tool last so it can scan compiled tool files
 registerDiscoveryTools(server);

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { registerDuckDuckGoSearchTools } from "../src/tools/duckduckgoSearchTools.js";
 import { registerContext7Tools } from "../src/tools/context7Tools.js";
 import { registerImageTools } from "../src/tools/imageTools.js";
+import { registerMakerImageConverterTools } from "../src/tools/makerImageConverterTools.js";
 
 function makeFakeServer() {
 	const tools: string[] = [];
@@ -28,5 +29,11 @@ describe("Tool registration", () => {
 		const s = makeFakeServer();
 		registerImageTools(s);
 		expect(s.getTools().length).toBeGreaterThan(0);
+	});
+
+	it("registers maker image converter tools", () => {
+		const s = makeFakeServer();
+		registerMakerImageConverterTools(s);
+		expect(s.getTools()).toContain("maker_image_convert");
 	});
 });

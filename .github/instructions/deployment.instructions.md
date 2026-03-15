@@ -1,12 +1,14 @@
 ---
-name: Runtime And Deployment
-description: Build, startup, env-loading, and VS Code MCP configuration guidance for this stdio MCP server.
 applyTo: src/server.ts,package.json,README.md,.github/mcp.json,.env.example
 ---
 
 # Runtime and deployment
-- This is a stdio MCP server: production runs `node dist/server.js`, and development runs `tsx watch src/server.ts`.
-- `src/server.ts` loads `.env` from the project root by resolving one level above the built file; preserve that path logic unless the output layout changes.
-- Keep `package.json`, `README.md`, `.github/mcp.json`, and `.env.example` in sync whenever scripts, env keys, or startup commands change.
-- Build before relying on discovery or production startup because `mcp_tools_discovery` scans `dist/tools`.
-- README examples should match the actual scripts and current tool set; remove archived or deleted tools from docs in the same change that removes them from code.
+- Runtime is stdio MCP: production uses `node dist/server.js`; development uses `tsx watch src/server.ts`.
+- Keep the env bootstrap logic in `src/server.ts` intact: `.env` is loaded from project root relative to the built file location.
+- Keep these files synchronized whenever scripts, env keys, or active tools change:
+	- `package.json`
+	- `README.md`
+	- `.github/mcp.json`
+	- `.env.example`
+- Build before using discovery or production startup because `registerDiscoveryTools` depends on compiled `dist/tools` files.
+- If a tool is archived/removed from `src/server.ts`, remove active references from docs/prompts in the same change.
