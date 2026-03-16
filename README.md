@@ -210,6 +210,13 @@ The BookStack and Grocy tools have been archived and are not available on the ma
   - Metadata preservation option
   - Detailed statistics reporting
 
+- **image_color_match** - Match color profile of source images to a reference set
+  - Analyzes per-channel mean and standard deviation from reference image(s)
+  - Applies a per-channel linear transform (Reinhard-style color transfer) to each source image
+  - Adjustable `strength` (0.0–1.0) to blend between original and fully matched
+  - Works on single files or entire directories; outputs JPEG by default
+  - Useful for removing warm/orange casts from product photos to match a silver reference
+
 - **maker_image_convert** - Run maker-image-converter workflows from MCP
   - Supports the same modes: `convert`, `overlay`, `diagonal`, `full`
   - Uses your local maker-image-converter CLI without replacing the desktop app

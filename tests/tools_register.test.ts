@@ -28,6 +28,7 @@ describe("Tool registration", () => {
 	it("registers image tools", () => {
 		const s = makeFakeServer();
 		registerImageTools(s);
+		expect(s.getTools()).toContain("image_color_match");
 		expect(s.getTools().length).toBeGreaterThan(0);
 	});
 

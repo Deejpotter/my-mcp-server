@@ -773,6 +773,283 @@ ${
 };
 
 // =============================================================================
+// Image Color Match Tool
+// =============================================================================
+
+export const imageColorMatchTool = {
+	name: "image_color_match",
+	description: `Match the color profile of source images to reference images using per-channel statistical color transfer.
+
+Analyzes the mean and standard deviation of each color channel (R, G, B) across
+the reference image(s) and applies linear transforms to source image(s) so their
+color distribution matches the reference.
+
+Use cases:
+- Making warm/orange product photos look silver/neutral like a reference set
+- Batch color-grading to match a house style across a photo catalogue
+- Correcting white-balance differences between shoots
+- Creating consistent color across product catalogue images
+
+Algorithm:
+- For each channel: output = input × (ref_std / src_std) + (ref_mean − ref_std/src_std × src_mean)
+- Blended with the original by the 'strength' parameter (0 = no change, 1 = full match)
+
+Note: Paths outside the default security allowlist (e.g. Google Drive at G:\\)
+require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
+	inputSchema: z.object({
+		source: z
+			.string()
+			.describe("Source file or directory of images to color-match"),
+		reference: z
+			.string()
+			.describe("Reference file or directory whose color profile to match"),
+		output_dir: z
+			.string()
+			.optional()
+			.describe(
+				"Output directory (default: {source_dir}/color-matched/)"
+			),
+		strength: z
+			.number()
+			.min(0)
+			.max(1)
+			.default(1.0)
+			.optional()
+			.describe("Blend strength: 0 = no change, 1 = full match (default: 1.0)"),
+		quality: z
+			.number()
+			.min(1)
+			.max(100)
+			.default(90)
+			.optional()
+			.describe("JPEG output quality 1-100 (default: 90)"),
+		preserve_format: z
+			.boolean()
+			.default(false)
+			.optional()
+			.describe(
+				"Keep original file format instead of converting to JPEG"
+			),
+	}),
+	handler: async (args: {
+		source: string;
+		reference: string;
+		output_dir?: string | undefined;
+		strength?: number | undefined;
+		quality?: number | undefined;
+		preserve_format?: boolean | undefined;
+	}) => {
+		const strength = args.strength ?? 1.0;
+		const quality = args.quality ?? 90;
+
+		// Collect reference image files
+		const refStat = await fs.stat(args.reference);
+		const refFiles = refStat.isDirectory()
+			? await findImageFiles(args.reference)
+			: [args.reference];
+
+		if (refFiles.length === 0) {
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: "Error: No image files found in reference path.",
+					},
+				],
+				isError: true,
+			};
+		}
+
+		// Compute aggregate reference channel statistics
+		let refStats: ChannelStats;
+		try {
+			refStats = await computeAggregateStats(refFiles);
+		} catch (err: unknown) {
+			const error = err as Error;
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error: Could not analyze reference images: ${error.message}`,
+					},
+				],
+				isError: true,
+			};
+		}
+
+		// Collect source image files
+		const srcStat = await fs.stat(args.source);
+		const srcFiles = srcStat.isDirectory()
+			? await findImageFiles(args.source)
+			: [args.source];
+
+		if (srcFiles.length === 0) {
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: "Error: No image files found in source path.",
+					},
+				],
+				isError: true,
+			};
+		}
+
+		// Determine output directory
+		const defaultOutputDir = srcStat.isDirectory()
+			? path.join(args.source, "color-matched")
+			: path.join(path.dirname(args.source), "color-matched");
+		const outputDir = args.output_dir || defaultOutputDir;
+
+		if (!existsSync(outputDir)) {
+			await fs.mkdir(outputDir, { recursive: true });
+		}
+
+		const results: string[] = [];
+		const errors: string[] = [];
+		let firstAdjustments: {
+			r: string;
+			g: string;
+			b: string;
+		} | null = null;
+
+		for (const srcFile of srcFiles) {
+			try {
+				const imgStats = await sharp(srcFile).stats();
+				const srcR = imgStats.channels[0] ?? { mean: 128, stdev: 30 };
+				const srcG = imgStats.channels[1] ?? { mean: 128, stdev: 30 };
+				const srcB = imgStats.channels[2] ?? { mean: 128, stdev: 30 };
+
+				// Per-channel: scale = ref_std / src_std; offset = ref_mean - scale * src_mean
+				// Guard against flat channels (stdev ≈ 0) to avoid extreme scale values
+				const rScale =
+					srcR.stdev > 1 ? refStats.r.stdev / srcR.stdev : 1;
+				const gScale =
+					srcG.stdev > 1 ? refStats.g.stdev / srcG.stdev : 1;
+				const bScale =
+					srcB.stdev > 1 ? refStats.b.stdev / srcB.stdev : 1;
+
+				const rOffset = refStats.r.mean - rScale * srcR.mean;
+				const gOffset = refStats.g.mean - gScale * srcG.mean;
+				const bOffset = refStats.b.mean - bScale * srcB.mean;
+
+				// Blend toward identity transform (scale=1, offset=0) by (1-strength)
+				const rScaleFinal = 1 + strength * (rScale - 1);
+				const gScaleFinal = 1 + strength * (gScale - 1);
+				const bScaleFinal = 1 + strength * (bScale - 1);
+				const rOffsetFinal = strength * rOffset;
+				const gOffsetFinal = strength * gOffset;
+				const bOffsetFinal = strength * bOffset;
+
+				// Capture adjustments from first image for reporting
+				if (firstAdjustments === null) {
+					firstAdjustments = {
+						r: `scale=${rScaleFinal.toFixed(3)}, offset=${rOffsetFinal.toFixed(1)}`,
+						g: `scale=${gScaleFinal.toFixed(3)}, offset=${gOffsetFinal.toFixed(1)}`,
+						b: `scale=${bScaleFinal.toFixed(3)}, offset=${bOffsetFinal.toFixed(1)}`,
+					};
+				}
+
+				// Determine output file path
+				const ext = args.preserve_format
+					? path.extname(srcFile).toLowerCase()
+					: ".jpg";
+				const outputPath = path.join(
+					outputDir,
+					`${path.parse(srcFile).name}${ext}`
+				);
+
+				// Apply linear color transform, then output in target format
+				// Use flatten for alpha-channel images to ensure 3-channel processing
+				let pipeline = sharp(srcFile)
+					.flatten({ background: { r: 255, g: 255, b: 255 } })
+					.linear(
+						[rScaleFinal, gScaleFinal, bScaleFinal],
+						[rOffsetFinal, gOffsetFinal, bOffsetFinal]
+					);
+
+				if (!args.preserve_format || ext === ".jpg" || ext === ".jpeg") {
+					pipeline = pipeline.jpeg({ quality, mozjpeg: true });
+				} else if (ext === ".png") {
+					pipeline = pipeline.png({ compressionLevel: 9 });
+				} else if (ext === ".webp") {
+					pipeline = pipeline.webp({ quality });
+				} else if (ext === ".avif") {
+					pipeline = pipeline.avif({
+						quality: Math.max(50, quality - 30),
+					});
+				}
+
+				await pipeline.toFile(outputPath);
+				results.push(outputPath);
+			} catch (error: unknown) {
+				const err = error as Error;
+				errors.push(`${srcFile}: ${err.message}`);
+			}
+		}
+
+		const adj = firstAdjustments ?? { r: "N/A", g: "N/A", b: "N/A" };
+
+		return {
+			content: [
+				{
+					type: "text" as const,
+					text: `✅ Color matching complete!
+
+📊 Results:
+- Processed: ${results.length} image${results.length !== 1 ? "s" : ""}
+- Failed: ${errors.length}
+- Strength: ${(strength * 100).toFixed(0)}%
+- Reference images sampled: ${refFiles.length}
+
+🎨 Color transform applied (first image):
+  R: ${adj.r}
+  G: ${adj.g}
+  B: ${adj.b}
+
+📈 Reference color profile:
+  R: mean=${refStats.r.mean.toFixed(1)}, stdev=${refStats.r.stdev.toFixed(1)}
+  G: mean=${refStats.g.mean.toFixed(1)}, stdev=${refStats.g.stdev.toFixed(1)}
+  B: mean=${refStats.b.mean.toFixed(1)}, stdev=${refStats.b.stdev.toFixed(1)}
+
+📁 Output directory: ${outputDir}
+
+${
+	results.length > 0
+		? `✨ Output files:\n${results
+				.slice(0, 10)
+				.map((f) => `  - ${path.basename(f)}`)
+				.join("\n")}${
+				results.length > 10
+					? `\n  ... and ${results.length - 10} more`
+					: ""
+		  }`
+		: ""
+}
+${
+	errors.length > 0
+		? `\n⚠️ Errors:\n${errors.slice(0, 5).join("\n")}${
+				errors.length > 5 ? `\n  ... and ${errors.length - 5} more` : ""
+		  }`
+		: ""
+}`,
+				},
+			],
+			structuredContent: {
+				results,
+				errors,
+				referenceStats: {
+					r: { mean: refStats.r.mean, stdev: refStats.r.stdev },
+					g: { mean: refStats.g.mean, stdev: refStats.g.stdev },
+					b: { mean: refStats.b.mean, stdev: refStats.b.stdev },
+				},
+				outputDir,
+			},
+		};
+	},
+};
+
+// =============================================================================
 // Helper Functions
 // =============================================================================
 
@@ -867,6 +1144,54 @@ async function calculateTotalSize(files: string[]): Promise<number> {
 	return totalSize / (1024 * 1024);
 }
 
+/** Per-channel mean and stdev summary used for color matching */
+interface ChannelStats {
+	r: { mean: number; stdev: number };
+	g: { mean: number; stdev: number };
+	b: { mean: number; stdev: number };
+}
+
+/**
+ * Compute aggregate per-channel mean and stdev across an array of images.
+ * Values are averaged so that a batch of reference images produces a single profile.
+ */
+async function computeAggregateStats(files: string[]): Promise<ChannelStats> {
+	let rMeanSum = 0,
+		gMeanSum = 0,
+		bMeanSum = 0;
+	let rStdevSum = 0,
+		gStdevSum = 0,
+		bStdevSum = 0;
+	let count = 0;
+
+	for (const file of files) {
+		try {
+			const stats = await sharp(file).stats();
+			const [r, g, b] = stats.channels;
+			if (r === undefined || g === undefined || b === undefined) continue;
+			rMeanSum += r.mean;
+			gMeanSum += g.mean;
+			bMeanSum += b.mean;
+			rStdevSum += r.stdev;
+			gStdevSum += g.stdev;
+			bStdevSum += b.stdev;
+			count++;
+		} catch {
+			// Skip unreadable files
+		}
+	}
+
+	if (count === 0) {
+		throw new Error("Could not compute statistics from any reference image");
+	}
+
+	return {
+		r: { mean: rMeanSum / count, stdev: rStdevSum / count },
+		g: { mean: gMeanSum / count, stdev: gStdevSum / count },
+		b: { mean: bMeanSum / count, stdev: bStdevSum / count },
+	};
+}
+
 // =============================================================================
 // Registration Function
 // =============================================================================
@@ -919,7 +1244,18 @@ export function registerImageTools(server: McpServer): void {
 		imageOptimizeTool.handler
 	);
 
+	// IMAGE COLOR MATCH TOOL
+	server.registerTool(
+		"image_color_match",
+		{
+			title: "Match Image Colors to Reference",
+			description: imageColorMatchTool.description,
+			inputSchema: imageColorMatchTool.inputSchema.shape,
+		},
+		imageColorMatchTool.handler
+	);
+
 	console.error(
-		"✅ Image tools registered: generate, convert, resize, optimize"
+		"✅ Image tools registered: generate, convert, resize, optimize, color_match"
 	);
 }
