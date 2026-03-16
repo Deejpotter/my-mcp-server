@@ -298,13 +298,17 @@ Best for normal daily use. Runs the compiled JavaScript for better performance a
         "--prefix",
         "~/Repos/my-mcp-server",
         "start"
-      ],
-      "env": {}
-    }
-  }
-}
-```
 
+      - **image_analyze_color_profile** — Analyze reference images and save a reusable color profile
+        - Run **once** against your "gold standard" images to capture their R/G/B channel statistics
+        - Saves a `color-profile.json` file (mean + stdev per channel) that can be reused indefinitely
+        - Workflow step 1: point at the good images → profile is saved to disk
+
+      - **image_color_correct** — Correct image color levels using a saved profile
+        - Run whenever you have new images that need fixing
+        - Loads the JSON profile and applies a per-channel linear transform to match the expected levels
+        - Adjustable `strength` (0.0–1.0), output quality, and format options
+        - Workflow step 2: point at bad images + provide profile path → corrected images output
 ### **Web Search**
 
 - **duckduckgo_search** - Search DuckDuckGo for web results

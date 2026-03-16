@@ -775,73 +775,44 @@ ${
 // =============================================================================
 // Image Color Match Tool
 // =============================================================================
+// =============================================================================
+// Image Analyze Color Profile Tool
+// =============================================================================
 
-export const imageColorMatchTool = {
-	name: "image_color_match",
-	description: `Match the color profile of source images to reference images using per-channel statistical color transfer.
+export const imageAnalyzeColorProfileTool = {
+	name: "image_analyze_color_profile",
+	description: `Analyze reference images and save a reusable color profile to disk.
 
-Analyzes the mean and standard deviation of each color channel (R, G, B) across
-the reference image(s) and applies linear transforms to source image(s) so their
-color distribution matches the reference.
+Run this ONCE against your "gold standard" reference images to capture their
+color characteristics (per-channel mean and standard deviation). The resulting
+JSON profile can then be passed to image_color_correct whenever you need to
+correct images that look wrong.
 
-Use cases:
-- Making warm/orange product photos look silver/neutral like a reference set
-- Batch color-grading to match a house style across a photo catalogue
-- Correcting white-balance differences between shoots
-- Creating consistent color across product catalogue images
-
-Algorithm:
-- For each channel: output = input × (ref_std / src_std) + (ref_mean − ref_std/src_std × src_mean)
-- Blended with the original by the 'strength' parameter (0 = no change, 1 = full match)
+Workflow:
+  1. image_analyze_color_profile({ reference: "path/to/good-images" })
+     → saves color-profile.json next to the reference images
+  2. image_color_correct({ source: "path/to/bad-images", profile_path: "...color-profile.json" })
+     → corrects the bad images to match the saved profile
 
 Note: Paths outside the default security allowlist (e.g. Google Drive at G:\\)
 require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 	inputSchema: z.object({
-		source: z
-			.string()
-			.describe("Source file or directory of images to color-match"),
 		reference: z
 			.string()
-			.describe("Reference file or directory whose color profile to match"),
-		output_dir: z
+			.describe(
+				"Directory or single image file that represents the correct/expected color"
+			),
+		profile_path: z
 			.string()
 			.optional()
 			.describe(
-				"Output directory (default: {source_dir}/color-matched/)"
-			),
-		strength: z
-			.number()
-			.min(0)
-			.max(1)
-			.default(1.0)
-			.optional()
-			.describe("Blend strength: 0 = no change, 1 = full match (default: 1.0)"),
-		quality: z
-			.number()
-			.min(1)
-			.max(100)
-			.default(90)
-			.optional()
-			.describe("JPEG output quality 1-100 (default: 90)"),
-		preserve_format: z
-			.boolean()
-			.default(false)
-			.optional()
-			.describe(
-				"Keep original file format instead of converting to JPEG"
+				"Where to save the profile JSON (default: {reference_dir}/color-profile.json)"
 			),
 	}),
 	handler: async (args: {
-		source: string;
 		reference: string;
-		output_dir?: string | undefined;
-		strength?: number | undefined;
-		quality?: number | undefined;
-		preserve_format?: boolean | undefined;
+		profile_path?: string | undefined;
 	}) => {
-		const strength = args.strength ?? 1.0;
-		const quality = args.quality ?? 90;
-
 		// Collect reference image files
 		const refStat = await fs.stat(args.reference);
 		const refFiles = refStat.isDirectory()
@@ -853,17 +824,17 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 				content: [
 					{
 						type: "text" as const,
-						text: "Error: No image files found in reference path.",
+						text: "Error: No image files found in the reference path.",
 					},
 				],
 				isError: true,
 			};
 		}
 
-		// Compute aggregate reference channel statistics
-		let refStats: ChannelStats;
+		// Compute aggregate channel statistics from all reference images
+		let stats: ChannelStats;
 		try {
-			refStats = await computeAggregateStats(refFiles);
+			stats = await computeAggregateStats(refFiles);
 		} catch (err: unknown) {
 			const error = err as Error;
 			return {
@@ -871,6 +842,139 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 					{
 						type: "text" as const,
 						text: `Error: Could not analyze reference images: ${error.message}`,
+					},
+				],
+				isError: true,
+			};
+		}
+
+		// Determine where to save the profile
+		const refDir = refStat.isDirectory()
+			? args.reference
+			: path.dirname(args.reference);
+		const profilePath =
+			args.profile_path ?? path.join(refDir, "color-profile.json");
+
+		// Build the profile object — includes provenance metadata
+		const profile: ColorProfile = {
+			version: 1,
+			source: args.reference,
+			created: new Date().toISOString(),
+			imageCount: refFiles.length,
+			r: stats.r,
+			g: stats.g,
+			b: stats.b,
+		};
+
+		await fs.writeFile(profilePath, JSON.stringify(profile, null, 2), "utf8");
+
+		return {
+			content: [
+				{
+					type: "text" as const,
+					text: `✅ Color profile saved!
+
+📁 Profile: ${profilePath}
+📸 Reference images analyzed: ${refFiles.length}
+
+📈 Measured color profile:
+  R: mean=${stats.r.mean.toFixed(1)}, stdev=${stats.r.stdev.toFixed(1)}
+  G: mean=${stats.g.mean.toFixed(1)}, stdev=${stats.g.stdev.toFixed(1)}
+  B: mean=${stats.b.mean.toFixed(1)}, stdev=${stats.b.stdev.toFixed(1)}
+
+Next step — correct images using this profile:
+  image_color_correct({ source: "path/to/bad/images", profile_path: "${profilePath}" })`,
+				},
+			],
+			structuredContent: {
+				profilePath,
+				imageCount: refFiles.length,
+				profile,
+			},
+		};
+	},
+};
+
+// =============================================================================
+// Image Color Correct Tool
+// =============================================================================
+
+export const imageColorCorrectTool = {
+	name: "image_color_correct",
+	description: `Correct the color levels of images to match a saved reference color profile.
+
+Loads a color profile JSON produced by image_analyze_color_profile and applies
+a per-channel linear transform so that the source images match the expected
+color distribution. The AI agent only needs the source path and the profile
+path — no reference images required at correction time.
+
+Algorithm (per channel):
+  scale  = ref_stdev / src_stdev
+  offset = ref_mean − scale × src_mean
+  output = clamp(input × scale + offset)
+  blended by 'strength' (0 = no change, 1 = full correction)
+
+Note: Paths outside the default security allowlist (e.g. Google Drive at G:\\)
+require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
+	inputSchema: z.object({
+		source: z.string().describe("File or directory of images to correct"),
+		profile_path: z
+			.string()
+			.describe(
+				"Path to the color-profile.json saved by image_analyze_color_profile"
+			),
+		output_dir: z
+			.string()
+			.optional()
+			.describe("Output directory (default: {source_dir}/corrected/)"),
+		strength: z
+			.number()
+			.min(0)
+			.max(1)
+			.default(1.0)
+			.optional()
+			.describe(
+				"Correction blend: 0 = no change, 1 = full correction (default: 1.0)"
+			),
+		quality: z
+			.number()
+			.min(1)
+			.max(100)
+			.default(90)
+			.optional()
+			.describe("JPEG output quality 1-100 (default: 90)"),
+		preserve_format: z
+			.boolean()
+			.default(false)
+			.optional()
+			.describe("Keep original file format instead of converting to JPEG"),
+	}),
+	handler: async (args: {
+		source: string;
+		profile_path: string;
+		output_dir?: string | undefined;
+		strength?: number | undefined;
+		quality?: number | undefined;
+		preserve_format?: boolean | undefined;
+	}) => {
+		const strength = args.strength ?? 1.0;
+		const quality = args.quality ?? 90;
+
+		// Load color profile
+		let profile: ColorProfile;
+		try {
+			const raw = await fs.readFile(args.profile_path, "utf8");
+			profile = JSON.parse(raw) as ColorProfile;
+			if (!profile.r || !profile.g || !profile.b) {
+				throw new Error("Profile is missing r/g/b channel data");
+			}
+		} catch (err: unknown) {
+			const error = err as Error;
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: `Error: Could not load color profile from ${args.profile_path}: ${error.message}`,
 					},
 				],
 				isError: true,
@@ -897,8 +1001,8 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 
 		// Determine output directory
 		const defaultOutputDir = srcStat.isDirectory()
-			? path.join(args.source, "color-matched")
-			: path.join(path.dirname(args.source), "color-matched");
+			? path.join(args.source, "corrected")
+			: path.join(path.dirname(args.source), "corrected");
 		const outputDir = args.output_dir || defaultOutputDir;
 
 		if (!existsSync(outputDir)) {
@@ -907,11 +1011,7 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 
 		const results: string[] = [];
 		const errors: string[] = [];
-		let firstAdjustments: {
-			r: string;
-			g: string;
-			b: string;
-		} | null = null;
+		let firstAdjustments: { r: string; g: string; b: string } | null = null;
 
 		for (const srcFile of srcFiles) {
 			try {
@@ -920,20 +1020,17 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 				const srcG = imgStats.channels[1] ?? { mean: 128, stdev: 30 };
 				const srcB = imgStats.channels[2] ?? { mean: 128, stdev: 30 };
 
-				// Per-channel: scale = ref_std / src_std; offset = ref_mean - scale * src_mean
+				// Per-channel linear transform: scale = ref_std/src_std, offset = ref_mean - scale×src_mean
 				// Guard against flat channels (stdev ≈ 0) to avoid extreme scale values
-				const rScale =
-					srcR.stdev > 1 ? refStats.r.stdev / srcR.stdev : 1;
-				const gScale =
-					srcG.stdev > 1 ? refStats.g.stdev / srcG.stdev : 1;
-				const bScale =
-					srcB.stdev > 1 ? refStats.b.stdev / srcB.stdev : 1;
+				const rScale = srcR.stdev > 1 ? profile.r.stdev / srcR.stdev : 1;
+				const gScale = srcG.stdev > 1 ? profile.g.stdev / srcG.stdev : 1;
+				const bScale = srcB.stdev > 1 ? profile.b.stdev / srcB.stdev : 1;
 
-				const rOffset = refStats.r.mean - rScale * srcR.mean;
-				const gOffset = refStats.g.mean - gScale * srcG.mean;
-				const bOffset = refStats.b.mean - bScale * srcB.mean;
+				const rOffset = profile.r.mean - rScale * srcR.mean;
+				const gOffset = profile.g.mean - gScale * srcG.mean;
+				const bOffset = profile.b.mean - bScale * srcB.mean;
 
-				// Blend toward identity transform (scale=1, offset=0) by (1-strength)
+				// Blend toward identity (scale=1, offset=0) when strength < 1
 				const rScaleFinal = 1 + strength * (rScale - 1);
 				const gScaleFinal = 1 + strength * (gScale - 1);
 				const bScaleFinal = 1 + strength * (bScale - 1);
@@ -941,7 +1038,6 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 				const gOffsetFinal = strength * gOffset;
 				const bOffsetFinal = strength * bOffset;
 
-				// Capture adjustments from first image for reporting
 				if (firstAdjustments === null) {
 					firstAdjustments = {
 						r: `scale=${rScaleFinal.toFixed(3)}, offset=${rOffsetFinal.toFixed(1)}`,
@@ -950,7 +1046,7 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 					};
 				}
 
-				// Determine output file path
+				// Output file path
 				const ext = args.preserve_format
 					? path.extname(srcFile).toLowerCase()
 					: ".jpg";
@@ -959,8 +1055,7 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 					`${path.parse(srcFile).name}${ext}`
 				);
 
-				// Apply linear color transform, then output in target format
-				// Use flatten for alpha-channel images to ensure 3-channel processing
+				// Apply per-channel linear transform; flatten handles alpha channels
 				let pipeline = sharp(srcFile)
 					.flatten({ background: { r: 255, g: 255, b: 255 } })
 					.linear(
@@ -975,9 +1070,7 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 				} else if (ext === ".webp") {
 					pipeline = pipeline.webp({ quality });
 				} else if (ext === ".avif") {
-					pipeline = pipeline.avif({
-						quality: Math.max(50, quality - 30),
-					});
+					pipeline = pipeline.avif({ quality: Math.max(50, quality - 30) });
 				}
 
 				await pipeline.toFile(outputPath);
@@ -994,35 +1087,32 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 			content: [
 				{
 					type: "text" as const,
-					text: `✅ Color matching complete!
+					text: `✅ Color correction complete!
 
 📊 Results:
-- Processed: ${results.length} image${results.length !== 1 ? "s" : ""}
+- Corrected: ${results.length} image${results.length !== 1 ? "s" : ""}
 - Failed: ${errors.length}
 - Strength: ${(strength * 100).toFixed(0)}%
-- Reference images sampled: ${refFiles.length}
+- Profile used: ${args.profile_path}
 
-🎨 Color transform applied (first image):
+📈 Target color profile:
+  R: mean=${profile.r.mean.toFixed(1)}, stdev=${profile.r.stdev.toFixed(1)}
+  G: mean=${profile.g.mean.toFixed(1)}, stdev=${profile.g.stdev.toFixed(1)}
+  B: mean=${profile.b.mean.toFixed(1)}, stdev=${profile.b.stdev.toFixed(1)}
+
+🎨 First-image transform:
   R: ${adj.r}
   G: ${adj.g}
   B: ${adj.b}
 
-📈 Reference color profile:
-  R: mean=${refStats.r.mean.toFixed(1)}, stdev=${refStats.r.stdev.toFixed(1)}
-  G: mean=${refStats.g.mean.toFixed(1)}, stdev=${refStats.g.stdev.toFixed(1)}
-  B: mean=${refStats.b.mean.toFixed(1)}, stdev=${refStats.b.stdev.toFixed(1)}
-
 📁 Output directory: ${outputDir}
-
 ${
 	results.length > 0
-		? `✨ Output files:\n${results
+		? `\n✨ Output files:\n${results
 				.slice(0, 10)
 				.map((f) => `  - ${path.basename(f)}`)
 				.join("\n")}${
-				results.length > 10
-					? `\n  ... and ${results.length - 10} more`
-					: ""
+				results.length > 10 ? `\n  ... and ${results.length - 10} more` : ""
 		  }`
 		: ""
 }
@@ -1038,12 +1128,8 @@ ${
 			structuredContent: {
 				results,
 				errors,
-				referenceStats: {
-					r: { mean: refStats.r.mean, stdev: refStats.r.stdev },
-					g: { mean: refStats.g.mean, stdev: refStats.g.stdev },
-					b: { mean: refStats.b.mean, stdev: refStats.b.stdev },
-				},
 				outputDir,
+				profilePath: args.profile_path,
 			},
 		};
 	},
@@ -1144,7 +1230,7 @@ async function calculateTotalSize(files: string[]): Promise<number> {
 	return totalSize / (1024 * 1024);
 }
 
-/** Per-channel mean and stdev summary used for color matching */
+/** Per-channel mean and stdev summary (internal, used by computeAggregateStats) */
 interface ChannelStats {
 	r: { mean: number; stdev: number };
 	g: { mean: number; stdev: number };
@@ -1190,6 +1276,16 @@ async function computeAggregateStats(files: string[]): Promise<ChannelStats> {
 		g: { mean: gMeanSum / count, stdev: gStdevSum / count },
 		b: { mean: bMeanSum / count, stdev: bStdevSum / count },
 	};
+}
+
+// =============================================================================
+// Registration Function
+/** Schema for the color-profile.json saved to disk by image_analyze_color_profile */
+interface ColorProfile extends ChannelStats {
+	version: number;
+	source: string;
+	created: string;
+	imageCount: number;
 }
 
 // =============================================================================
@@ -1244,18 +1340,29 @@ export function registerImageTools(server: McpServer): void {
 		imageOptimizeTool.handler
 	);
 
-	// IMAGE COLOR MATCH TOOL
+	// IMAGE ANALYZE COLOR PROFILE TOOL
 	server.registerTool(
-		"image_color_match",
+		"image_analyze_color_profile",
 		{
-			title: "Match Image Colors to Reference",
-			description: imageColorMatchTool.description,
-			inputSchema: imageColorMatchTool.inputSchema.shape,
+			title: "Analyze Reference Images — Save Color Profile",
+			description: imageAnalyzeColorProfileTool.description,
+			inputSchema: imageAnalyzeColorProfileTool.inputSchema.shape,
 		},
-		imageColorMatchTool.handler
+		imageAnalyzeColorProfileTool.handler
+	);
+
+	// IMAGE COLOR CORRECT TOOL
+	server.registerTool(
+		"image_color_correct",
+		{
+			title: "Correct Image Colors Using Saved Profile",
+			description: imageColorCorrectTool.description,
+			inputSchema: imageColorCorrectTool.inputSchema.shape,
+		},
+		imageColorCorrectTool.handler
 	);
 
 	console.error(
-		"✅ Image tools registered: generate, convert, resize, optimize, color_match"
+		"✅ Image tools registered: generate, convert, resize, optimize, analyze_color_profile, color_correct"
 	);
 }

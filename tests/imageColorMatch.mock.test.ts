@@ -1,149 +1,203 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { writeFile, mkdir, rm } from "fs/promises";
+import { writeFile, mkdir, rm, readFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-// Mock sharp with stat support for color matching
+// Mock sharp — returns fixed channel stats (warm orange source, neutral-silver ref)
 vi.mock("sharp", () => {
-  const fs = require("fs/promises");
-  const factory = (_input: any) => {
-    const api: any = {
-      webp: (_opts: any) => api,
-      png: (_opts: any) => api,
-      jpeg: (_opts: any) => api,
-      avif: (_opts: any) => api,
-      gif: () => api,
-      tiff: (_opts: any) => api,
-      withMetadata: () => api,
-      flatten: (_opts: any) => api,
-      linear: (_a: any, _b: any) => api,
-      toBuffer: async () => Buffer.from([1, 2, 3]),
-      toFile: async (out: string) => {
-        await fs.writeFile(out, Buffer.from([1, 2, 3]));
-      },
-      resize: (_opts: any) => api,
-      stats: async () => ({
-        channels: [
-          { mean: 180, stdev: 30 }, // R - warm orange-ish source
-          { mean: 150, stdev: 25 }, // G
-          { mean: 100, stdev: 20 }, // B
-        ],
-        isOpaque: true,
-        entropy: 7.5,
-        sharpness: 0.5,
-        dominant: { r: 180, g: 150, b: 100 },
-      }),
-    };
-    return api;
-  };
-  return { default: factory };
+	const fs = require("fs/promises");
+	const factory = (_input: any) => {
+		const api: any = {
+			webp: (_opts: any) => api,
+			png: (_opts: any) => api,
+			jpeg: (_opts: any) => api,
+			avif: (_opts: any) => api,
+			gif: () => api,
+			tiff: (_opts: any) => api,
+			withMetadata: () => api,
+			flatten: (_opts: any) => api,
+			linear: (_a: any, _b: any) => api,
+			toBuffer: async () => Buffer.from([1, 2, 3]),
+			toFile: async (out: string) => {
+				await fs.writeFile(out, Buffer.from([1, 2, 3]));
+			},
+			resize: (_opts: any) => api,
+			stats: async () => ({
+				channels: [
+					{ mean: 175, stdev: 32 }, // R - warm orange-ish
+					{ mean: 145, stdev: 28 }, // G
+					{ mean: 95, stdev: 22 },  // B - low blue = orange cast
+				],
+				isOpaque: true,
+				entropy: 7.5,
+				sharpness: 0.5,
+				dominant: { r: 175, g: 145, b: 95 },
+			}),
+		};
+		return api;
+	};
+	return { default: factory };
 });
 
-import { imageColorMatchTool } from "../src/tools/imageTools.js";
+import {
+	imageAnalyzeColorProfileTool,
+	imageColorCorrectTool,
+} from "../src/tools/imageTools.js";
 
-describe("imageColorMatchTool", () => {
-  let dir: string;
-  let srcDir: string;
-  let refDir: string;
+// ---------------------------------------------------------------------------
+// Shared setup
+// ---------------------------------------------------------------------------
 
-  beforeEach(async () => {
-    dir = join(tmpdir(), `mcp-color-match-${Date.now()}`);
-    srcDir = join(dir, "source");
-    refDir = join(dir, "reference");
-    await mkdir(srcDir, { recursive: true });
-    await mkdir(refDir, { recursive: true });
+let dir: string;
+let refDir: string;
+let srcDir: string;
+let profilePath: string;
 
-    // Create sample image files
-    await writeFile(join(srcDir, "bracket1.jpg"), Buffer.from([255, 216, 255]));
-    await writeFile(join(srcDir, "bracket2.jpg"), Buffer.from([255, 216, 255]));
-    await writeFile(join(refDir, "ref1.jpg"), Buffer.from([255, 216, 255]));
-    await writeFile(join(refDir, "ref2.jpg"), Buffer.from([255, 216, 255]));
-  });
+beforeEach(async () => {
+	dir = join(tmpdir(), `mcp-color-${Date.now()}`);
+	refDir = join(dir, "reference");
+	srcDir = join(dir, "source");
+	await mkdir(refDir, { recursive: true });
+	await mkdir(srcDir, { recursive: true });
 
-  afterEach(async () => {
-    await rm(dir, { recursive: true, force: true });
-    vi.restoreAllMocks();
-  });
+	// Fake image files
+	await writeFile(join(refDir, "ref1.jpg"), Buffer.from([255, 216, 255]));
+	await writeFile(join(refDir, "ref2.jpg"), Buffer.from([255, 216, 255]));
+	await writeFile(join(srcDir, "bracket1.jpg"), Buffer.from([255, 216, 255]));
+	await writeFile(join(srcDir, "bracket2.jpg"), Buffer.from([255, 216, 255]));
 
-  it("color-matches source directory to reference directory", async () => {
-    const res: any = await imageColorMatchTool.handler({
-      source: srcDir,
-      reference: refDir,
-      output_dir: join(dir, "output"),
-      strength: 1.0,
-      quality: 90,
-    });
+	profilePath = join(dir, "color-profile.json");
+});
 
-    expect(res).toBeDefined();
-    expect(res.content[0].text).toContain("Color matching complete");
-    expect(res.content[0].text).toContain("Processed: 2 images");
-    expect(res.content[0].text).toContain("Reference images sampled: 2");
-  });
+afterEach(async () => {
+	await rm(dir, { recursive: true, force: true });
+	vi.restoreAllMocks();
+});
 
-  it("applies reduced strength blend", async () => {
-    const res: any = await imageColorMatchTool.handler({
-      source: srcDir,
-      reference: refDir,
-      output_dir: join(dir, "output-50"),
-      strength: 0.5,
-    });
+// ---------------------------------------------------------------------------
+// image_analyze_color_profile
+// ---------------------------------------------------------------------------
 
-    expect(res.content[0].text).toContain("Strength: 50%");
-    expect(res.content[0].text).toContain("Color matching complete");
-  });
+describe("imageAnalyzeColorProfileTool", () => {
+	it("analyzes reference directory and saves a profile JSON", async () => {
+		const res: any = await imageAnalyzeColorProfileTool.handler({
+			reference: refDir,
+			profile_path: profilePath,
+		});
 
-  it("processes a single source file against a reference directory", async () => {
-    const singleFile = join(srcDir, "bracket1.jpg");
-    const res: any = await imageColorMatchTool.handler({
-      source: singleFile,
-      reference: refDir,
-      output_dir: join(dir, "output-single"),
-    });
+		expect(res.content[0].text).toContain("Color profile saved");
+		expect(res.content[0].text).toContain("Reference images analyzed: 2");
+		expect(res.structuredContent.profilePath).toBe(profilePath);
 
-    expect(res.content[0].text).toContain("Color matching complete");
-    expect(res.content[0].text).toContain("Processed: 1 image");
-  });
+		// Profile JSON should exist on disk and have r/g/b entries
+		const raw = await readFile(profilePath, "utf8");
+		const profile = JSON.parse(raw);
+		expect(profile.r).toHaveProperty("mean");
+		expect(profile.g).toHaveProperty("stdev");
+		expect(profile.version).toBe(1);
+		expect(profile.imageCount).toBe(2);
+	});
 
-  it("returns error when reference directory contains no images", async () => {
-    const emptyRef = join(dir, "empty-ref");
-    await mkdir(emptyRef, { recursive: true });
+	it("uses default profile path next to reference directory", async () => {
+		const res: any = await imageAnalyzeColorProfileTool.handler({
+			reference: refDir,
+		});
 
-    const res: any = await imageColorMatchTool.handler({
-      source: srcDir,
-      reference: emptyRef,
-    });
+		expect(res.structuredContent.profilePath).toContain("color-profile.json");
+		expect(res.isError).toBeUndefined();
+	});
 
-    expect(res.isError).toBe(true);
-    expect(res.content[0].text).toContain("No image files found in reference path");
-  });
+	it("returns error when reference directory is empty", async () => {
+		const emptyRef = join(dir, "empty");
+		await mkdir(emptyRef, { recursive: true });
 
-  it("includes structuredContent with referenceStats and outputDir", async () => {
-    const res: any = await imageColorMatchTool.handler({
-      source: srcDir,
-      reference: refDir,
-      output_dir: join(dir, "output-struct"),
-    });
+		const res: any = await imageAnalyzeColorProfileTool.handler({
+			reference: emptyRef,
+		});
 
-    expect(res.structuredContent).toBeDefined();
-    expect(res.structuredContent.referenceStats).toBeDefined();
-    expect(res.structuredContent.referenceStats.r).toHaveProperty("mean");
-    expect(res.structuredContent.referenceStats.r).toHaveProperty("stdev");
-    expect(res.structuredContent.outputDir).toContain("output-struct");
-  });
+		expect(res.isError).toBe(true);
+		expect(res.content[0].text).toContain("No image files found");
+	});
+});
 
-  it("preserves original format when preserve_format is true", async () => {
-    const res: any = await imageColorMatchTool.handler({
-      source: srcDir,
-      reference: refDir,
-      output_dir: join(dir, "output-pf"),
-      preserve_format: true,
-    });
+// ---------------------------------------------------------------------------
+// image_color_correct
+// ---------------------------------------------------------------------------
 
-    expect(res.content[0].text).toContain("Color matching complete");
-    // Output files should keep .jpg extension
-    const outputFiles: string[] = res.structuredContent.results;
-    for (const f of outputFiles) {
-      expect(f).toMatch(/\.jpg$/i);
-    }
-  });
+describe("imageColorCorrectTool", () => {
+	// Build a real profile file before each correction test
+	beforeEach(async () => {
+		await imageAnalyzeColorProfileTool.handler({
+			reference: refDir,
+			profile_path: profilePath,
+		});
+	});
+
+	it("corrects a directory of source images using a saved profile", async () => {
+		const res: any = await imageColorCorrectTool.handler({
+			source: srcDir,
+			profile_path: profilePath,
+			output_dir: join(dir, "corrected"),
+		});
+
+		expect(res.content[0].text).toContain("Color correction complete");
+		expect(res.content[0].text).toContain("Corrected: 2 images");
+		expect(res.structuredContent.results).toHaveLength(2);
+	});
+
+	it("respects strength parameter", async () => {
+		const res: any = await imageColorCorrectTool.handler({
+			source: srcDir,
+			profile_path: profilePath,
+			output_dir: join(dir, "corrected-50"),
+			strength: 0.5,
+		});
+
+		expect(res.content[0].text).toContain("Strength: 50%");
+		expect(res.content[0].text).toContain("Color correction complete");
+	});
+
+	it("corrects a single source file", async () => {
+		const res: any = await imageColorCorrectTool.handler({
+			source: join(srcDir, "bracket1.jpg"),
+			profile_path: profilePath,
+			output_dir: join(dir, "corrected-single"),
+		});
+
+		expect(res.content[0].text).toContain("Corrected: 1 image");
+	});
+
+	it("includes profilePath and outputDir in structuredContent", async () => {
+		const res: any = await imageColorCorrectTool.handler({
+			source: srcDir,
+			profile_path: profilePath,
+			output_dir: join(dir, "corrected-struct"),
+		});
+
+		expect(res.structuredContent.profilePath).toBe(profilePath);
+		expect(res.structuredContent.outputDir).toContain("corrected-struct");
+	});
+
+	it("returns error when profile file does not exist", async () => {
+		const res: any = await imageColorCorrectTool.handler({
+			source: srcDir,
+			profile_path: join(dir, "nonexistent-profile.json"),
+		});
+
+		expect(res.isError).toBe(true);
+		expect(res.content[0].text).toContain("Could not load color profile");
+	});
+
+	it("returns error when source directory contains no images", async () => {
+		const emptySrc = join(dir, "empty-src");
+		await mkdir(emptySrc, { recursive: true });
+
+		const res: any = await imageColorCorrectTool.handler({
+			source: emptySrc,
+			profile_path: profilePath,
+		});
+
+		expect(res.isError).toBe(true);
+		expect(res.content[0].text).toContain("No image files found");
+	});
 });
