@@ -773,9 +773,6 @@ ${
 };
 
 // =============================================================================
-// Image Color Match Tool
-// =============================================================================
-// =============================================================================
 // Image Analyze Color Profile Tool
 // =============================================================================
 
@@ -784,7 +781,8 @@ export const imageAnalyzeColorProfileTool = {
 	description: `Analyze reference images and save a reusable color profile to disk.
 
 Run this ONCE against your "gold standard" reference images to capture their
-color characteristics (per-channel mean and standard deviation). The resulting
+foreground hardware color characteristics (per-channel mean and standard deviation).
+Near-white background pixels and low-alpha pixels are ignored by default. The resulting
 JSON profile can then be passed to image_color_correct whenever you need to
 correct images that look wrong.
 
@@ -808,11 +806,36 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 			.describe(
 				"Where to save the profile JSON (default: {reference_dir}/color-profile.json)"
 			),
+		background_threshold: z
+			.number()
+			.min(1)
+			.max(255)
+			.default(245)
+			.optional()
+			.describe(
+				"Ignore near-white pixels when sampling foreground (default: 245)"
+			),
+		min_alpha: z
+			.number()
+			.min(0)
+			.max(255)
+			.default(8)
+			.optional()
+			.describe(
+				"Ignore mostly transparent pixels below this alpha (default: 8)"
+			),
 	}),
 	handler: async (args: {
 		reference: string;
 		profile_path?: string | undefined;
+		background_threshold?: number | undefined;
+		min_alpha?: number | undefined;
 	}) => {
+		const maskOptions: ForegroundMaskOptions = {
+			backgroundThreshold: args.background_threshold ?? 245,
+			minAlpha: args.min_alpha ?? 8,
+		};
+
 		// Collect reference image files
 		const refStat = await fs.stat(args.reference);
 		const refFiles = refStat.isDirectory()
@@ -831,10 +854,10 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 			};
 		}
 
-		// Compute aggregate channel statistics from all reference images
-		let stats: ChannelStats;
+		// Compute aggregate foreground channel statistics from all reference images
+		let aggregate: ForegroundAggregateStats;
 		try {
-			stats = await computeAggregateStats(refFiles);
+			aggregate = await computeForegroundAggregateStats(refFiles, maskOptions);
 		} catch (err: unknown) {
 			const error = err as Error;
 			return {
@@ -861,9 +884,13 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 			source: args.reference,
 			created: new Date().toISOString(),
 			imageCount: refFiles.length,
-			r: stats.r,
-			g: stats.g,
-			b: stats.b,
+			r: aggregate.stats.r,
+			g: aggregate.stats.g,
+			b: aggregate.stats.b,
+			mask: maskOptions,
+			sampledPixels: aggregate.sampledPixels,
+			totalPixels: aggregate.totalPixels,
+			fallbackImages: aggregate.fallbackImages,
 		};
 
 		await fs.writeFile(profilePath, JSON.stringify(profile, null, 2), "utf8");
@@ -876,11 +903,23 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 
 📁 Profile: ${profilePath}
 📸 Reference images analyzed: ${refFiles.length}
+🧪 Foreground sampled pixels: ${aggregate.sampledPixels}/${
+						aggregate.totalPixels
+					}
+⚙️ Mask: background >= ${maskOptions.backgroundThreshold}, alpha < ${
+						maskOptions.minAlpha
+					}
 
 📈 Measured color profile:
-  R: mean=${stats.r.mean.toFixed(1)}, stdev=${stats.r.stdev.toFixed(1)}
-  G: mean=${stats.g.mean.toFixed(1)}, stdev=${stats.g.stdev.toFixed(1)}
-  B: mean=${stats.b.mean.toFixed(1)}, stdev=${stats.b.stdev.toFixed(1)}
+  R: mean=${aggregate.stats.r.mean.toFixed(
+		1
+	)}, stdev=${aggregate.stats.r.stdev.toFixed(1)}
+  G: mean=${aggregate.stats.g.mean.toFixed(
+		1
+	)}, stdev=${aggregate.stats.g.stdev.toFixed(1)}
+  B: mean=${aggregate.stats.b.mean.toFixed(
+		1
+	)}, stdev=${aggregate.stats.b.stdev.toFixed(1)}
 
 Next step — correct images using this profile:
   image_color_correct({ source: "path/to/bad/images", profile_path: "${profilePath}" })`,
@@ -889,6 +928,9 @@ Next step — correct images using this profile:
 			structuredContent: {
 				profilePath,
 				imageCount: refFiles.length,
+				sampledPixels: aggregate.sampledPixels,
+				totalPixels: aggregate.totalPixels,
+				fallbackImages: aggregate.fallbackImages,
 				profile,
 			},
 		};
@@ -905,8 +947,11 @@ export const imageColorCorrectTool = {
 
 Loads a color profile JSON produced by image_analyze_color_profile and applies
 a per-channel linear transform so that the source images match the expected
-color distribution. The AI agent only needs the source path and the profile
-path — no reference images required at correction time.
+foreground color distribution. By default, near-white background pixels are
+ignored when measuring source image stats and alpha is preserved.
+
+The AI agent only needs the source path and the profile path — no reference
+images required at correction time.
 
 Algorithm (per channel):
   scale  = ref_stdev / src_stdev
@@ -927,6 +972,36 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 			.string()
 			.optional()
 			.describe("Output directory (default: {source_dir}/corrected/)"),
+		background_threshold: z
+			.number()
+			.min(1)
+			.max(255)
+			.optional()
+			.describe(
+				"Override near-white threshold used when sampling foreground pixels"
+			),
+		min_alpha: z
+			.number()
+			.min(0)
+			.max(255)
+			.optional()
+			.describe("Override minimum alpha used when sampling foreground pixels"),
+		max_scale_shift: z
+			.number()
+			.min(0)
+			.max(1)
+			.default(0.2)
+			.optional()
+			.describe(
+				"Clamp scale to [1-max_scale_shift, 1+max_scale_shift] (default: 0.2)"
+			),
+		max_offset: z
+			.number()
+			.min(0)
+			.max(100)
+			.default(25)
+			.optional()
+			.describe("Clamp channel offsets to +/- max_offset (default: 25)"),
 		strength: z
 			.number()
 			.min(0)
@@ -953,12 +1028,18 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 		source: string;
 		profile_path: string;
 		output_dir?: string | undefined;
+		background_threshold?: number | undefined;
+		min_alpha?: number | undefined;
+		max_scale_shift?: number | undefined;
+		max_offset?: number | undefined;
 		strength?: number | undefined;
 		quality?: number | undefined;
 		preserve_format?: boolean | undefined;
 	}) => {
 		const strength = args.strength ?? 1.0;
 		const quality = args.quality ?? 90;
+		const maxScaleShift = args.max_scale_shift ?? 0.2;
+		const maxOffset = args.max_offset ?? 25;
 
 		// Load color profile
 		let profile: ColorProfile;
@@ -981,10 +1062,29 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 			};
 		}
 
-		// Collect source image files
+		const maskOptions: ForegroundMaskOptions = {
+			backgroundThreshold:
+				args.background_threshold ?? profile.mask?.backgroundThreshold ?? 245,
+			minAlpha: args.min_alpha ?? profile.mask?.minAlpha ?? 8,
+		};
+
+		// Determine output directory
 		const srcStat = await fs.stat(args.source);
+		const defaultOutputDir = srcStat.isDirectory()
+			? path.join(args.source, "corrected")
+			: path.join(path.dirname(args.source), "corrected");
+		const outputDir = args.output_dir || defaultOutputDir;
+
+		if (!existsSync(outputDir)) {
+			await fs.mkdir(outputDir, { recursive: true });
+		}
+
+		// Collect source image files, excluding corrected output folders to avoid recursive reprocessing
 		const srcFiles = srcStat.isDirectory()
-			? await findImageFiles(args.source)
+			? await findImageFiles(args.source, {
+					excludeDirs: [outputDir],
+					excludeDirNamePrefixes: ["corrected"],
+			  })
 			: [args.source];
 
 		if (srcFiles.length === 0) {
@@ -999,50 +1099,84 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 			};
 		}
 
-		// Determine output directory
-		const defaultOutputDir = srcStat.isDirectory()
-			? path.join(args.source, "corrected")
-			: path.join(path.dirname(args.source), "corrected");
-		const outputDir = args.output_dir || defaultOutputDir;
-
-		if (!existsSync(outputDir)) {
-			await fs.mkdir(outputDir, { recursive: true });
-		}
-
 		const results: string[] = [];
 		const errors: string[] = [];
 		let firstAdjustments: { r: string; g: string; b: string } | null = null;
+		let sampledPixelsTotal = 0;
+		let totalPixelsTotal = 0;
+		let fallbackImages = 0;
 
 		for (const srcFile of srcFiles) {
 			try {
-				const imgStats = await sharp(srcFile).stats();
-				const srcR = imgStats.channels[0] ?? { mean: 128, stdev: 30 };
-				const srcG = imgStats.channels[1] ?? { mean: 128, stdev: 30 };
-				const srcB = imgStats.channels[2] ?? { mean: 128, stdev: 30 };
+				const sourceSample = await sampleForegroundPixels(srcFile, maskOptions);
+				const srcStats = statsFromAccumulator(sourceSample.accumulator);
+
+				sampledPixelsTotal += sourceSample.sampledPixels;
+				totalPixelsTotal += sourceSample.totalPixels;
+				if (sourceSample.usedFallback) {
+					fallbackImages++;
+				}
 
 				// Per-channel linear transform: scale = ref_std/src_std, offset = ref_mean - scale×src_mean
 				// Guard against flat channels (stdev ≈ 0) to avoid extreme scale values
-				const rScale = srcR.stdev > 1 ? profile.r.stdev / srcR.stdev : 1;
-				const gScale = srcG.stdev > 1 ? profile.g.stdev / srcG.stdev : 1;
-				const bScale = srcB.stdev > 1 ? profile.b.stdev / srcB.stdev : 1;
+				const rScaleRaw =
+					srcStats.r.stdev > 1 ? profile.r.stdev / srcStats.r.stdev : 1;
+				const gScaleRaw =
+					srcStats.g.stdev > 1 ? profile.g.stdev / srcStats.g.stdev : 1;
+				const bScaleRaw =
+					srcStats.b.stdev > 1 ? profile.b.stdev / srcStats.b.stdev : 1;
 
-				const rOffset = profile.r.mean - rScale * srcR.mean;
-				const gOffset = profile.g.mean - gScale * srcG.mean;
-				const bOffset = profile.b.mean - bScale * srcB.mean;
+				const rOffsetRaw = profile.r.mean - rScaleRaw * srcStats.r.mean;
+				const gOffsetRaw = profile.g.mean - gScaleRaw * srcStats.g.mean;
+				const bOffsetRaw = profile.b.mean - bScaleRaw * srcStats.b.mean;
 
 				// Blend toward identity (scale=1, offset=0) when strength < 1
-				const rScaleFinal = 1 + strength * (rScale - 1);
-				const gScaleFinal = 1 + strength * (gScale - 1);
-				const bScaleFinal = 1 + strength * (bScale - 1);
-				const rOffsetFinal = strength * rOffset;
-				const gOffsetFinal = strength * gOffset;
-				const bOffsetFinal = strength * bOffset;
+				const scaleMin = 1 - maxScaleShift;
+				const scaleMax = 1 + maxScaleShift;
+
+				const rScaleFinal = clampNumber(
+					1 + strength * (rScaleRaw - 1),
+					scaleMin,
+					scaleMax
+				);
+				const gScaleFinal = clampNumber(
+					1 + strength * (gScaleRaw - 1),
+					scaleMin,
+					scaleMax
+				);
+				const bScaleFinal = clampNumber(
+					1 + strength * (bScaleRaw - 1),
+					scaleMin,
+					scaleMax
+				);
+
+				const rOffsetFinal = clampNumber(
+					strength * rOffsetRaw,
+					-maxOffset,
+					maxOffset
+				);
+				const gOffsetFinal = clampNumber(
+					strength * gOffsetRaw,
+					-maxOffset,
+					maxOffset
+				);
+				const bOffsetFinal = clampNumber(
+					strength * bOffsetRaw,
+					-maxOffset,
+					maxOffset
+				);
 
 				if (firstAdjustments === null) {
 					firstAdjustments = {
-						r: `scale=${rScaleFinal.toFixed(3)}, offset=${rOffsetFinal.toFixed(1)}`,
-						g: `scale=${gScaleFinal.toFixed(3)}, offset=${gOffsetFinal.toFixed(1)}`,
-						b: `scale=${bScaleFinal.toFixed(3)}, offset=${bOffsetFinal.toFixed(1)}`,
+						r: `scale=${rScaleFinal.toFixed(3)}, offset=${rOffsetFinal.toFixed(
+							1
+						)}`,
+						g: `scale=${gScaleFinal.toFixed(3)}, offset=${gOffsetFinal.toFixed(
+							1
+						)}`,
+						b: `scale=${bScaleFinal.toFixed(3)}, offset=${bOffsetFinal.toFixed(
+							1
+						)}`,
 					};
 				}
 
@@ -1055,13 +1189,15 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 					`${path.parse(srcFile).name}${ext}`
 				);
 
-				// Apply per-channel linear transform; flatten handles alpha channels
-				let pipeline = sharp(srcFile)
-					.flatten({ background: { r: 255, g: 255, b: 255 } })
-					.linear(
-						[rScaleFinal, gScaleFinal, bScaleFinal],
-						[rOffsetFinal, gOffsetFinal, bOffsetFinal]
-					);
+				// Apply per-channel linear transform while preserving alpha if present
+				const multipliers = sourceSample.hasAlpha
+					? [rScaleFinal, gScaleFinal, bScaleFinal, 1]
+					: [rScaleFinal, gScaleFinal, bScaleFinal];
+				const offsets = sourceSample.hasAlpha
+					? [rOffsetFinal, gOffsetFinal, bOffsetFinal, 0]
+					: [rOffsetFinal, gOffsetFinal, bOffsetFinal];
+
+				let pipeline = sharp(srcFile).linear(multipliers, offsets);
 
 				if (!args.preserve_format || ext === ".jpg" || ext === ".jpeg") {
 					pipeline = pipeline.jpeg({ quality, mozjpeg: true });
@@ -1094,6 +1230,12 @@ require MCP_ALLOWED_PATHS=G:\\My Drive\\... to be set in .env.`,
 - Failed: ${errors.length}
 - Strength: ${(strength * 100).toFixed(0)}%
 - Profile used: ${args.profile_path}
+- Foreground sampled pixels: ${sampledPixelsTotal}/${totalPixelsTotal}
+- Foreground mask fallback images: ${fallbackImages}
+- Clamp: scale ±${(maxScaleShift * 100).toFixed(0)}%, offset ±${maxOffset}
+- Mask: background >= ${maskOptions.backgroundThreshold}, alpha < ${
+						maskOptions.minAlpha
+					}
 
 📈 Target color profile:
   R: mean=${profile.r.mean.toFixed(1)}, stdev=${profile.r.stdev.toFixed(1)}
@@ -1130,6 +1272,14 @@ ${
 				errors,
 				outputDir,
 				profilePath: args.profile_path,
+				sampledPixels: sampledPixelsTotal,
+				totalPixels: totalPixelsTotal,
+				fallbackImages,
+				maskOptions,
+				clamp: {
+					maxScaleShift,
+					maxOffset,
+				},
 			},
 		};
 	},
@@ -1180,7 +1330,13 @@ async function convertSingleImage(
 /**
  * Recursively find all image files in a directory
  */
-async function findImageFiles(dir: string): Promise<string[]> {
+async function findImageFiles(
+	dir: string,
+	options?: {
+		excludeDirs?: string[] | undefined;
+		excludeDirNamePrefixes?: string[] | undefined;
+	}
+): Promise<string[]> {
 	const imageExtensions = [
 		".jpg",
 		".jpeg",
@@ -1192,6 +1348,20 @@ async function findImageFiles(dir: string): Promise<string[]> {
 		".avif",
 	];
 	const files: string[] = [];
+	const excludedRoots = (options?.excludeDirs ?? []).map((d) =>
+		path.resolve(d)
+	);
+	const excludedPrefixes = (options?.excludeDirNamePrefixes ?? []).map((p) =>
+		p.toLowerCase()
+	);
+
+	const isInside = (candidate: string, root: string): boolean => {
+		const relative = path.relative(root, candidate);
+		return (
+			relative === "" ||
+			(!relative.startsWith("..") && !path.isAbsolute(relative))
+		);
+	};
 
 	async function scan(currentDir: string) {
 		const entries = await fs.readdir(currentDir, { withFileTypes: true });
@@ -1200,8 +1370,24 @@ async function findImageFiles(dir: string): Promise<string[]> {
 			const fullPath = path.join(currentDir, entry.name);
 
 			if (entry.isDirectory()) {
+				if (
+					excludedPrefixes.some((prefix) =>
+						entry.name.toLowerCase().startsWith(prefix)
+					)
+				) {
+					continue;
+				}
+
+				if (excludedRoots.some((root) => isInside(fullPath, root))) {
+					continue;
+				}
+
 				await scan(fullPath);
 			} else if (entry.isFile()) {
+				if (excludedRoots.some((root) => isInside(fullPath, root))) {
+					continue;
+				}
+
 				const ext = path.extname(entry.name).toLowerCase();
 				if (imageExtensions.includes(ext)) {
 					files.push(fullPath);
@@ -1230,62 +1416,215 @@ async function calculateTotalSize(files: string[]): Promise<number> {
 	return totalSize / (1024 * 1024);
 }
 
-/** Per-channel mean and stdev summary (internal, used by computeAggregateStats) */
+/** Per-channel mean and stdev summary used by color profile and correction */
 interface ChannelStats {
 	r: { mean: number; stdev: number };
 	g: { mean: number; stdev: number };
 	b: { mean: number; stdev: number };
 }
 
-/**
- * Compute aggregate per-channel mean and stdev across an array of images.
- * Values are averaged so that a batch of reference images produces a single profile.
- */
-async function computeAggregateStats(files: string[]): Promise<ChannelStats> {
-	let rMeanSum = 0,
-		gMeanSum = 0,
-		bMeanSum = 0;
-	let rStdevSum = 0,
-		gStdevSum = 0,
-		bStdevSum = 0;
-	let count = 0;
-
-	for (const file of files) {
-		try {
-			const stats = await sharp(file).stats();
-			const [r, g, b] = stats.channels;
-			if (r === undefined || g === undefined || b === undefined) continue;
-			rMeanSum += r.mean;
-			gMeanSum += g.mean;
-			bMeanSum += b.mean;
-			rStdevSum += r.stdev;
-			gStdevSum += g.stdev;
-			bStdevSum += b.stdev;
-			count++;
-		} catch {
-			// Skip unreadable files
-		}
-	}
-
-	if (count === 0) {
-		throw new Error("Could not compute statistics from any reference image");
-	}
-
-	return {
-		r: { mean: rMeanSum / count, stdev: rStdevSum / count },
-		g: { mean: gMeanSum / count, stdev: gStdevSum / count },
-		b: { mean: bMeanSum / count, stdev: bStdevSum / count },
-	};
+interface ForegroundMaskOptions {
+	backgroundThreshold: number;
+	minAlpha: number;
 }
 
-// =============================================================================
-// Registration Function
+interface PixelAccumulator {
+	rSum: number;
+	gSum: number;
+	bSum: number;
+	rSqSum: number;
+	gSqSum: number;
+	bSqSum: number;
+	count: number;
+}
+
+interface ForegroundImageSample {
+	accumulator: PixelAccumulator;
+	sampledPixels: number;
+	totalPixels: number;
+	usedFallback: boolean;
+	hasAlpha: boolean;
+}
+
+interface ForegroundAggregateStats {
+	stats: ChannelStats;
+	sampledPixels: number;
+	totalPixels: number;
+	fallbackImages: number;
+}
+
 /** Schema for the color-profile.json saved to disk by image_analyze_color_profile */
 interface ColorProfile extends ChannelStats {
 	version: number;
 	source: string;
 	created: string;
 	imageCount: number;
+	mask?: ForegroundMaskOptions | undefined;
+	sampledPixels?: number | undefined;
+	totalPixels?: number | undefined;
+	fallbackImages?: number | undefined;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, value));
+}
+
+function createEmptyAccumulator(): PixelAccumulator {
+	return {
+		rSum: 0,
+		gSum: 0,
+		bSum: 0,
+		rSqSum: 0,
+		gSqSum: 0,
+		bSqSum: 0,
+		count: 0,
+	};
+}
+
+function mergeAccumulators(
+	target: PixelAccumulator,
+	source: PixelAccumulator
+): void {
+	target.rSum += source.rSum;
+	target.gSum += source.gSum;
+	target.bSum += source.bSum;
+	target.rSqSum += source.rSqSum;
+	target.gSqSum += source.gSqSum;
+	target.bSqSum += source.bSqSum;
+	target.count += source.count;
+}
+
+function statsFromAccumulator(acc: PixelAccumulator): ChannelStats {
+	if (acc.count === 0) {
+		throw new Error("No pixels available for foreground statistics");
+	}
+
+	const rMean = acc.rSum / acc.count;
+	const gMean = acc.gSum / acc.count;
+	const bMean = acc.bSum / acc.count;
+
+	const rVariance = Math.max(0, acc.rSqSum / acc.count - rMean * rMean);
+	const gVariance = Math.max(0, acc.gSqSum / acc.count - gMean * gMean);
+	const bVariance = Math.max(0, acc.bSqSum / acc.count - bMean * bMean);
+
+	return {
+		r: { mean: rMean, stdev: Math.sqrt(rVariance) },
+		g: { mean: gMean, stdev: Math.sqrt(gVariance) },
+		b: { mean: bMean, stdev: Math.sqrt(bVariance) },
+	};
+}
+
+function sampleRawPixels(
+	data: Buffer,
+	channels: number,
+	mask: ForegroundMaskOptions,
+	ignoreBackground: boolean
+): PixelAccumulator {
+	const acc = createEmptyAccumulator();
+
+	for (let i = 0; i < data.length; i += channels) {
+		const r = data[i] ?? 0;
+		const g = data[i + 1] ?? 0;
+		const b = data[i + 2] ?? 0;
+		const a = channels >= 4 ? data[i + 3] ?? 255 : 255;
+
+		if (a < mask.minAlpha) {
+			continue;
+		}
+
+		if (
+			ignoreBackground &&
+			r >= mask.backgroundThreshold &&
+			g >= mask.backgroundThreshold &&
+			b >= mask.backgroundThreshold
+		) {
+			continue;
+		}
+
+		acc.rSum += r;
+		acc.gSum += g;
+		acc.bSum += b;
+		acc.rSqSum += r * r;
+		acc.gSqSum += g * g;
+		acc.bSqSum += b * b;
+		acc.count += 1;
+	}
+
+	return acc;
+}
+
+async function sampleForegroundPixels(
+	file: string,
+	mask: ForegroundMaskOptions
+): Promise<ForegroundImageSample> {
+	const image = sharp(file);
+	const metadata = await image.metadata();
+	const hasAlpha = metadata.hasAlpha === true;
+
+	const { data, info } = await image
+		.ensureAlpha()
+		.raw()
+		.toBuffer({ resolveWithObject: true });
+
+	const channels = info.channels;
+	const totalPixels = info.width * info.height;
+
+	const masked = sampleRawPixels(data, channels, mask, true);
+	if (masked.count >= 50) {
+		return {
+			accumulator: masked,
+			sampledPixels: masked.count,
+			totalPixels,
+			usedFallback: false,
+			hasAlpha,
+		};
+	}
+
+	const fallback = sampleRawPixels(data, channels, mask, false);
+	if (fallback.count === 0) {
+		throw new Error(`No usable pixels found in image: ${file}`);
+	}
+
+	return {
+		accumulator: fallback,
+		sampledPixels: fallback.count,
+		totalPixels,
+		usedFallback: true,
+		hasAlpha,
+	};
+}
+
+async function computeForegroundAggregateStats(
+	files: string[],
+	mask: ForegroundMaskOptions
+): Promise<ForegroundAggregateStats> {
+	const aggregate = createEmptyAccumulator();
+	let totalPixels = 0;
+	let fallbackImages = 0;
+
+	for (const file of files) {
+		try {
+			const sample = await sampleForegroundPixels(file, mask);
+			mergeAccumulators(aggregate, sample.accumulator);
+			totalPixels += sample.totalPixels;
+			if (sample.usedFallback) {
+				fallbackImages += 1;
+			}
+		} catch {
+			// Skip unreadable images
+		}
+	}
+
+	if (aggregate.count === 0) {
+		throw new Error("Could not compute foreground statistics from any image");
+	}
+
+	return {
+		stats: statsFromAccumulator(aggregate),
+		sampledPixels: aggregate.count,
+		totalPixels,
+		fallbackImages,
+	};
 }
 
 // =============================================================================

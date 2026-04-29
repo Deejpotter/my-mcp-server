@@ -6,7 +6,20 @@ import { tmpdir } from "os";
 // Mock sharp — returns fixed channel stats (warm orange source, neutral-silver ref)
 vi.mock("sharp", () => {
 	const fs = require("fs/promises");
-	const factory = (_input: any) => {
+	const factory = (input: any) => {
+		const sourcePath = String(input || "");
+		const isReference =
+			sourcePath.includes("ref") || sourcePath.includes("reference");
+		const rawPixels = isReference
+			? Buffer.from([
+					220, 220, 220, 255, 214, 215, 216, 255, 255, 255, 255, 255, 255, 255,
+					255, 0,
+			  ])
+			: Buffer.from([
+					210, 180, 145, 255, 205, 175, 140, 255, 255, 255, 255, 255, 255, 255,
+					255, 0,
+			  ]);
+
 		const api: any = {
 			webp: (_opts: any) => api,
 			png: (_opts: any) => api,
@@ -15,9 +28,29 @@ vi.mock("sharp", () => {
 			gif: () => api,
 			tiff: (_opts: any) => api,
 			withMetadata: () => api,
+			metadata: async () => ({
+				hasAlpha: true,
+				width: 2,
+				height: 2,
+				channels: 4,
+			}),
+			ensureAlpha: () => api,
+			raw: () => api,
 			flatten: (_opts: any) => api,
 			linear: (_a: any, _b: any) => api,
-			toBuffer: async () => Buffer.from([1, 2, 3]),
+			toBuffer: async (options?: any) => {
+				if (options?.resolveWithObject) {
+					return {
+						data: rawPixels,
+						info: {
+							width: 2,
+							height: 2,
+							channels: 4,
+						},
+					};
+				}
+				return Buffer.from([1, 2, 3]);
+			},
 			toFile: async (out: string) => {
 				await fs.writeFile(out, Buffer.from([1, 2, 3]));
 			},
@@ -26,7 +59,7 @@ vi.mock("sharp", () => {
 				channels: [
 					{ mean: 175, stdev: 32 }, // R - warm orange-ish
 					{ mean: 145, stdev: 28 }, // G
-					{ mean: 95, stdev: 22 },  // B - low blue = orange cast
+					{ mean: 95, stdev: 22 }, // B - low blue = orange cast
 				],
 				isOpaque: true,
 				entropy: 7.5,
