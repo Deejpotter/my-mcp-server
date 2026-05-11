@@ -30,6 +30,7 @@
     "@huggingface/inference": "^4.13.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
     "glob": "^11.0.0",
     "openai": "^6.8.1",
     "pdf-parse-new": "^1.4.1",

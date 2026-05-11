@@ -39,6 +39,7 @@ import { registerImageTools } from "./tools/imageTools.js";
 import { registerMakerImageConverterTools } from "./tools/makerImageConverterTools.js";
 import { registerPDFTools } from "./tools/pdfTools.js";
 import { registerDiscoveryTools } from "./tools/discoveryTools.js";
+import { registerExcelTools } from "./tools/excelTools.js";
 import { registerLocalMediaTools } from "./tools/localMediaTools.js";
 import { registerVikunjaTaskTools } from "./tools/vikunjaTasks.js";
 import { registerGitResources } from "./resources/gitResources.js";
@@ -61,6 +62,7 @@ registerContext7Tools(server);
 registerImageTools(server);
 registerMakerImageConverterTools(server);
 registerPDFTools(server);
+registerExcelTools(server);
 registerLocalMediaTools(server);
 registerVikunjaTaskTools(server);
 // Register runtime discovery tool last so it can scan compiled tool files

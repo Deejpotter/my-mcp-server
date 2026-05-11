@@ -127,6 +127,12 @@ All tools include comprehensive security validation and error handling.
   - Supports recursive directory traversal
   - Filters out forbidden paths (.git, node_modules, .env)
 
+### **Excel Operations**
+
+- **excel_workbook_info** - Inspect workbook metadata and sheet dimensions for a local Excel file
+- **excel_read_range** - Read a worksheet range from a local workbook and return rows as JSON
+- **excel_write_range** - Write a 2D value matrix into a local workbook, creating the file or sheet if needed
+
 ### **Default Web Verification Tool**
 
 - **duckduckgo_search** - Search DuckDuckGo for web results
