@@ -3,6 +3,7 @@ import { registerDuckDuckGoSearchTools } from "../src/tools/duckduckgoSearchTool
 import { registerContext7Tools } from "../src/tools/context7Tools.js";
 import { registerImageTools } from "../src/tools/imageTools.js";
 import { registerMakerImageConverterTools } from "../src/tools/makerImageConverterTools.js";
+import { registerExcelTools } from "../src/tools/excelTools.js";
 
 function makeFakeServer() {
 	const tools: string[] = [];
@@ -37,5 +38,14 @@ describe("Tool registration", () => {
 		const s = makeFakeServer();
 		registerMakerImageConverterTools(s);
 		expect(s.getTools()).toContain("maker_image_convert");
+	});
+
+	it("registers active excel tools", () => {
+		const s = makeFakeServer();
+		registerExcelTools(s);
+		expect(s.getTools()).toContain("excel_workbook_info");
+		expect(s.getTools()).toContain("excel_active_workbook_info");
+		expect(s.getTools()).toContain("excel_active_read_range");
+		expect(s.getTools()).toContain("excel_active_write_range");
 	});
 });
