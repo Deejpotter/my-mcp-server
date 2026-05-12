@@ -4,6 +4,7 @@ import { registerContext7Tools } from "../src/tools/context7Tools.js";
 import { registerImageTools } from "../src/tools/imageTools.js";
 import { registerMakerImageConverterTools } from "../src/tools/makerImageConverterTools.js";
 import { registerExcelTools } from "../src/tools/excelTools.js";
+import { registerLocalKnowledgeTools } from "../src/tools/localKnowledgeTools.js";
 
 function makeFakeServer() {
 	const tools: string[] = [];
@@ -47,5 +48,15 @@ describe("Tool registration", () => {
 		expect(s.getTools()).toContain("excel_active_workbook_info");
 		expect(s.getTools()).toContain("excel_active_read_range");
 		expect(s.getTools()).toContain("excel_active_write_range");
+	});
+
+	it("registers local knowledge tools", () => {
+		const s = makeFakeServer();
+		registerLocalKnowledgeTools(s);
+		expect(s.getTools()).toContain("local_knowledge_status");
+		expect(s.getTools()).toContain("local_knowledge_lookup");
+		expect(s.getTools()).toContain("local_knowledge_search");
+		expect(s.getTools()).toContain("local_knowledge_rebuild");
+		expect(s.getTools()).toContain("local_knowledge_seed");
 	});
 });

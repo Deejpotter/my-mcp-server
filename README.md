@@ -101,6 +101,9 @@ OPENAI_API_KEY=your_openai_key_here
 
 # Maker Image Converter - Optional local repo path override
 MAKER_IMAGE_CONVERTER_ROOT=C:/Users/Deej/Repos/maker-image-converter
+
+# Local Knowledge System - Optional override for the local multi-database knowledge project
+LOCAL_KNOWLEDGE_ROOT=C:/Users/Deej/krasus/projects/local-knowledge-system
 ```
 
 **Note:** DuckDuckGo search works without any API keys.
@@ -132,6 +135,17 @@ All tools include comprehensive security validation and error handling.
 - **excel_workbook_info** - Inspect workbook metadata and sheet dimensions for a local Excel file
 - **excel_read_range** - Read a worksheet range from a local workbook and return rows as JSON
 - **excel_write_range** - Write a 2D value matrix into a local workbook, creating the file or sheet if needed
+- **excel_active_workbook_info** - Inspect the currently open Excel workbook through the live Excel COM instance
+- **excel_active_read_range** - Read a range from the currently open workbook through the live Excel COM instance
+- **excel_active_write_range** - Write a 2D matrix into the currently open workbook through the live Excel COM instance
+
+### **Local Knowledge System**
+
+- **local_knowledge_status** - Inspect the local multi-database knowledge system and see database counts and sizes
+- **local_knowledge_lookup** - Exact lookup by SKU, alias, URL, or free-text exact match
+- **local_knowledge_search** - Hybrid search across exact matches, FTS, and embeddings
+- **local_knowledge_rebuild** - Rebuild the unified retrieval index and embeddings
+- **local_knowledge_seed** - Seed the local knowledge system with sample products, BOMs, support rules, and docs
 
 ### **Default Web Verification Tool**
 
