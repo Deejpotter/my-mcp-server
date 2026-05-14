@@ -263,6 +263,76 @@ async function parseReceiptLocally(pdfPath: string): Promise<ReceiptData | null>
 
 export function registerPDFTools(server: McpServer): void {
 	server.registerTool(
+		"pdf_extract_text",
+		{
+			title: "Extract Text from PDF",
+			description:
+				"Extract all readable text from any PDF file. Works on machine-readable PDFs (manuals, reports, documents). Returns the full text content. For scanned/image-only PDFs, output may be empty.",
+			inputSchema: {
+				file_path: z.string().describe("Absolute path to the PDF file"),
+				max_chars: z
+					.number()
+					.optional()
+					.describe("Maximum characters to return (default: 50000). Use to avoid token overload on large docs."),
+			},
+		},
+		async ({ file_path, max_chars }) => {
+			try {
+				if (!genericLimiter.allowCall()) {
+					const waitTime = Math.ceil(genericLimiter.getWaitTime() / 1000);
+					return {
+						content: [{ type: "text", text: `Rate limit exceeded. Please wait ${waitTime} seconds.` }],
+						isError: true,
+					};
+				}
+				if (!fs.existsSync(file_path)) {
+					return {
+						content: [{ type: "text", text: `File not found: ${file_path}` }],
+						isError: true,
+					};
+				}
+				const dataBuffer = fs.readFileSync(file_path);
+				const parsed = await pdf(dataBuffer);
+				const text = parsed.text || "";
+				if (!text.trim()) {
+					return {
+						content: [{ type: "text", text: "No readable text found. The PDF may be image-only or scanned." }],
+						isError: true,
+					};
+				}
+				const limit = max_chars ?? 50000;
+				const truncated = text.length > limit;
+				const output = truncated ? text.slice(0, limit) : text;
+				return {
+					content: [
+						{
+							type: "text",
+							text: JSON.stringify({
+								file: path.basename(file_path),
+								pages: parsed.numpages,
+								char_count: text.length,
+								truncated,
+								text: output,
+							}, null, 2),
+						},
+					],
+				};
+			} catch (error) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Error extracting PDF: ${error instanceof Error ? error.message : String(error)}`,
+						},
+					],
+					isError: true,
+				};
+			}
+		}
+	);
+
+
+	server.registerTool(
 		"pdf_list_receipts",
 		{
 			title: "List PDF Receipts",
