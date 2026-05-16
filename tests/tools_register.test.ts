@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { registerDuckDuckGoSearchTools } from "../src/tools/duckduckgoSearchTools.js";
+import { registerSearchTools } from "../src/tools/searchTools.js";
+import { registerMailTools } from "../src/tools/mailTools.js";
 import { registerContext7Tools } from "../src/tools/context7Tools.js";
 import { registerImageTools } from "../src/tools/imageTools.js";
 import { registerMakerImageConverterTools } from "../src/tools/makerImageConverterTools.js";
@@ -15,10 +16,17 @@ function makeFakeServer() {
 }
 
 describe("Tool registration", () => {
-	it("registers duckduckgo search tools", () => {
+	it("registers consolidated search tool", () => {
 		const s = makeFakeServer();
-		registerDuckDuckGoSearchTools(s);
-		expect(s.getTools().length).toBeGreaterThan(0);
+		registerSearchTools(s);
+		expect(s.getTools()).toContain("search");
+	});
+
+	it("registers mail tools", () => {
+		const s = makeFakeServer();
+		registerMailTools(s);
+		expect(s.getTools()).toContain("mail_search");
+		expect(s.getTools()).toContain("mail_recent");
 	});
 
 	it("registers context7 tools", () => {
