@@ -536,3 +536,21 @@ This is a personal project, but suggestions and improvements are welcome. When c
 ## **License**
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+
+---
+
+> **?? DEPRECATED — This repository is archived.**
+>
+> The monolithic my-mcp-server has been split into domain-specific packages:
+>
+> | Package | Description | Transport |
+> |---------|-------------|-----------|
+> | [mcp-shared](https://github.com/Deejpotter/mcp-shared) | Shared env loader, auth helpers, error patterns | Library |
+> | [mcp-core](https://github.com/Deejpotter/mcp-core) | Files, Git, Search, Commands, Docs | Stdio |
+> | [mcp-local](https://github.com/Deejpotter/mcp-local) | Excel, PDF, Mail, Images, DXF, Maker, Media, Knowledge | Stdio |
+> | [mcp-services](https://github.com/Deejpotter/mcp-services) | Coolify, Vaultwarden, Grocy, BookStack, OpenRouter, OpenProject, Firefly, Gelato | HTTP (deploy via Coolify) |
+>
+> **Reasoning:** A single MCP server with 23+ tool modules injects 500–1000 tokens per tool into every prompt. Splitting by domain reduces context burden, allows per-server enable/disable, and lets HTTP services be shared across machines via Cloudflare tunnel.
+>
+> **Migration:** Gateway config updated in openclaw.json — mcp-core and mcp-local run as stdio via NSSM. mcp-services pending Coolify deployment.

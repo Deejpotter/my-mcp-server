@@ -15,7 +15,10 @@
  * @date 2025-11-02
  */
 
-// Load environment variables from .env file
+// CRITICAL: Must be first import so .env is loaded during module resolution
+// (ESM imports resolve before any module body code executes)
+import "dotenv/config";
+
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -33,7 +36,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerFileTools } from "./tools/fileTools.js";
 import { registerCommandTools } from "./tools/commandTools.js";
 import { registerGitTools } from "./tools/gitTools.js";
-import { registerDuckDuckGoSearchTools } from "./tools/duckduckgoSearchTools.js";
+import { registerSearchTools } from "./tools/searchTools.js";
 import { registerContext7Tools } from "./tools/context7Tools.js";
 import { registerImageTools } from "./tools/imageTools.js";
 import { registerMakerImageConverterTools } from "./tools/makerImageConverterTools.js";
@@ -41,8 +44,18 @@ import { registerPDFTools } from "./tools/pdfTools.js";
 import { registerDiscoveryTools } from "./tools/discoveryTools.js";
 import { registerExcelTools } from "./tools/excelTools.js";
 import { registerLocalMediaTools } from "./tools/localMediaTools.js";
+import { registerImageToDxfTools } from "./tools/imageToDxfTools.js";
 import { registerLocalKnowledgeTools } from "./tools/localKnowledgeTools.js";
-import { registerVikunjaTaskTools } from "./tools/vikunjaTasks.js";
+import { registerMailTools } from "./tools/mailTools.js";
+import { registerCoolifyTools } from "./tools/coolifyTools.js";
+import { registerGelatoTools } from "./tools/gelatoTools.js";
+import { registerVaultTools } from "./tools/vaultTools.js";
+import { registerOpenProjectTools } from "./tools/openProjectTools.js";
+import { registerGrocyTools } from "./tools/grocyTools.js";
+import { registerFireflyTools } from "./tools/fireflyTools.js";
+import { registerKitchenOwlTools } from "./tools/kitchenOwlTools.js";
+import { registerBookStackTools } from "./tools/bookStackTools.js";
+import { registerOpenRouterTools } from "./tools/openRouterTools.js";
 import { registerGitResources } from "./resources/gitResources.js";
 import { registerPrompts } from "./prompts/prompts.js";
 
@@ -58,15 +71,25 @@ const server = new McpServer({
 registerFileTools(server);
 registerCommandTools(server);
 registerGitTools(server);
-registerDuckDuckGoSearchTools(server);
+registerSearchTools(server);
 registerContext7Tools(server);
 registerImageTools(server);
 registerMakerImageConverterTools(server);
 registerPDFTools(server);
 registerExcelTools(server);
 registerLocalMediaTools(server);
+registerImageToDxfTools(server);
 registerLocalKnowledgeTools(server);
-registerVikunjaTaskTools(server);
+registerMailTools(server);
+registerCoolifyTools(server);
+registerGelatoTools(server);
+registerVaultTools(server);
+registerOpenProjectTools(server);
+registerGrocyTools(server);
+registerFireflyTools(server);
+registerKitchenOwlTools(server);
+registerBookStackTools(server);
+registerOpenRouterTools(server);
 // Register runtime discovery tool last so it can scan compiled tool files
 registerDiscoveryTools(server);
 
