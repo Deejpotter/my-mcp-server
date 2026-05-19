@@ -10,13 +10,17 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { createReadStream, existsSync } from "fs";
-import { Mbox } from "node-mbox";
+import { existsSync, openSync, readSync, closeSync, fstatSync } from "fs";
 import { simpleParser } from "mailparser";
 
 // Path resolution
 const DEFAULT_MBOX_PATH = "C:\\Users\\Deej\\AppData\\Roaming\\Thunderbird\\Profiles\\pqbyqff6.default-release\\ImapMail\\imap.gmail.com\\INBOX";
 const MBOX_PATH = process.env.MAIL_MBOX_PATH || DEFAULT_MBOX_PATH;
+
+// Tail-read constants
+const RECENT_TAIL_BYTES = 25 * 1024 * 1024;   // 25 MB — enough for recent emails
+const SEARCH_TAIL_BYTES = 100 * 1024 * 1024;   // 100 MB — for search queries
+const MAX_READ_BYTES = 200 * 1024 * 1024;      // Cap at 200 MB to avoid huge reads
 
 interface ParsedMail {
   subject: string;
@@ -28,41 +32,105 @@ interface ParsedMail {
   text: string | null;
 }
 
+interface CacheEntry {
+  mtimeMs: number;
+  size: number;
+  messages: ParsedMail[];
+  fetchedAt: number;
+}
+
+let recentCache: CacheEntry | null = null;
+const CACHE_TTL_MS = 60_000; // 1 minute TTL
+
 function noMbox() {
   return { content: [{ type: "text" as const, text: `Mailbox not found at ${MBOX_PATH}. Set MAIL_MBOX_PATH env var.` }] };
 }
 
-function readMbox(limit: number = 50): Promise<ParsedMail[]> {
-  return new Promise((resolve, reject) => {
-    if (!existsSync(MBOX_PATH)) {
-      return resolve([]);
+/**
+ * Read the last `maxBytes` of the mbox file and parse messages from the tail.
+ * Returns messages in reverse order (newest first).
+ * Uses a size + mtime cache to avoid re-reading unchanged files within the TTL.
+ */
+async function readMboxTail(maxBytes: number, maxMessages: number = 200): Promise<ParsedMail[]> {
+  if (!existsSync(MBOX_PATH)) {
+    return [];
+  }
+
+  let fd: number;
+  try {
+    fd = openSync(MBOX_PATH, "r");
+  } catch {
+    return [];
+  }
+
+  try {
+    const stat = fstatSync(fd);
+    const fileSize = stat.size;
+    const mtimeMs = stat.mtimeMs;
+
+    // Check cache
+    if (recentCache && recentCache.mtimeMs === mtimeMs && recentCache.size === fileSize && (Date.now() - recentCache.fetchedAt) < CACHE_TTL_MS) {
+      closeSync(fd);
+      return recentCache.messages.slice(0, maxMessages);
     }
 
-    const results: ParsedMail[] = [];
-    const stream = createReadStream(MBOX_PATH);
-    const mbox = new Mbox(stream);
+      const readStart = Math.max(0, fileSize - Math.min(maxBytes, MAX_READ_BYTES));
+      const bytesToRead = fileSize - readStart;
+      const buf = Buffer.alloc(bytesToRead);
 
-    mbox.on("message", async (msgBuffer: Buffer) => {
-      if (results.length >= limit) return;
-      try {
-        const parsed = await simpleParser(msgBuffer);
-        results.push({
-          subject: parsed.subject || "(no subject)",
-          from: parsed.from?.text || "unknown",
-          to: parsed.to?.text || "",
-          date: parsed.date?.toISOString() || "unknown",
-          snippet: (parsed.text || parsed.html || "").toString().substring(0, 200).replace(/\s+/g, " ").trim(),
-          messageId: parsed.messageId || null,
-          text: parsed.text ? parsed.text.toString().substring(0, 5000) : null,
-        });
-      } catch {
-        // Skip unparseable messages
+      const readBytes = readSync(fd, buf, 0, bytesToRead, readStart);
+      closeSync(fd);
+
+      const chunk = buf.toString("utf-8", 0, readBytes);
+
+      // Find message boundaries — each message starts with "From " at beginning of line
+      // Split on the mbox delimiter pattern
+      const delimiter = /\nFrom [^\n]*\n/g;
+      const parts = chunk.split(delimiter);
+
+      // Reconstruct messages: each part after the first is a message body
+      const rawMessages: string[] = [];
+      for (let i = 1; i < parts.length; i++) {
+        rawMessages.push(parts[i] as string);
       }
-    });
 
-    mbox.on("error", (err: Error) => reject(err));
-    mbox.on("end", () => resolve(results));
-  });
+      // Parse messages — need to exit the sync Promise executor for await
+      const parseMessages = async () => {
+        const results: ParsedMail[] = [];
+        for (let i = rawMessages.length - 1; i >= 0 && results.length < maxMessages; i--) {
+          const raw: string | undefined = rawMessages[i];
+          if (!raw) continue;
+          try {
+            const parsed = await simpleParser(raw as string);
+            results.push({
+              subject: parsed.subject || "(no subject)",
+              from: parsed.from?.text || "unknown",
+              to: parsed.to?.text || "",
+              date: parsed.date?.toISOString() || "unknown",
+              snippet: (parsed.text || parsed.html || "").toString().substring(0, 200).replace(/\s+/g, " ").trim(),
+              messageId: parsed.messageId || null,
+              text: parsed.text ? parsed.text.toString().substring(0, 5000) : null,
+            });
+          } catch {
+            // Skip unparseable
+          }
+        }
+        return results;
+      };
+
+      const finalMessages = await parseMessages();
+
+      // Update cache
+      recentCache = { mtimeMs, size: fileSize, messages: finalMessages, fetchedAt: Date.now() };
+      return finalMessages;
+    } catch (err) {
+      try { closeSync(fd); } catch {}
+      throw err;
+    }
+}
+
+export function _readMboxFull(_limit: number = 50): Promise<ParsedMail[]> {
+  return Promise.resolve([]);
 }
 
 export function registerMailTools(server: McpServer): void {
@@ -82,7 +150,7 @@ export function registerMailTools(server: McpServer): void {
     async ({ query, max_results = 20, sender, days }) => {
       if (!existsSync(MBOX_PATH)) return noMbox();
 
-      const allMail = await readMbox(200); // Read up to 200 to have enough to filter
+      const allMail = await readMboxTail(SEARCH_TAIL_BYTES, 200); // Read tail of mbox, newest first
       const lowerQuery = query.toLowerCase();
       const cutoff = days ? Date.now() - days * 86400000 : 0;
 
@@ -131,9 +199,8 @@ export function registerMailTools(server: McpServer): void {
     async ({ count = 10 }) => {
       if (!existsSync(MBOX_PATH)) return noMbox();
 
-      const allMail = await readMbox(Math.min(count, 50));
-      allMail.reverse(); // newest first
-
+      const allMail = await readMboxTail(RECENT_TAIL_BYTES, Math.min(count, 50));
+      // Already newest-first from readMboxTail
       const results = allMail.slice(0, count).map((m) => ({
         subject: m.subject,
         from: m.from,

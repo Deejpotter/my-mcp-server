@@ -31,6 +31,9 @@ async function vaultAuth(): Promise<string> {
       client_id: VAULT_CLIENT_ID,
       client_secret: VAULT_CLIENT_SECRET,
       scope: "api",
+      device_identifier: "f0e5d2a1-4b3c-4d5e-8f9a-0b1c2d3e4f5a",
+      device_name: "openclaw-mcp",
+      device_type: "14",
     }),
   });
   const data = await res.json() as { access_token?: string; expires_in?: number };

@@ -15,7 +15,10 @@
  * @date 2025-11-02
  */
 
-// Load environment variables from .env file
+// CRITICAL: Must be first import so .env is loaded during module resolution
+// (ESM imports resolve before any module body code executes)
+import "dotenv/config";
+
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
